@@ -1,0 +1,5 @@
+ALTER TABLE tenant
+    ADD COLUMN status VARCHAR(20) NOT NULL DEFAULT 'PENDING';
+
+ALTER TABLE tenant
+    ADD CONSTRAINT ck_tenant_status CHECK (status IN ('PENDING', 'ACTIVE', 'SUSPENDED'));
