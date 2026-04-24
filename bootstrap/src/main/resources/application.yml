@@ -1,0 +1,31 @@
+spring:
+  application:
+    name: resrv
+  threads:
+    virtual:
+      enabled: true
+  mvc:
+    problemdetails:
+      enabled: true
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+  flyway:
+    locations: classpath:db/migration
+
+resrv:
+  jwt:
+    secret-key: ${JWT_SECRET_KEY:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef}
+    issuer: resrv
+    audience: resrv-api
+    expiration: 1800
+
+springdoc:
+  paths-to-match:
+    - /api/**
+    - /public/**
+  swagger-ui:
+    operations-sorter: alpha
+    tags-sorter: alpha
+    try-it-out-enabled: false
