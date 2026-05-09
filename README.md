@@ -1,5 +1,7 @@
 # resrv — Multi-tenant B2B Reservation API
 
+[![CI](https://github.com/jaeyeopme/resrv/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/jaeyeopme/resrv/actions/workflows/ci.yml)
+
 `resrv` is a multi-tenant B2B reservation API for businesses that manage reservable resources and for customers who sign in, find available slots, and hold/confirm/cancel reservations.
 
 The review value is not simple CRUD. The project connects tenant isolation, role-based JWT authentication, availability calculation, hold-based reservation lifecycle, PostgreSQL concurrency constraints, OpenAPI documentation, and Testcontainers-backed integration tests into one backend system.
@@ -27,7 +29,6 @@ The review value is not simple CRUD. The project connects tenant isolation, role
 | Architecture and module boundaries | [`docs/architecture.md`](docs/architecture.md) |
 | Current status and next steps | [`docs/roadmap.md`](docs/roadmap.md) |
 | Decision records | [`docs/decisions.md`](docs/decisions.md) |
-| Internal execution wiki | [`omx_wiki/`](omx_wiki/README.md) |
 
 ## Architecture at a glance
 

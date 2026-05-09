@@ -6,7 +6,6 @@ google-java-format = "1.27.0"
 bouncycastle = "1.80"
 java-uuid-generator = "5.1.0"
 archunit = "1.4.1"
-sonarqube = "7.2.3.7755"
 springdoc-openapi = "3.0.3"
 
 [libraries]
@@ -22,7 +21,7 @@ spring-tx = { module = "org.springframework:spring-tx" }
 # Spring context (@Service, @Component, etc.)
 spring-context = { module = "org.springframework:spring-context" }
 
-# Caffeine in-memory cache (jti blacklist, user state cache)
+# Caffeine in-memory cache for the Phase 1 JTI blacklist
 caffeine = { module = "com.github.ben-manes.caffeine:caffeine" }
 # Jackson 3 databind (JSON serialization in security adapters)
 jackson-databind = { module = "tools.jackson.core:jackson-databind" }
@@ -63,8 +62,6 @@ archunit-junit5 = { module = "com.tngtech.archunit:archunit-junit5", version.ref
 spring-boot-starter-data-jpa-test = { module = "org.springframework.boot:spring-boot-starter-data-jpa-test" }
 # Flyway test utilities
 spring-boot-starter-flyway-test = { module = "org.springframework.boot:spring-boot-starter-flyway-test" }
-# Validation test utilities
-spring-boot-starter-validation-test = { module = "org.springframework.boot:spring-boot-starter-validation-test" }
 # WebMvc test slice (@WebMvcTest)
 spring-boot-starter-webmvc-test = { module = "org.springframework.boot:spring-boot-starter-webmvc-test" }
 # Spring Security test utilities (SecurityMockMvcRequestPostProcessors.jwt, etc.)
@@ -80,4 +77,3 @@ testcontainers-postgresql = { module = "org.testcontainers:testcontainers-postgr
 spring-boot = { id = "org.springframework.boot", version.ref = "spring-boot" }
 dependency-management = { id = "io.spring.dependency-management", version.ref = "dependency-management" }
 spotless = { id = "com.diffplug.spotless", version.ref = "spotless" }
-sonarqube = { id = "org.sonarqube", version.ref = "sonarqube" }

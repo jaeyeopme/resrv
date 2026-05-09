@@ -51,7 +51,7 @@ These items would further improve review quality.
 | P1 | Add more reservation domain/application unit tests | State-transition rules become fast to verify without Testcontainers |
 | P2 | Add admin reservation status transition API | Operators can manage check-in/no-show/admin-cancel states |
 | P2 | Add seed/demo profile | Reduces demo setup time |
-| P2 | Document CI badge and GitHub Actions | Provides public trust signal |
+| P2 | Publish read-only hosted demo policy | Provides a safer external review path than a mutable demo environment |
 
 ## Phase 2 — Deferred security and operations hardening
 
