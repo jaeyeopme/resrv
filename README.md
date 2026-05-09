@@ -1,33 +1,33 @@
 # resrv — Multi-tenant B2B Reservation API
 
-`resrv`는 사업자가 예약 가능한 자원(Resource)을 운영하고, 고객이 로그인 후 가능한 시간대를 조회해 예약을 hold/confirm/cancel 할 수 있는 **멀티테넌트 B2B 예약 API**입니다.
+`resrv` is a multi-tenant B2B reservation API for businesses that manage reservable resources and for customers who sign in, find available slots, and hold/confirm/cancel reservations.
 
-포트폴리오 관점의 핵심은 단순 CRUD가 아니라 **테넌트 격리, 역할 기반 인증, 예약 가능 시간 계산, hold 기반 예약 생명주기, PostgreSQL 동시성 제약, OpenAPI 문서화, Testcontainers 통합 테스트**가 하나의 백엔드 시스템으로 연결되어 있다는 점입니다.
+The review value is not simple CRUD. The project connects tenant isolation, role-based JWT authentication, availability calculation, hold-based reservation lifecycle, PostgreSQL concurrency constraints, OpenAPI documentation, and Testcontainers-backed integration tests into one backend system.
 
 ## What is implemented now
 
-| 영역 | 구현된 기능 |
+| Area | Implemented capability |
 |---|---|
-| Tenant onboarding | 테넌트 생성과 최초 `OWNER` 관리자 등록 |
-| Auth | 관리자 로그인, 고객 로그인, JWT 발급, logout JTI blacklist, `/me` |
-| Resource management | 테넌트 범위 Resource 생성/조회/수정/비활성화 |
-| Availability | 요일별 반복 운영 시간, 날짜별 휴무/특별 운영 시간 |
-| Slot search | 테넌트 timezone과 slot duration 기준의 예약 가능 slot 조회 |
-| Reservation lifecycle | 고객 로그인 기반 hold → confirm → customer cancel |
-| Admin audit | 관리자용 Resource별 예약 조회 |
-| No overbooking | PostgreSQL `EXCLUDE USING gist` 제약으로 활성 예약 시간대 충돌 방지 |
-| API docs | Springdoc OpenAPI JSON/YAML과 Swagger UI 공개 |
+| Tenant onboarding | Tenant creation with the first `OWNER` administrator |
+| Auth | Administrator login, customer login, JWT issuance, logout JTI blacklist, `/me` |
+| Resource management | Tenant-scoped resource create/read/update/deactivate |
+| Availability | Weekly recurring hours and date-specific closures/special hours |
+| Slot search | Available-slot calculation using tenant timezone and slot duration |
+| Reservation lifecycle | Customer-authenticated hold → confirm → customer cancel |
+| Admin audit | Administrator view of reservations per resource |
+| No overbooking | PostgreSQL `EXCLUDE USING gist` constraint blocks active reservation overlaps |
+| API docs | Public Springdoc OpenAPI JSON/YAML and Swagger UI |
 
 ## Quick links
 
-| 보고 싶은 것 | 위치 |
+| Need | Location |
 |---|---|
 | API surface / Swagger | [`docs/api.md`](docs/api.md), `/swagger-ui.html`, `/v3/api-docs`, `/v3/api-docs.yaml` |
-| 제품 의도와 MVP 경계 | [`docs/product.md`](docs/product.md) |
-| 아키텍처와 모듈 경계 | [`docs/architecture.md`](docs/architecture.md) |
-| 현재 상태와 다음 단계 | [`docs/roadmap.md`](docs/roadmap.md) |
-| 결정 기록 | [`docs/decisions.md`](docs/decisions.md) |
-| 내부 실행 위키 | [`omx_wiki/`](omx_wiki/README.md) |
+| Product intent and MVP boundary | [`docs/product.md`](docs/product.md) |
+| Architecture and module boundaries | [`docs/architecture.md`](docs/architecture.md) |
+| Current status and next steps | [`docs/roadmap.md`](docs/roadmap.md) |
+| Decision records | [`docs/decisions.md`](docs/decisions.md) |
+| Internal execution wiki | [`omx_wiki/`](omx_wiki/README.md) |
 
 ## Architecture at a glance
 
@@ -42,17 +42,17 @@ adapter-web         adapter-persistence
 bootstrap: Spring Boot assembly, Security/JWT/OpenAPI, integration tests
 ```
 
-- `domain`: Spring/JPA에 의존하지 않는 도메인 모델과 불변 조건
-- `application`: 유스케이스와 port 인터페이스, 트랜잭션 경계
-- `adapter-web`: REST controller, DTO, validation, 인증 principal 변환
-- `adapter-persistence`: JPA, Flyway migration, PostgreSQL 제약
-- `bootstrap`: 실행 조립, Security/JWT/OpenAPI 설정, 통합 테스트
+- `domain`: framework-free domain model and invariants
+- `application`: use cases, port interfaces, and transaction boundaries
+- `adapter-web`: REST controllers, DTOs, validation, and authenticated-principal mapping
+- `adapter-persistence`: JPA, Flyway migrations, and PostgreSQL constraints
+- `bootstrap`: runtime assembly, Security/JWT/OpenAPI configuration, and integration tests
 
-의존 방향은 `adapter-* -> application -> domain`입니다. 자세한 내용은 [`docs/architecture.md`](docs/architecture.md)를 기준으로 합니다.
+The dependency direction is `adapter-* -> application -> domain`. See [`docs/architecture.md`](docs/architecture.md) for details.
 
 ## Tech stack
 
-| 분류 | 기술 |
+| Category | Technology |
 |---|---|
 | Language / runtime | Java 25 |
 | Framework | Spring Boot 4, Spring MVC, Spring Security |
@@ -75,16 +75,9 @@ bootstrap: Spring Boot assembly, Security/JWT/OpenAPI, integration tests
 ./gradlew :bootstrap:bootRun
 ```
 
-`bootRun` starts PostgreSQL through the root `compose.yml` and uses a built-in
-development JWT secret so the API can be reviewed without extra setup. Set
-`JWT_SECRET_KEY` to a 32+ byte value for any shared, staged, or production-like
-environment.
+`bootRun` starts PostgreSQL through the root `compose.yml` and uses a built-in development JWT secret so the API can be reviewed without extra setup. Set `JWT_SECRET_KEY` to a 32+ byte value for any shared, staged, or production-like environment.
 
-Keep the terminal open while reviewing the API. The startup is complete when the
-log prints `Started ResrvApplication`; because `bootRun` is a long-running
-server task, it does not return `BUILD SUCCESSFUL` until the process exits. If
-you stop it with `Ctrl-C` or a forced kill, Gradle may report a non-zero exit
-such as `130` or `143` even though startup already succeeded.
+Keep the terminal open while reviewing the API. Startup is complete when the log prints `Started ResrvApplication`; because `bootRun` is a long-running server task, it does not return `BUILD SUCCESSFUL` until the process exits. If you stop it with `Ctrl-C` or a forced kill, Gradle may report a non-zero exit such as `130` or `143` even though startup already succeeded.
 
 Then open:
 
@@ -97,11 +90,11 @@ Swagger UI is public for review, but mutating `Try it out` is disabled by defaul
 ## Main API flow
 
 1. `POST /api/tenants` — create a tenant and first `OWNER` admin.
-2. `POST /public/{tenantSlug}/auth/login` — login as admin and receive a Bearer token.
+2. `POST /public/{tenantSlug}/auth/login` — log in as an admin and receive a Bearer token.
 3. `POST /api/resources` — create a reservable resource.
 4. `PUT /api/resources/{resourceId}/weekly-availability/{dayOfWeek}` — set weekly hours.
 5. `POST /public/{tenantSlug}/customers` — register a customer.
-6. `POST /public/{tenantSlug}/customers/login` — login as customer.
+6. `POST /public/{tenantSlug}/customers/login` — log in as a customer.
 7. `GET /api/resources/{resourceId}/slots?date=YYYY-MM-DD` — list available slots.
 8. `POST /api/reservation-holds` — hold a slot as the logged-in customer.
 9. `POST /api/reservation-holds/{reservationId}/confirm` — confirm the hold.
@@ -120,7 +113,7 @@ Detailed endpoint and payload notes are in [`docs/api.md`](docs/api.md).
 
 ## Inspection checklist
 
-- Start from Swagger UI and verify the API surface is discoverable.
+- Start from Swagger UI and verify that the API surface is discoverable.
 - Read [`docs/product.md`](docs/product.md) to understand why customer login is mandatory for reservations.
 - Inspect [`docs/architecture.md`](docs/architecture.md) for hexagonal boundaries and ArchUnit enforcement.
 - Inspect `adapter-persistence/src/main/resources/db/migration/V7__create_reservation.sql` for DB-level no-overbooking.
@@ -128,4 +121,4 @@ Detailed endpoint and payload notes are in [`docs/api.md`](docs/api.md).
 
 ## Explicitly deferred
 
-The following are intentionally deferred hardening items and should not be interpreted as missing accidentals: login rate limiting, failed-login lockout, tenant/admin active-state validation filter, and persistent DB/Redis JTI blacklist. See [`docs/roadmap.md`](docs/roadmap.md).
+The following hardening items are intentionally deferred and should not be treated as accidental gaps: login rate limiting, failed-login lockout, tenant/admin active-state validation filter, and persistent DB/Redis JTI blacklist. See [`docs/roadmap.md`](docs/roadmap.md).

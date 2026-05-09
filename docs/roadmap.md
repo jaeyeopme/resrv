@@ -2,19 +2,19 @@
 
 ## Phase 1 — Review Reservation MVP
 
-현재 Phase 1은 “외부 리뷰어가 API와 테스트를 보고 예약 백엔드의 핵심 완성도를 판단할 수 있는 수준”을 목표로 합니다.
+Phase 1 aims to let external reviewers judge the core reservation-backend quality from the API, tests, and implementation evidence.
 
 ### Completed foundation
 
 - 5-subproject hexagonal architecture
-- PostgreSQL/Flyway 기반 schema migration
-- Spring Security 기반 JWT resource server
+- PostgreSQL/Flyway schema migrations
+- Spring Security JWT resource server
 - Tenant onboarding
 - Tenant admin login/logout/me
 - Resource management
 - Springdoc OpenAPI/Swagger UI
-- ProblemDetail 기반 오류 응답
-- Testcontainers integration test 기반 검증 구조
+- ProblemDetail error responses
+- Testcontainers-backed integration-test structure
 
 ### Completed reservation MVP
 
@@ -34,42 +34,42 @@
 
 ## Product decisions already settled
 
-- 예약은 로그인한 고객만 생성합니다.
-- 비회원 예약 토큰 모델은 MVP에서 채택하지 않습니다.
-- Resource capacity는 MVP에서 1입니다.
-- 과예약 방지는 application check + PostgreSQL exclusion constraint를 함께 사용합니다.
-- Swagger/OpenAPI는 공개 리뷰 표면으로 유지합니다.
+- Only logged-in customers can create reservations.
+- Guest reservation tokens are not part of the MVP.
+- Resource capacity is 1 in the MVP.
+- Overbooking prevention uses both application checks and a PostgreSQL exclusion constraint.
+- Swagger/OpenAPI remains the public review surface.
 
 ## Phase 1 polish backlog
 
-포트폴리오 완성도를 더 올리려면 다음이 우선입니다.
+These items would further improve review quality.
 
-| 우선순위 | 항목 | 이유 |
+| Priority | Item | Reason |
 |---|---|---|
-| P1 | OpenAPI example payload 보강 | Swagger만 보고도 demo flow를 재현 가능하게 함 |
-| P1 | README에 curl walkthrough 추가 | 리뷰어가 로컬에서 빠르게 성공 경로를 따라갈 수 있음 |
-| P1 | Reservation domain/application 단위 테스트 추가 | Testcontainers 없이도 상태 전이 규칙을 빠르게 검증 가능 |
-| P2 | Admin reservation status transition API | check-in/no-show/admin cancel 상태를 운영자가 다룰 수 있음 |
-| P2 | Seed/demo profile | 포트폴리오 시연 시간을 줄임 |
-| P2 | CI badge와 GitHub Actions 문서화 | 외부 공개 시 신뢰 신호가 됨 |
+| P1 | Add OpenAPI example payloads | Reviewers can reproduce the demo flow from Swagger alone |
+| P1 | Add a README curl walkthrough | Reviewers can quickly follow the local success path |
+| P1 | Add more reservation domain/application unit tests | State-transition rules become fast to verify without Testcontainers |
+| P2 | Add admin reservation status transition API | Operators can manage check-in/no-show/admin-cancel states |
+| P2 | Add seed/demo profile | Reduces demo setup time |
+| P2 | Document CI badge and GitHub Actions | Provides public trust signal |
 
 ## Phase 2 — Deferred security and operations hardening
 
-아래 항목은 기능 단계와 별도인 인증 hardening backlog입니다. 명시 요청 전에는 구현하지 않습니다.
+The following items are authentication/operations hardening work, separate from the current feature phase. Do not implement them without an explicit request.
 
-| ID | 내용 | 이유 |
+| ID | Item | Reason |
 |---|---|---|
-| T100 | 로그인 rate limiting | 운영 정책과 저장소/인프라 선택 필요 |
-| T101 | 로그인 실패 잠금 | 사용자 상태 모델과 운영 해제 정책 필요 |
-| T102 | 테넌트/관리자 활성 상태 검증 필터 | 상태 전이 정책과 API 오류 계약 확정 필요 |
-| T103 | persistent JTI blacklist | DB/Redis 선택과 운영 비용 판단 필요 |
+| T100 | Login rate limiting | Requires operations policy and storage/infrastructure choice |
+| T101 | Failed-login lockout | Requires user-state model and unlock policy |
+| T102 | Tenant/admin active-state validation filter | Requires state-transition policy and API error contract |
+| T103 | Persistent JTI blacklist | Requires DB/Redis choice and operations cost decision |
 
 ## Phase 3 — Service realism expansion
 
-- 결제 또는 deposit 연동 전용 port 설계
-- email/SMS notification outbox
-- 직원별 권한 세분화
-- customer profile update/password reset
-- 반복 예약/패키지 예약
-- 관측성: structured logging, metrics, trace id
-- read-only hosted demo와 공개 Swagger URL 운영 정책
+- Payment or deposit integration port
+- Email/SMS notification outbox
+- More granular staff permissions
+- Customer profile update/password reset
+- Recurring/package reservations
+- Observability: structured logging, metrics, trace id
+- Read-only hosted demo and public Swagger operating policy
