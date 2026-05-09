@@ -16,5 +16,5 @@ This directory contains the externally shareable product and technical documenta
 
 - Keep the root `README.md` focused on quick understanding and navigation.
 - Keep `docs/` curated and safe to share externally.
-- Keep internal execution state, drift notes, and next-action logs in [`omx_wiki/`](../omx_wiki/README.md).
+- Keep internal execution state, drift notes, and next-action logs out of public documentation.
 - Prefer implemented code, tests, and Flyway migrations over stale planning notes when describing current behavior.
