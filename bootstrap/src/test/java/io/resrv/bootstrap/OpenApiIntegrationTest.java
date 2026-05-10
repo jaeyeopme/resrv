@@ -50,6 +50,75 @@ class OpenApiIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test
+    void openApiDocumentsReviewerFacingOperationSemantics() throws Exception {
+        mockMvc.perform(get("/v3/api-docs").accept(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.paths['/api/tenants'].post.tags[0]").value("Tenants"))
+                .andExpect(
+                        jsonPath("$.paths['/api/tenants'].post.summary").value("Create a tenant"))
+                .andExpect(jsonPath("$.paths['/api/tenants'].post.responses.201").exists())
+                .andExpect(jsonPath("$.paths['/api/tenants'].post.responses.400").exists())
+                .andExpect(jsonPath("$.paths['/api/tenants'].post.responses.409").exists())
+                .andExpect(
+                        jsonPath("$.paths['/public/{tenantSlug}/auth/login'].post.summary")
+                                .value("Log in as a tenant administrator"))
+                .andExpect(jsonPath("$.paths['/api/auth/logout'].post.responses.204").exists())
+                .andExpect(
+                        jsonPath("$.paths['/api/auth/logout'].post.security[0].bearerAuth")
+                                .exists())
+                .andExpect(jsonPath("$.paths['/api/resources'].post.tags[0]").value("Resources"))
+                .andExpect(
+                        jsonPath("$.paths['/api/resources'].post.summary")
+                                .value("Create a resource"))
+                .andExpect(jsonPath("$.paths['/api/resources'].post.responses.201").exists())
+                .andExpect(jsonPath("$.paths['/api/resources'].post.responses.401").exists())
+                .andExpect(jsonPath("$.paths['/api/resources'].post.responses.403").exists())
+                .andExpect(jsonPath("$.paths['/api/resources'].post.responses.409").exists())
+                .andExpect(
+                        jsonPath("$.paths['/api/resources'].post.security[0].bearerAuth").exists())
+                .andExpect(
+                        jsonPath("$.paths['/api/resources/{resourceId}'].delete.responses.204")
+                                .exists())
+                .andExpect(
+                        jsonPath(
+                                        "$.paths['/api/resources/{resourceId}'].get.parameters[0].description")
+                                .value("Resource identifier."))
+                .andExpect(
+                        jsonPath("$.paths['/api/resources/{resourceId}/slots'].get.summary")
+                                .value("List available slots"))
+                .andExpect(
+                        jsonPath("$.paths['/api/resources/{resourceId}/reservations'].get.tags[0]")
+                                .value("Availability"))
+                .andExpect(
+                        jsonPath("$.paths['/api/reservation-holds'].post.tags[0]")
+                                .value("Reservations"))
+                .andExpect(
+                        jsonPath("$.paths['/api/reservation-holds'].post.summary")
+                                .value("Hold a reservation slot"))
+                .andExpect(
+                        jsonPath("$.paths['/api/reservation-holds'].post.responses.201").exists())
+                .andExpect(
+                        jsonPath("$.paths['/api/reservation-holds'].post.responses.409").exists())
+                .andExpect(
+                        jsonPath("$.paths['/api/reservation-holds'].post.security[0].bearerAuth")
+                                .exists())
+                .andExpect(
+                        jsonPath(
+                                        "$.components.schemas.RegisterTenantRequest.properties.name.description")
+                                .value("Tenant display name."))
+                .andExpect(
+                        jsonPath(
+                                        "$.components.schemas.RegisterTenantRequest.properties.name.example")
+                                .value("Demo Studio"))
+                .andExpect(
+                        jsonPath("$.components.schemas.LoginRequest.properties.password.writeOnly")
+                                .value(true))
+                .andExpect(
+                        jsonPath("$.components.schemas.ResourceRequest.properties.slug.example")
+                                .value("room-a"));
+    }
+
+    @Test
     void swaggerUiIsPublic() throws Exception {
         mockMvc.perform(get("/swagger-ui.html"))
                 .andExpect(status().is3xxRedirection())
