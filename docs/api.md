@@ -12,6 +12,10 @@
 
 Swagger UI `Try it out` is disabled by default. Mutating requests must be intentionally enabled before exposing a public review or demo environment.
 
+The generated OpenAPI contract uses reviewer-facing tags, operation summaries, role-aware
+Bearer requirements, success/error status codes, and field descriptions/examples. The
+`OpenApiIntegrationTest` keeps those documentation affordances from regressing.
+
 ## Authentication model
 
 | Principal | Login | JWT role | Main permissions |
