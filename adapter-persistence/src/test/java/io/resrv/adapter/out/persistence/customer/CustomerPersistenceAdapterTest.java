@@ -1,5 +1,6 @@
 package io.resrv.adapter.out.persistence.customer;
 
+import static io.resrv.adapter.out.persistence.PersistenceTestFixtures.insertTenantDirectly;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -11,9 +12,7 @@ import io.resrv.domain.customer.CustomerEmail;
 import io.resrv.domain.customer.CustomerEmailAlreadyExistsException;
 import io.resrv.domain.customer.CustomerName;
 import io.resrv.domain.tenant.TenantId;
-import java.sql.Timestamp;
 import java.time.Instant;
-import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
@@ -45,7 +44,7 @@ class CustomerPersistenceAdapterTest {
 
     @Test
     void saveAndFindCredentialsAndDomain() {
-        final var tenantId = insertTenantDirectly("customer-save");
+        final var tenantId = insertTenantDirectly(jdbcTemplate, NOW, "customer-save");
         final var customer = createCustomer(tenantId, "Member@Example.com", "Member");
 
         adapter.save(customer);
@@ -69,7 +68,7 @@ class CustomerPersistenceAdapterTest {
 
     @Test
     void duplicateEmailInSameTenant_throwsCustomerEmailAlreadyExistsException() {
-        final var tenantId = insertTenantDirectly("customer-duplicate");
+        final var tenantId = insertTenantDirectly(jdbcTemplate, NOW, "customer-duplicate");
         adapter.save(createCustomer(tenantId, "member@example.com", "Member One"));
 
         assertThrows(
@@ -79,8 +78,8 @@ class CustomerPersistenceAdapterTest {
 
     @Test
     void sameEmailInDifferentTenants_isAllowedAndScoped() {
-        final var firstTenantId = insertTenantDirectly("customer-first");
-        final var secondTenantId = insertTenantDirectly("customer-second");
+        final var firstTenantId = insertTenantDirectly(jdbcTemplate, NOW, "customer-first");
+        final var secondTenantId = insertTenantDirectly(jdbcTemplate, NOW, "customer-second");
         final var firstCustomer = createCustomer(firstTenantId, "member@example.com", "First");
         final var secondCustomer = createCustomer(secondTenantId, "member@example.com", "Second");
 
@@ -94,29 +93,11 @@ class CustomerPersistenceAdapterTest {
 
     @Test
     void missingCredentials_returnsEmpty() {
-        final var tenantId = insertTenantDirectly("customer-missing");
+        final var tenantId = insertTenantDirectly(jdbcTemplate, NOW, "customer-missing");
 
         assertFalse(
                 adapter.findCredentialsByTenantIdAndEmail(tenantId, "missing@example.com")
                         .isPresent());
-    }
-
-    private TenantId insertTenantDirectly(final String slugPrefix) {
-        final var id = UUID.randomUUID();
-        jdbcTemplate.update(
-                """
-                INSERT INTO tenant (id, name, slug, timezone, slot_duration, hold_ttl, cancellation_window, created_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-                """,
-                id,
-                "Test Tenant",
-                slugPrefix + "-" + Math.abs(System.nanoTime()),
-                "UTC",
-                30,
-                5,
-                0,
-                Timestamp.from(NOW));
-        return TenantId.of(id);
     }
 
     private static Customer createCustomer(

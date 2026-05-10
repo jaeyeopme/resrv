@@ -1,5 +1,7 @@
 package io.resrv.adapter.out.persistence.reservation;
 
+import static io.resrv.adapter.out.persistence.PersistenceTestFixtures.insertResourceDirectly;
+import static io.resrv.adapter.out.persistence.PersistenceTestFixtures.insertTenantDirectly;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -44,8 +46,8 @@ class ReservationPersistenceAdapterTest {
 
     @Test
     void saveFindAndQueryReservations() {
-        final var tenantId = insertTenantDirectly("reservation-save");
-        final var resourceId = insertResourceDirectly(tenantId, "save-room");
+        final var tenantId = insertTenantDirectly(jdbcTemplate, NOW, "reservation-save");
+        final var resourceId = insertResourceDirectly(jdbcTemplate, NOW, tenantId, "save-room");
         final var customerId = insertCustomerDirectly(tenantId, "save@example.com");
         final var reservation = holdReservation(tenantId, resourceId, customerId, START_AT, END_AT);
 
@@ -75,8 +77,8 @@ class ReservationPersistenceAdapterTest {
 
     @Test
     void overlappingActiveReservation_throwsSlotUnavailableException() {
-        final var tenantId = insertTenantDirectly("reservation-overlap");
-        final var resourceId = insertResourceDirectly(tenantId, "overlap-room");
+        final var tenantId = insertTenantDirectly(jdbcTemplate, NOW, "reservation-overlap");
+        final var resourceId = insertResourceDirectly(jdbcTemplate, NOW, tenantId, "overlap-room");
         final var customerId = insertCustomerDirectly(tenantId, "overlap@example.com");
         adapter.save(holdReservation(tenantId, resourceId, customerId, START_AT, END_AT));
 
@@ -93,8 +95,8 @@ class ReservationPersistenceAdapterTest {
 
     @Test
     void expireHoldsDueAtOrBefore_marksHeldReservationsExpired() {
-        final var tenantId = insertTenantDirectly("reservation-expire");
-        final var resourceId = insertResourceDirectly(tenantId, "expire-room");
+        final var tenantId = insertTenantDirectly(jdbcTemplate, NOW, "reservation-expire");
+        final var resourceId = insertResourceDirectly(jdbcTemplate, NOW, tenantId, "expire-room");
         final var customerId = insertCustomerDirectly(tenantId, "expire@example.com");
         final var reservation =
                 Reservation.hold(
@@ -117,8 +119,9 @@ class ReservationPersistenceAdapterTest {
 
     @Test
     void cancelledReservationDoesNotBlockOverlap() {
-        final var tenantId = insertTenantDirectly("reservation-cancelled");
-        final var resourceId = insertResourceDirectly(tenantId, "cancelled-room");
+        final var tenantId = insertTenantDirectly(jdbcTemplate, NOW, "reservation-cancelled");
+        final var resourceId =
+                insertResourceDirectly(jdbcTemplate, NOW, tenantId, "cancelled-room");
         final var customerId = insertCustomerDirectly(tenantId, "cancelled@example.com");
         final var cancelled =
                 holdReservation(tenantId, resourceId, customerId, START_AT, END_AT)
@@ -127,42 +130,6 @@ class ReservationPersistenceAdapterTest {
         adapter.save(cancelled);
 
         assertFalse(adapter.existsActiveOverlap(tenantId, resourceId, START_AT, END_AT));
-    }
-
-    private TenantId insertTenantDirectly(final String slugPrefix) {
-        final var id = UUID.randomUUID();
-        jdbcTemplate.update(
-                """
-                INSERT INTO tenant (id, name, slug, timezone, slot_duration, hold_ttl, cancellation_window, created_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-                """,
-                id,
-                "Test Tenant",
-                slugPrefix + "-" + Math.abs(System.nanoTime()),
-                "UTC",
-                30,
-                5,
-                0,
-                Timestamp.from(NOW));
-        return TenantId.of(id);
-    }
-
-    private ResourceId insertResourceDirectly(final TenantId tenantId, final String slug) {
-        final var id = UUID.randomUUID();
-        jdbcTemplate.update(
-                """
-                INSERT INTO resource (id, tenant_id, slug, name, description, status, created_at, updated_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-                """,
-                id,
-                tenantId.value(),
-                slug,
-                "Room " + slug,
-                "Quiet",
-                "ACTIVE",
-                Timestamp.from(NOW),
-                Timestamp.from(NOW));
-        return ResourceId.of(id);
     }
 
     private CustomerId insertCustomerDirectly(final TenantId tenantId, final String email) {
