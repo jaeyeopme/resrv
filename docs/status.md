@@ -38,6 +38,7 @@ The Phase 1 reservation MVP is implemented enough for external readers to judge 
 | End-to-end flow test | `ReservationMvpIntegrationTest` |
 | OpenAPI surface test | `OpenApiIntegrationTest` |
 | CI quality gate | `.github/workflows/ci.yml` runs `./gradlew check --no-daemon` |
+| OpenAPI reviewer metadata | Controller annotations for tags, summaries, auth requirements, status codes, and schema fields |
 
 ## Product decisions already settled
 
@@ -53,7 +54,7 @@ These items would improve review ergonomics, but they are not required to unders
 
 | Priority | Item | Reason |
 |---|---|---|
-| P1 | Add OpenAPI example payloads | Reviewers can reproduce the demo flow from Swagger alone |
+| P1 | Add operation-level OpenAPI request/response examples | Reviewers can reproduce the demo flow from Swagger alone |
 | P1 | Add a README curl walkthrough | Reviewers can quickly follow the local success path |
 | P1 | Add more reservation domain/application unit tests | State-transition rules become fast to verify without Testcontainers |
 | P2 | Add admin reservation status transition API | Operators can manage check-in/no-show/admin-cancel states |
