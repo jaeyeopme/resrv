@@ -11,6 +11,7 @@ The Phase 1 reservation MVP is implemented enough for external readers to judge 
 - 5-subproject hexagonal architecture
 - PostgreSQL/Flyway schema migrations
 - Spring Security JWT resource server
+- PostgreSQL-backed JWT revocation blacklist
 - Tenant onboarding
 - Tenant admin login/logout/me
 - Customer registration/login
@@ -35,6 +36,7 @@ The Phase 1 reservation MVP is implemented enough for external readers to judge 
 | Customer reservation list/cancel | `/api/me/reservations/**` |
 | Admin reservation audit | `GET /api/resources/{resourceId}/reservations` |
 | DB-level no-overbooking | `V7__create_reservation.sql` exclusion constraint |
+| Scale-out token revocation | `V8__create_revoked_token.sql`, `TokenRevocationPersistenceAdapter`, `RevokedTokenCleanup` |
 | End-to-end flow test | `ReservationMvpIntegrationTest` |
 | OpenAPI surface test | `OpenApiIntegrationTest` |
 | CI quality gate | `.github/workflows/ci.yml` runs `./gradlew check --no-daemon` |
@@ -46,6 +48,7 @@ The Phase 1 reservation MVP is implemented enough for external readers to judge 
 - Guest reservation tokens are not part of the MVP.
 - Resource capacity is 1 in the MVP.
 - Overbooking prevention uses both application checks and a PostgreSQL exclusion constraint.
+- Logout revocation is persisted in PostgreSQL instead of process-local memory.
 - Swagger/OpenAPI remains the public review surface.
 
 ## High-signal polish opportunities
@@ -70,7 +73,6 @@ The following authentication/operations items are intentionally outside the curr
 | T100 | Login rate limiting | Requires operations policy and storage/infrastructure choice |
 | T101 | Failed-login lockout | Requires user-state model and unlock policy |
 | T102 | Tenant/admin active-state validation filter | Requires state-transition policy and API error contract |
-| T103 | Persistent JTI blacklist | Requires DB/Redis choice and operations cost decision |
 
 ## Longer-term realism expansions
 

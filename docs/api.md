@@ -40,7 +40,7 @@ JWTs include `jti`, `userId`, `tenantId`, `role`, `iss`, `aud`, and `exp` claims
 
 | Method | Path | Auth | Description |
 |---|---|---|---|
-| `POST` | `/api/auth/logout` | Bearer JWT | Blacklist the current JWT JTI until expiration |
+| `POST` | `/api/auth/logout` | Bearer JWT | Persistently revoke the current JWT JTI until expiration |
 | `GET` | `/api/auth/me` | Bearer JWT | Return the current JWT `userId`, `tenantId`, and `role` |
 
 ### Admin resource and availability

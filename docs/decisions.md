@@ -41,12 +41,13 @@ This document summarizes durable architecture decisions. If more context is need
 - Access token TTL is 30 minutes.
 - Refresh tokens are outside the MVP scope.
 
-## ADR-006: Phase 1 JTI blacklist
+## ADR-006: PostgreSQL JTI revocation blacklist
 
-- Logout uses an in-memory Caffeine-backed JTI blacklist.
-- Blacklist entries are retained only until the JWT `exp`.
-- Blacklist state is lost on application restart.
-- DB/Redis-backed persistent blacklist is a separate hardening item (T103).
+- Logout stores the current JWT `jti` in the PostgreSQL-backed `revoked_token` table.
+- Revocation entries are considered active only until the JWT `exp`.
+- Expired revocation rows are periodically deleted by a scheduled cleanup job; lookups also ignore expired rows.
+- Revocation state is shared across application instances and survives application restarts.
+- Redis was rejected for the current milestone because PostgreSQL/Flyway/Testcontainers already cover the needed durability and scale-out semantics without adding another infrastructure dependency.
 
 ## ADR-007: Resource identity and lifecycle
 

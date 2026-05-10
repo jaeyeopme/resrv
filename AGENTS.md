@@ -36,7 +36,26 @@ Deferred by design. Do not add code for these unless explicitly asked:
 | T100 | Rate limiting on login |
 | T101 | Login lock (`failed_attempts`, `locked_until`) |
 | T102 | `UserStateValidationFilter` — enforce `TenantStatus.ACTIVE` and admin active |
-| T103 | Persistent JTI blacklist (replace Caffeine with DB or Redis) |
+
+## Commit Messages
+
+Match the repository's existing Conventional Commit subject style before committing.
+
+Subject format:
+
+```text
+<type>(optional-scope): <lowercase intent summary>
+```
+
+Rules:
+
+- Inspect recent `git log --oneline` before committing; do not invent a new subject style.
+- Do not use Title Case imperative subjects such as `Document ...` or `Make ...`.
+- Preferred types: `feat`, `fix`, `docs`, `test`, `refactor`, `build`, `chore`.
+- Prefer narrow scopes when obvious: `auth`, `api`, `docs`, `build`, `nullness`, etc.
+- Keep the body as a concise decision record with useful Lore trailers:
+  `Constraint:`, `Rejected:`, `Confidence:`, `Scope-risk:`, `Directive:`, `Tested:`, `Not-tested:`.
+- If subject style and Lore guidance appear to conflict, preserve the Conventional Commit subject style and put the decision rationale in the body/trailers.
 
 ## Learnings
 

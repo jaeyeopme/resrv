@@ -56,7 +56,7 @@ bootstrap: runtime assembly, Security/JWT/Password/OpenAPI adapters, integration
 | Customer reservation | JWT `tenantId` | Bearer JWT | `CUSTOMER` |
 | Admin reservation audit | JWT `tenantId` | Bearer JWT | `OWNER`/`STAFF` |
 
-JWTs are self-issued HS256 tokens. Access tokens live for 30 minutes, and refresh tokens are outside the MVP scope. Logout is handled in Phase 1 with a Caffeine-backed JTI blacklist.
+JWTs are self-issued HS256 tokens. Access tokens live for 30 minutes, and refresh tokens are outside the MVP scope. Logout writes the token `jti` to a PostgreSQL-backed `revoked_token` table so revocation works across application instances. Expired revocation rows are ignored during authentication and removed by a scheduled cleanup using `resrv.auth.revocation-cleanup-interval`.
 
 ## Data model
 
@@ -71,6 +71,7 @@ The current Flyway schema includes:
 | `resource_weekly_availability` | tenant_id, resource_id, day_of_week, start_time, end_time |
 | `resource_availability_exception` | tenant_id, resource_id, date, closed, optional start/end time |
 | `reservation` | tenant_id, resource_id, customer_id, start_at, end_at, status, hold/confirm/cancel timestamps |
+| `revoked_token` | jti, expires_at, revoked_at |
 
 Important constraints:
 
@@ -110,6 +111,7 @@ Reservation time ranges are interpreted as half-open intervals: `[start, end)`.
 
 Representative integration tests:
 
+- `AuthIntegrationTest`: login/logout/me behavior and revoked-token rejection
 - `ResourceManagementIntegrationTest`: admin login and Resource CRUD flow
 - `ReservationMvpIntegrationTest`: customer registration/login, availability, slots, hold/confirm/cancel, and no-overbooking flow
 - `OpenApiIntegrationTest`: OpenAPI/Swagger public access and current API path exposure
@@ -123,4 +125,3 @@ The following security/operations hardening items are deferred to Phase 2 and sh
 | T100 | Login rate limiting |
 | T101 | Failed-login counter and lockout |
 | T102 | `UserStateValidationFilter` enforcing active tenant/admin state |
-| T103 | Persistent DB/Redis JTI blacklist |
