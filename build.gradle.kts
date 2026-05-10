@@ -76,46 +76,45 @@ subprojects {
             add("testRuntimeOnly", "org.junit.platform:junit-platform-launcher")
         }
 
-        val checkNullMarkedPackageInfo =
-            tasks.register("checkNullMarkedPackageInfo") {
-                group = LifecycleBasePlugin.VERIFICATION_GROUP
-                description =
-                    "Verifies every production Java package has package-info.java with NullMarked."
+        tasks.register("checkNullMarkedPackageInfo") {
+            group = LifecycleBasePlugin.VERIFICATION_GROUP
+            description =
+                "Verifies every production Java package has package-info.java with NullMarked."
 
-                doLast {
-                    val sourceRoot = layout.projectDirectory.dir("src/main/java").asFile
-                    if (!sourceRoot.exists()) {
-                        return@doLast
-                    }
+            doLast {
+                val sourceRoot = layout.projectDirectory.dir("src/main/java").asFile
+                if (!sourceRoot.exists()) {
+                    return@doLast
+                }
 
-                    val missingPackages =
-                        sourceRoot
-                            .walkTopDown()
-                            .filter { file ->
-                                file.isFile
-                                    && file.extension == "java"
-                                    && file.name != "package-info.java"
-                            }
-                            .map { it.parentFile }
-                            .distinct()
-                            .filter { packageDir ->
-                                val packageInfo = packageDir.resolve("package-info.java")
-                                !packageInfo.isFile || !packageInfo.readText().contains("NullMarked")
-                            }
-                            .map { it.relativeTo(projectDir).path }
-                            .sorted()
-                            .toList()
+                val missingPackages =
+                    sourceRoot
+                        .walkTopDown()
+                        .filter { file ->
+                            file.isFile
+                                && file.extension == "java"
+                                && file.name != "package-info.java"
+                        }
+                        .map { it.parentFile }
+                        .distinct()
+                        .filter { packageDir ->
+                            val packageInfo = packageDir.resolve("package-info.java")
+                            !packageInfo.isFile || !packageInfo.readText().contains("NullMarked")
+                        }
+                        .map { it.relativeTo(projectDir).path }
+                        .sorted()
+                        .toList()
 
-                    if (missingPackages.isNotEmpty()) {
-                        throw GradleException(
-                            "Production packages must declare package-info.java with NullMarked:\n"
-                                + missingPackages.joinToString("\n"))
-                    }
+                if (missingPackages.isNotEmpty()) {
+                    throw GradleException(
+                        "Production packages must declare package-info.java with NullMarked:\n"
+                            + missingPackages.joinToString("\n"))
                 }
             }
+        }
 
         tasks.named("check") {
-            dependsOn(checkNullMarkedPackageInfo)
+            dependsOn("checkNullMarkedPackageInfo")
         }
     }
 
