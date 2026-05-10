@@ -23,6 +23,7 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
 @Testcontainers
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 @Import({
+    RevokedTokenCleanup.class,
     TokenRevocationPersistenceAdapter.class,
     TokenRevocationPersistenceAdapterTest.ClockConfig.class
 })
@@ -37,6 +38,7 @@ class TokenRevocationPersistenceAdapterTest {
 
     @Autowired private RevokedTokenJpaRepository repository;
 
+    @Autowired private RevokedTokenCleanup cleanup;
 
     @Test
     void revokedFutureToken_isSharedAcrossAdapterInstances() {
@@ -54,6 +56,16 @@ class TokenRevocationPersistenceAdapterTest {
         assertFalse(adapter.isRevoked("jti-expired"));
     }
 
+    @Test
+    void cleanupDeletesExpiredRevocationsOnly() {
+        adapter.revoke("jti-expired", NOW.minusSeconds(1));
+        adapter.revoke("jti-active", NOW.plusSeconds(1800));
+
+        cleanup.deleteExpiredRevocations();
+
+        assertFalse(repository.existsById("jti-expired"));
+        assertTrue(repository.existsById("jti-active"));
+    }
 
     @Test
     void revokeIsIdempotent() {
