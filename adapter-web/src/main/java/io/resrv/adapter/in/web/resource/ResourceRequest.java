@@ -3,7 +3,6 @@ package io.resrv.adapter.in.web.resource;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
-import org.jspecify.annotations.Nullable;
 
 @Schema(
         description =
@@ -18,6 +17,5 @@ record ResourceRequest(
                 @Size(min = 3, max = 63, message = "Resource slug must be 3-63 characters")
                 String slug,
         @Schema(description = "Optional resource description.", example = "Consulting room")
-                @Nullable
                 @Size(max = 500, message = "Resource description must be at most 500 characters")
                 String description) {}

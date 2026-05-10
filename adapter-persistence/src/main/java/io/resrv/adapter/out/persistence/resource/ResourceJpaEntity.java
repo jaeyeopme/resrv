@@ -6,7 +6,6 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import java.time.Instant;
 import java.util.UUID;
-import org.jspecify.annotations.Nullable;
 
 @Entity
 @Table(name = "resource")
@@ -23,7 +22,6 @@ class ResourceJpaEntity {
     @Column(nullable = false, length = 100)
     private String name;
 
-    @Nullable
     @Column(length = 500)
     private String description;
 
@@ -43,7 +41,7 @@ class ResourceJpaEntity {
             final UUID tenantId,
             final String slug,
             final String name,
-            @Nullable final String description,
+            final String description,
             final String status,
             final Instant createdAt,
             final Instant updatedAt) {
@@ -73,7 +71,7 @@ class ResourceJpaEntity {
         return name;
     }
 
-    @Nullable String getDescription() {
+    String getDescription() {
         return description;
     }
 

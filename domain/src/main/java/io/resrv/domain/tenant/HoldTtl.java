@@ -1,7 +1,6 @@
 package io.resrv.domain.tenant;
 
 import java.util.Objects;
-import org.jspecify.annotations.Nullable;
 
 public record HoldTtl(int minutes) {
 
@@ -17,7 +16,7 @@ public record HoldTtl(int minutes) {
         }
     }
 
-    public static HoldTtl of(final @Nullable Integer minutes) {
+    public static HoldTtl of(final Integer minutes) {
         return new HoldTtl(Objects.requireNonNullElse(minutes, DEFAULT_MINUTES));
     }
 }

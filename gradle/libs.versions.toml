@@ -10,8 +10,6 @@ springdoc-openapi = "3.0.3"
 swagger-core = "2.2.47"
 
 [libraries]
-# Nullness annotations for API contracts (@Nullable, @NonNull)
-jspecify = { module = "org.jspecify:jspecify" }
 # UUID v7 generation (time-ordered, index-friendly)
 java-uuid-generator = { module = "com.fasterxml.uuid:java-uuid-generator", version.ref = "java-uuid-generator" }
 

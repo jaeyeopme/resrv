@@ -9,7 +9,6 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import java.time.ZoneId;
-import org.jspecify.annotations.Nullable;
 
 @Schema(description = "Tenant onboarding payload including the first OWNER administrator.")
 record RegisterTenantRequest(
@@ -31,7 +30,6 @@ record RegisterTenantRequest(
                 @Max(value = 480, message = "Slot duration must be at most 480 minutes")
                 Integer slotDuration,
         @Schema(description = "Reservation hold TTL in minutes.", example = "15")
-                @Nullable
                 @Min(value = 5, message = "Hold TTL must be at least 5 minutes")
                 @Max(value = 30, message = "Hold TTL must be at most 30 minutes")
                 Integer holdTtl,
@@ -39,7 +37,6 @@ record RegisterTenantRequest(
                         description =
                                 "Minimum minutes before start time when cancellation is allowed.",
                         example = "60")
-                @Nullable
                 @Min(value = 0, message = "Cancellation window must be 0 or more minutes")
                 Integer cancellationWindow,
         @Schema(description = "First tenant administrator.")

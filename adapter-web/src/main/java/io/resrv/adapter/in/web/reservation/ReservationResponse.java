@@ -5,7 +5,6 @@ import io.resrv.domain.reservation.ReservationStatus;
 import io.swagger.v3.oas.annotations.media.Schema;
 import java.time.Instant;
 import java.util.UUID;
-import org.jspecify.annotations.Nullable;
 
 @Schema(description = "Reservation response.")
 public record ReservationResponse(
@@ -34,7 +33,7 @@ public record ReservationResponse(
         @Schema(
                         description = "Hold expiration timestamp for unconfirmed holds.",
                         example = "2026-05-11T00:10:00Z")
-                @Nullable Instant holdExpiresAt,
+                Instant holdExpiresAt,
         @Schema(description = "Creation timestamp.", example = "2026-05-10T00:00:00Z")
                 Instant createdAt,
         @Schema(description = "Last update timestamp.", example = "2026-05-10T00:00:00Z")
@@ -42,11 +41,11 @@ public record ReservationResponse(
         @Schema(
                         description = "Confirmation timestamp, if confirmed.",
                         example = "2026-05-10T00:01:00Z")
-                @Nullable Instant confirmedAt,
+                Instant confirmedAt,
         @Schema(
                         description = "Cancellation timestamp, if cancelled.",
                         example = "2026-05-10T00:02:00Z")
-                @Nullable Instant cancelledAt) {
+                Instant cancelledAt) {
 
     public static ReservationResponse from(final ReservationResult result) {
         return new ReservationResponse(

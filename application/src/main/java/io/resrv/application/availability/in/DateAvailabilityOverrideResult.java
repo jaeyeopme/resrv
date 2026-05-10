@@ -5,7 +5,6 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.UUID;
-import org.jspecify.annotations.Nullable;
 
 public record DateAvailabilityOverrideResult(
         UUID id,
@@ -13,8 +12,8 @@ public record DateAvailabilityOverrideResult(
         UUID resourceId,
         LocalDate date,
         boolean closed,
-        @Nullable LocalTime startTime,
-        @Nullable LocalTime endTime,
+        LocalTime startTime,
+        LocalTime endTime,
         Instant createdAt,
         Instant updatedAt) {
 

@@ -33,7 +33,6 @@ import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.List;
 import java.util.UUID;
-import org.jspecify.annotations.Nullable;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
@@ -343,11 +342,11 @@ class AvailabilityWebAdapter {
             @Schema(
                             description = "Tenant-local override start time when not closed.",
                             example = "10:00")
-                    @Nullable LocalTime startTime,
+                    LocalTime startTime,
             @Schema(
                             description = "Tenant-local override end time when not closed.",
                             example = "16:00")
-                    @Nullable LocalTime endTime) {}
+                    LocalTime endTime) {}
 
     @Schema(description = "Saved recurring weekly availability window.")
     record WeeklyAvailabilityResponse(
@@ -410,11 +409,11 @@ class AvailabilityWebAdapter {
             @Schema(
                             description = "Tenant-local override start time when not closed.",
                             example = "10:00")
-                    @Nullable LocalTime startTime,
+                    LocalTime startTime,
             @Schema(
                             description = "Tenant-local override end time when not closed.",
                             example = "16:00")
-                    @Nullable LocalTime endTime,
+                    LocalTime endTime,
             @Schema(description = "Creation timestamp.", example = "2026-05-10T00:00:00Z")
                     Instant createdAt,
             @Schema(description = "Last update timestamp.", example = "2026-05-10T00:00:00Z")

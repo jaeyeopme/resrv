@@ -4,7 +4,6 @@ import io.resrv.domain.reservation.Reservation;
 import io.resrv.domain.reservation.ReservationStatus;
 import java.time.Instant;
 import java.util.UUID;
-import org.jspecify.annotations.Nullable;
 
 public record ReservationResult(
         UUID id,
@@ -14,11 +13,11 @@ public record ReservationResult(
         Instant startAt,
         Instant endAt,
         ReservationStatus status,
-        @Nullable Instant holdExpiresAt,
+        Instant holdExpiresAt,
         Instant createdAt,
         Instant updatedAt,
-        @Nullable Instant confirmedAt,
-        @Nullable Instant cancelledAt) {
+        Instant confirmedAt,
+        Instant cancelledAt) {
 
     public static ReservationResult from(final Reservation reservation) {
         return new ReservationResult(

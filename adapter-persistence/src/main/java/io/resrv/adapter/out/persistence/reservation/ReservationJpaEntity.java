@@ -6,7 +6,6 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import java.time.Instant;
 import java.util.UUID;
-import org.jspecify.annotations.Nullable;
 
 @Entity
 @Table(name = "reservation")
@@ -32,7 +31,6 @@ class ReservationJpaEntity {
     @Column(nullable = false, length = 32)
     private String status;
 
-    @Nullable
     @Column(name = "hold_expires_at")
     private Instant holdExpiresAt;
 
@@ -42,11 +40,9 @@ class ReservationJpaEntity {
     @Column(name = "updated_at", nullable = false)
     private Instant updatedAt;
 
-    @Nullable
     @Column(name = "confirmed_at")
     private Instant confirmedAt;
 
-    @Nullable
     @Column(name = "cancelled_at")
     private Instant cancelledAt;
 
@@ -60,11 +56,11 @@ class ReservationJpaEntity {
             final Instant startAt,
             final Instant endAt,
             final String status,
-            @Nullable final Instant holdExpiresAt,
+            final Instant holdExpiresAt,
             final Instant createdAt,
             final Instant updatedAt,
-            @Nullable final Instant confirmedAt,
-            @Nullable final Instant cancelledAt) {
+            final Instant confirmedAt,
+            final Instant cancelledAt) {
         this.id = id;
         this.tenantId = tenantId;
         this.resourceId = resourceId;
@@ -107,7 +103,7 @@ class ReservationJpaEntity {
         return status;
     }
 
-    @Nullable Instant getHoldExpiresAt() {
+    Instant getHoldExpiresAt() {
         return holdExpiresAt;
     }
 
@@ -119,11 +115,11 @@ class ReservationJpaEntity {
         return updatedAt;
     }
 
-    @Nullable Instant getConfirmedAt() {
+    Instant getConfirmedAt() {
         return confirmedAt;
     }
 
-    @Nullable Instant getCancelledAt() {
+    Instant getCancelledAt() {
         return cancelledAt;
     }
 }

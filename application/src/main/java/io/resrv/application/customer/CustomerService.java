@@ -20,7 +20,6 @@ import io.resrv.domain.customer.CustomerEmail;
 import io.resrv.domain.customer.CustomerEmailAlreadyExistsException;
 import io.resrv.domain.customer.CustomerName;
 import java.time.Clock;
-import org.jspecify.annotations.Nullable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -109,7 +108,7 @@ class CustomerService implements RegisterCustomerUseCase, CustomerLoginUseCase {
         return new LoginResult(token.accessToken(), token.expiresIn());
     }
 
-    private static boolean isBlank(@Nullable final String value) {
+    private static boolean isBlank(final String value) {
         return value == null || value.isBlank();
     }
 }

@@ -8,7 +8,6 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.UUID;
-import org.jspecify.annotations.Nullable;
 
 @Entity
 @Table(name = "resource_availability_exception")
@@ -28,11 +27,9 @@ class DateAvailabilityOverrideJpaEntity {
     @Column(nullable = false)
     private boolean closed;
 
-    @Nullable
     @Column(name = "start_time")
     private LocalTime startTime;
 
-    @Nullable
     @Column(name = "end_time")
     private LocalTime endTime;
 
@@ -50,8 +47,8 @@ class DateAvailabilityOverrideJpaEntity {
             final UUID resourceId,
             final LocalDate date,
             final boolean closed,
-            @Nullable final LocalTime startTime,
-            @Nullable final LocalTime endTime,
+            final LocalTime startTime,
+            final LocalTime endTime,
             final Instant createdAt,
             final Instant updatedAt) {
         this.id = id;
@@ -85,11 +82,11 @@ class DateAvailabilityOverrideJpaEntity {
         return closed;
     }
 
-    @Nullable LocalTime getStartTime() {
+    LocalTime getStartTime() {
         return startTime;
     }
 
-    @Nullable LocalTime getEndTime() {
+    LocalTime getEndTime() {
         return endTime;
     }
 

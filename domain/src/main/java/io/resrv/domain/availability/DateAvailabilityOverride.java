@@ -6,7 +6,6 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.Objects;
-import org.jspecify.annotations.Nullable;
 
 public final class DateAvailabilityOverride {
 
@@ -15,8 +14,8 @@ public final class DateAvailabilityOverride {
     private final ResourceId resourceId;
     private final LocalDate date;
     private final boolean closed;
-    @Nullable private final LocalTime startTime;
-    @Nullable private final LocalTime endTime;
+    private final LocalTime startTime;
+    private final LocalTime endTime;
     private final Instant createdAt;
     private final Instant updatedAt;
 
@@ -26,8 +25,8 @@ public final class DateAvailabilityOverride {
             final ResourceId resourceId,
             final LocalDate date,
             final boolean closed,
-            @Nullable final LocalTime startTime,
-            @Nullable final LocalTime endTime,
+            final LocalTime startTime,
+            final LocalTime endTime,
             final Instant createdAt,
             final Instant updatedAt) {
         validateRange(closed, startTime, endTime);
@@ -92,8 +91,8 @@ public final class DateAvailabilityOverride {
             final ResourceId resourceId,
             final LocalDate date,
             final boolean closed,
-            @Nullable final LocalTime startTime,
-            @Nullable final LocalTime endTime,
+            final LocalTime startTime,
+            final LocalTime endTime,
             final Instant createdAt,
             final Instant updatedAt) {
         return new DateAvailabilityOverride(
@@ -127,11 +126,11 @@ public final class DateAvailabilityOverride {
         return date;
     }
 
-    public @Nullable LocalTime startTime() {
+    public LocalTime startTime() {
         return startTime;
     }
 
-    public @Nullable LocalTime endTime() {
+    public LocalTime endTime() {
         return endTime;
     }
 
@@ -144,9 +143,7 @@ public final class DateAvailabilityOverride {
     }
 
     private static void validateRange(
-            final boolean closed,
-            @Nullable final LocalTime startTime,
-            @Nullable final LocalTime endTime) {
+            final boolean closed, final LocalTime startTime, final LocalTime endTime) {
         if (closed) {
             return;
         }
