@@ -7,6 +7,7 @@ bouncycastle = "1.80"
 java-uuid-generator = "5.1.0"
 archunit = "1.4.1"
 springdoc-openapi = "3.0.3"
+swagger-core = "2.2.47"
 
 [libraries]
 # Nullness annotations for API contracts (@Nullable, @NonNull)
@@ -46,6 +47,8 @@ spring-boot-starter-test = { module = "org.springframework.boot:spring-boot-star
 spring-boot-docker-compose = { module = "org.springframework.boot:spring-boot-docker-compose" }
 # Generated OpenAPI description and Swagger UI for Spring MVC
 springdoc-openapi-starter-webmvc-ui = { module = "org.springdoc:springdoc-openapi-starter-webmvc-ui", version.ref = "springdoc-openapi" }
+# Swagger/OpenAPI annotations used by adapter DTOs and controllers
+swagger-annotations-jakarta = { module = "io.swagger.core.v3:swagger-annotations-jakarta", version.ref = "swagger-core" }
 
 # --- Persistence ---
 
