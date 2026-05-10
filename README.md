@@ -1,10 +1,29 @@
-# resrv — Multi-tenant B2B Reservation API
+# resrv — Multi-tenant Reservation API
 
 [![CI](https://github.com/jaeyeopme/resrv/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/jaeyeopme/resrv/actions/workflows/ci.yml)
 
-`resrv` is a multi-tenant B2B reservation API for businesses that manage reservable resources and for customers who sign in, find available slots, and hold/confirm/cancel reservations.
+`resrv` is a multi-tenant B2B reservation API built around practical backend delivery: product requirements translated into API contracts, tenant isolation, JWT security, reservation lifecycle rules, PostgreSQL concurrency guarantees, and Testcontainers-backed verification.
 
-The review value is not simple CRUD. The project connects tenant isolation, role-based JWT authentication, availability calculation, hold-based reservation lifecycle, PostgreSQL concurrency constraints, OpenAPI documentation, and Testcontainers-backed integration tests into one backend system.
+This is intentionally more than CRUD. The project proves that a backend can answer a real operational question consistently: **who reserved which resource, for which tenant, and for which time range — without leaking tenant data or allowing active overbooking.**
+
+## Why this is more than basic CRUD
+
+| Signal | Evidence |
+|---|---|
+| Product-to-backend delivery | Tenant onboarding, admin/customer auth, resources, availability, slot search, holds, confirmation, cancellation, and admin audit are implemented end to end. |
+| Non-CRUD domain complexity | Availability exceptions, tenant timezones, hold TTL, reservation state transitions, and no-overbooking constraints are part of the working flow. |
+| Security and tenancy boundaries | JWT `tenantId` drives authenticated tenant scope; URL tenant slugs are resolved server-side for public login/signup flows. |
+| Data correctness | PostgreSQL `EXCLUDE USING gist` constraint blocks overlapping active reservations even under concurrent requests. |
+| Verification discipline | Gradle `check` runs tests, Checkstyle, ArchUnit, JaCoCo, and Testcontainers-backed integration scenarios in CI. |
+
+## How to inspect it
+
+| If you have... | Start here | What you should see |
+|---|---|---|
+| 30 seconds | This README + [`docs/status.md`](docs/status.md) | Implemented scope, CI status, and why the project goes beyond basic CRUD. |
+| 3 minutes | [`docs/case-study.md`](docs/case-study.md) | Problem → design choices → implementation evidence → verification, kept short. |
+| Architecture review time | [`docs/architecture.md`](docs/architecture.md), [`docs/api.md`](docs/api.md), [`docs/decisions.md`](docs/decisions.md) | Hexagonal boundaries, tenancy/security model, endpoint surface, and durable decisions. |
+| Local API review | `./gradlew :bootstrap:bootRun` then `/swagger-ui.html` | Public OpenAPI/Swagger surface with mutating `Try it out` disabled by default. |
 
 ## What is implemented now
 
@@ -20,15 +39,16 @@ The review value is not simple CRUD. The project connects tenant isolation, role
 | No overbooking | PostgreSQL `EXCLUDE USING gist` constraint blocks active reservation overlaps |
 | API docs | Public Springdoc OpenAPI JSON/YAML and Swagger UI |
 
-## Quick links
+## Evidence map
 
-| Need | Location |
+| Question | Evidence |
 |---|---|
-| API surface / Swagger | [`docs/api.md`](docs/api.md), `/swagger-ui.html`, `/v3/api-docs`, `/v3/api-docs.yaml` |
-| Product intent and MVP boundary | [`docs/product.md`](docs/product.md) |
-| Architecture and module boundaries | [`docs/architecture.md`](docs/architecture.md) |
-| Current status and next steps | [`docs/roadmap.md`](docs/roadmap.md) |
-| Decision records | [`docs/decisions.md`](docs/decisions.md) |
+| What product problem does it model? | [`docs/product.md`](docs/product.md) |
+| How do I inspect the API? | [`docs/api.md`](docs/api.md), `/swagger-ui.html`, `/v3/api-docs`, `/v3/api-docs.yaml` |
+| How is the system structured? | [`docs/architecture.md`](docs/architecture.md) |
+| What tradeoffs were intentional? | [`docs/decisions.md`](docs/decisions.md) |
+| What is complete vs deferred? | [`docs/status.md`](docs/status.md) |
+| What is the short case-study narrative? | [`docs/case-study.md`](docs/case-study.md) |
 
 ## Architecture at a glance
 
@@ -115,6 +135,7 @@ Detailed endpoint and payload notes are in [`docs/api.md`](docs/api.md).
 ## Inspection checklist
 
 - Start from Swagger UI and verify that the API surface is discoverable.
+- Read [`docs/case-study.md`](docs/case-study.md) for the short problem/design/evidence flow.
 - Read [`docs/product.md`](docs/product.md) to understand why customer login is mandatory for reservations.
 - Inspect [`docs/architecture.md`](docs/architecture.md) for hexagonal boundaries and ArchUnit enforcement.
 - Inspect `adapter-persistence/src/main/resources/db/migration/V7__create_reservation.sql` for DB-level no-overbooking.
@@ -122,4 +143,4 @@ Detailed endpoint and payload notes are in [`docs/api.md`](docs/api.md).
 
 ## Explicitly deferred
 
-The following hardening items are intentionally deferred and should not be treated as accidental gaps: login rate limiting, failed-login lockout, tenant/admin active-state validation filter, and persistent DB/Redis JTI blacklist. See [`docs/roadmap.md`](docs/roadmap.md).
+The following hardening items are intentionally deferred and should not be treated as accidental gaps: login rate limiting, failed-login lockout, tenant/admin active-state validation filter, and persistent DB/Redis JTI blacklist. See [`docs/status.md`](docs/status.md).

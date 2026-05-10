@@ -1,22 +1,28 @@
-# Roadmap
+# Current Status and Future Work
 
-## Phase 1 — Review Reservation MVP
+This page is a public status summary, not a planning log. It foregrounds implemented evidence first, then records polish opportunities and intentionally deferred hardening.
 
-Phase 1 aims to let external reviewers judge the core reservation-backend quality from the API, tests, and implementation evidence.
+## Current milestone
 
-### Completed foundation
+The Phase 1 reservation MVP is implemented enough for external readers to judge core backend quality from API behavior, architecture boundaries, tests, and database constraints.
+
+## Implemented foundation
 
 - 5-subproject hexagonal architecture
 - PostgreSQL/Flyway schema migrations
 - Spring Security JWT resource server
 - Tenant onboarding
 - Tenant admin login/logout/me
+- Customer registration/login
 - Resource management
+- Availability rules and exceptions
+- Reservation hold/confirm/list/cancel flow
+- Admin reservation audit
 - Springdoc OpenAPI/Swagger UI
 - ProblemDetail error responses
 - Testcontainers-backed integration-test structure
 
-### Completed reservation MVP
+## Implemented reservation evidence
 
 | Capability | Evidence |
 |---|---|
@@ -31,6 +37,7 @@ Phase 1 aims to let external reviewers judge the core reservation-backend qualit
 | DB-level no-overbooking | `V7__create_reservation.sql` exclusion constraint |
 | End-to-end flow test | `ReservationMvpIntegrationTest` |
 | OpenAPI surface test | `OpenApiIntegrationTest` |
+| CI quality gate | `.github/workflows/ci.yml` runs `./gradlew check --no-daemon` |
 
 ## Product decisions already settled
 
@@ -40,9 +47,9 @@ Phase 1 aims to let external reviewers judge the core reservation-backend qualit
 - Overbooking prevention uses both application checks and a PostgreSQL exclusion constraint.
 - Swagger/OpenAPI remains the public review surface.
 
-## Phase 1 polish backlog
+## High-signal polish opportunities
 
-These items would further improve review quality.
+These items would improve review ergonomics, but they are not required to understand the current backend evidence.
 
 | Priority | Item | Reason |
 |---|---|---|
@@ -53,9 +60,9 @@ These items would further improve review quality.
 | P2 | Add seed/demo profile | Reduces demo setup time |
 | P2 | Publish read-only hosted demo policy | Provides a safer external review path than a mutable demo environment |
 
-## Phase 2 — Deferred security and operations hardening
+## Explicitly deferred hardening
 
-The following items are authentication/operations hardening work, separate from the current feature phase. Do not implement them without an explicit request.
+The following authentication/operations items are intentionally outside the current milestone. They are recorded so reviewers can distinguish deliberate scope control from accidental omissions.
 
 | ID | Item | Reason |
 |---|---|---|
@@ -64,7 +71,7 @@ The following items are authentication/operations hardening work, separate from 
 | T102 | Tenant/admin active-state validation filter | Requires state-transition policy and API error contract |
 | T103 | Persistent JTI blacklist | Requires DB/Redis choice and operations cost decision |
 
-## Phase 3 — Service realism expansion
+## Longer-term realism expansions
 
 - Payment or deposit integration port
 - Email/SMS notification outbox
