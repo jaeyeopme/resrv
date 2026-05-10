@@ -38,7 +38,7 @@ class AuthWebAdapter {
     @Operation(
             summary = "Logout current token",
             description =
-                    "Adds the current JWT JTI to the in-memory blacklist until the token expires.")
+                    "Adds the current JWT JTI to the persistent revocation blacklist until the token expires.")
     @ApiResponse(responseCode = "204", description = "Token revoked")
     @ApiResponse(
             responseCode = "401",

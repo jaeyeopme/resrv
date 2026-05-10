@@ -25,7 +25,6 @@ dependencies {
     implementation(libs.spring.boot.starter.webmvc)
     implementation(libs.springdoc.openapi.starter.webmvc.ui)
     implementation(libs.bcprov)
-    implementation(libs.caffeine)
     implementation(libs.jackson.databind)
 
     developmentOnly(libs.spring.boot.docker.compose)
