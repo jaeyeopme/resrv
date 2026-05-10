@@ -39,7 +39,7 @@ The Phase 1 reservation MVP is implemented enough for external readers to judge 
 | Scale-out token revocation | `V8__create_revoked_token.sql`, `TokenRevocationPersistenceAdapter`, `RevokedTokenCleanup` |
 | End-to-end flow test | `ReservationMvpIntegrationTest` |
 | OpenAPI surface test | `OpenApiIntegrationTest` |
-| CI quality gate | `.github/workflows/ci.yml` runs `./gradlew check --no-daemon` |
+| CI quality gate | `.github/workflows/ci.yml` runs commitlint and `./gradlew check --no-daemon` |
 | OpenAPI reviewer metadata | Controller annotations for tags, summaries, auth requirements, status codes, and schema fields |
 
 ## Product decisions already settled

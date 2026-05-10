@@ -80,7 +80,7 @@ The dependency direction is `adapter-* -> application -> domain`. See [`docs/arc
 | API docs | Springdoc OpenAPI, Swagger UI |
 | Persistence | PostgreSQL 16, Flyway, Spring Data JPA |
 | Security | JWT HS256, Argon2id password hashing, PostgreSQL-backed JTI revocation blacklist with scheduled cleanup |
-| Build / quality | Gradle 9, Spotless, Checkstyle, JaCoCo, ArchUnit |
+| Build / quality | Gradle 9, Spotless, Checkstyle, JaCoCo, ArchUnit, commitlint, Lefthook |
 | Tests | JUnit 5, Testcontainers |
 
 ## Run locally
@@ -88,7 +88,17 @@ The dependency direction is `adapter-* -> application -> domain`. See [`docs/arc
 ### Prerequisites
 
 - JDK 25+
+- Node.js 24+ for repository tooling hooks
 - Docker running for PostgreSQL/Testcontainers
+
+### Install local Git hooks
+
+```bash
+npm ci
+npm run hooks:install
+```
+
+Commit subjects are validated with commitlint through Lefthook and in CI. Use Conventional Commit subjects such as `fix(auth): persist logout revocation`.
 
 ### Start the API
 
@@ -126,11 +136,12 @@ Detailed endpoint and payload notes are in [`docs/api.md`](docs/api.md).
 ## Verification
 
 ```bash
+npm run commitlint
 ./gradlew spotlessApply
 ./gradlew check
 ```
 
-`check` runs compilation, unit/slice/integration tests, Checkstyle, ArchUnit, JaCoCo coverage verification/report generation, and Testcontainers-backed checks. Docker must be running for the Testcontainers portion.
+`npm run commitlint` validates the latest commit message. `check` runs compilation, unit/slice/integration tests, Checkstyle, ArchUnit, JaCoCo coverage verification/report generation, and Testcontainers-backed checks. Docker must be running for the Testcontainers portion.
 
 ## Inspection checklist
 

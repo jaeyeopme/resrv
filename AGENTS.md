@@ -44,15 +44,16 @@ Match the repository's existing Conventional Commit subject style before committ
 Subject format:
 
 ```text
-<type>(optional-scope): <lowercase intent summary>
+<type>(optional-scope): <intent summary>
 ```
 
 Rules:
 
 - Inspect recent `git log --oneline` before committing; do not invent a new subject style.
 - Do not use Title Case imperative subjects such as `Document ...` or `Make ...`.
-- Preferred types: `feat`, `fix`, `docs`, `test`, `refactor`, `build`, `chore`.
+- Preferred types: `feat`, `fix`, `docs`, `test`, `refactor`, `build`, `chore`, `ci`, `perf`.
 - Prefer narrow scopes when obvious: `auth`, `api`, `docs`, `build`, `nullness`, etc.
+- Commit subjects are enforced with commitlint + Lefthook; run `npm ci && npm run hooks:install` after cloning.
 - Keep the body as a concise decision record with useful Lore trailers:
   `Constraint:`, `Rejected:`, `Confidence:`, `Scope-risk:`, `Directive:`, `Tested:`, `Not-tested:`.
 - If subject style and Lore guidance appear to conflict, preserve the Conventional Commit subject style and put the decision rationale in the body/trailers.
