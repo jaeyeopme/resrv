@@ -79,7 +79,7 @@ The dependency direction is `adapter-* -> application -> domain`. See [`docs/arc
 | Framework | Spring Boot 4, Spring MVC, Spring Security |
 | API docs | Springdoc OpenAPI, Swagger UI |
 | Persistence | PostgreSQL 16, Flyway, Spring Data JPA |
-| Security | JWT HS256, Argon2id password hashing, Caffeine JTI blacklist |
+| Security | JWT HS256, Argon2id password hashing, PostgreSQL-backed JTI revocation blacklist with scheduled cleanup |
 | Build / quality | Gradle 9, Spotless, Checkstyle, JaCoCo, ArchUnit |
 | Tests | JUnit 5, Testcontainers |
 
@@ -139,8 +139,9 @@ Detailed endpoint and payload notes are in [`docs/api.md`](docs/api.md).
 - Read [`docs/product.md`](docs/product.md) to understand why customer login is mandatory for reservations.
 - Inspect [`docs/architecture.md`](docs/architecture.md) for hexagonal boundaries and ArchUnit enforcement.
 - Inspect `adapter-persistence/src/main/resources/db/migration/V7__create_reservation.sql` for DB-level no-overbooking.
+- Inspect `adapter-persistence/src/main/resources/db/migration/V8__create_revoked_token.sql` for scale-out JWT revocation.
 - Inspect `bootstrap/src/test/java/io/resrv/bootstrap/ReservationMvpIntegrationTest.java` for the end-to-end reservation scenario.
 
 ## Explicitly deferred
 
-The following hardening items are intentionally deferred and should not be treated as accidental gaps: login rate limiting, failed-login lockout, tenant/admin active-state validation filter, and persistent DB/Redis JTI blacklist. See [`docs/status.md`](docs/status.md).
+The following hardening items are intentionally deferred and should not be treated as accidental gaps: login rate limiting, failed-login lockout, and tenant/admin active-state validation filter. See [`docs/status.md`](docs/status.md).

@@ -67,6 +67,7 @@ The current MVP provides this end-to-end flow:
 - Date-specific Availability Exception takes precedence over weekly rules.
 - Reservation hold TTL and cancellation window follow tenant configuration.
 - Overbooking prevention uses both application checks and a PostgreSQL exclusion constraint.
+- Logout revocation is persisted in PostgreSQL so token revocation works across application instances.
 
 ## What is intentionally not in Phase 1
 
@@ -77,4 +78,3 @@ The current MVP provides this end-to-end flow:
 | Guest reservations | Identity-free reservations increase cancellation/check-in/abuse risk |
 | Multi-resource capacity | Capacity 1 plus no-overbooking is proven first |
 | Login rate limiting / lockout | Requires operations policy and storage choices; Phase 2 hardening |
-| Persistent JTI blacklist | Requires DB/Redis choice and operations cost decision; Phase 2 hardening |
