@@ -12,6 +12,39 @@ jobs:
 
     steps:
       - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Set up Node 24
+        uses: actions/setup-node@v6
+        with:
+          node-version: "24"
+          cache: npm
+
+      - name: Install repository tooling
+        run: npm ci
+
+      - name: Lint commit messages
+        run: |
+          lint_all_commits() {
+            root="$(git rev-list --max-parents=0 HEAD)"
+            root_msg="$(mktemp)"
+            git log -1 --format=%B "$root" > "$root_msg"
+            npx commitlint --edit "$root_msg"
+            npx commitlint --from "$root" --to HEAD --verbose
+          }
+
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            npx commitlint --from "${{ github.event.pull_request.base.sha }}" --to "${{ github.event.pull_request.head.sha }}" --verbose
+          elif [ "${{ github.event.before }}" = "0000000000000000000000000000000000000000" ]; then
+            lint_all_commits
+          elif ! git cat-file -e "${{ github.event.before }}^{commit}" 2>/dev/null; then
+            lint_all_commits
+          elif ! git merge-base --is-ancestor "${{ github.event.before }}" "${{ github.sha }}"; then
+            lint_all_commits
+          else
+            npx commitlint --from "${{ github.event.before }}" --to "${{ github.sha }}" --verbose
+          fi
 
       - name: Set up JDK 25
         uses: actions/setup-java@v5
