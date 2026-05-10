@@ -47,6 +47,7 @@ abstract class AbstractIntegrationTest {
 
     @BeforeEach
     void cleanDatabase() {
+        jdbcTemplate.execute("DELETE FROM revoked_token");
         jdbcTemplate.execute("DELETE FROM reservation");
         jdbcTemplate.execute("DELETE FROM resource_availability_exception");
         jdbcTemplate.execute("DELETE FROM resource_weekly_availability");
