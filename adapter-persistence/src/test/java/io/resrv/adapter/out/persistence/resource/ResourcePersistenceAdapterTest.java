@@ -1,5 +1,6 @@
 package io.resrv.adapter.out.persistence.resource;
 
+import static io.resrv.adapter.out.persistence.PersistenceTestFixtures.insertTenantDirectly;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -12,9 +13,7 @@ import io.resrv.domain.resource.ResourceSlug;
 import io.resrv.domain.resource.ResourceSlugAlreadyExistsException;
 import io.resrv.domain.resource.ResourceStatus;
 import io.resrv.domain.tenant.TenantId;
-import java.sql.Timestamp;
 import java.time.Instant;
-import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
@@ -45,7 +44,7 @@ class ResourcePersistenceAdapterTest {
 
     @Test
     void saveAndRetrieve() {
-        final var tenantId = insertTenantDirectly("resource-save");
+        final var tenantId = insertTenantDirectly(jdbcTemplate, NOW, "resource-save");
         final var resource = createResource(tenantId, "room-a");
 
         adapter.save(resource);
@@ -59,7 +58,7 @@ class ResourcePersistenceAdapterTest {
 
     @Test
     void sameSlugInSameTenant_throwsResourceSlugAlreadyExistsException() {
-        final var tenantId = insertTenantDirectly("resource-duplicate");
+        final var tenantId = insertTenantDirectly(jdbcTemplate, NOW, "resource-duplicate");
         adapter.save(createResource(tenantId, "room-a"));
 
         assertThrows(
@@ -69,8 +68,8 @@ class ResourcePersistenceAdapterTest {
 
     @Test
     void sameSlugInDifferentTenants_isAllowed() {
-        final var firstTenantId = insertTenantDirectly("resource-first");
-        final var secondTenantId = insertTenantDirectly("resource-second");
+        final var firstTenantId = insertTenantDirectly(jdbcTemplate, NOW, "resource-first");
+        final var secondTenantId = insertTenantDirectly(jdbcTemplate, NOW, "resource-second");
 
         adapter.save(createResource(firstTenantId, "room-a"));
         adapter.save(createResource(secondTenantId, "room-a"));
@@ -80,8 +79,8 @@ class ResourcePersistenceAdapterTest {
 
     @Test
     void findByTenantIdAndId_scopesByTenant() {
-        final var firstTenantId = insertTenantDirectly("resource-scope-first");
-        final var secondTenantId = insertTenantDirectly("resource-scope-second");
+        final var firstTenantId = insertTenantDirectly(jdbcTemplate, NOW, "resource-scope-first");
+        final var secondTenantId = insertTenantDirectly(jdbcTemplate, NOW, "resource-scope-second");
         final var resource = createResource(firstTenantId, "room-a");
         adapter.save(resource);
 
@@ -91,8 +90,9 @@ class ResourcePersistenceAdapterTest {
 
     @Test
     void existsByTenantIdAndSlug_scopesByTenant() {
-        final var firstTenantId = insertTenantDirectly("resource-exists-first");
-        final var secondTenantId = insertTenantDirectly("resource-exists-second");
+        final var firstTenantId = insertTenantDirectly(jdbcTemplate, NOW, "resource-exists-first");
+        final var secondTenantId =
+                insertTenantDirectly(jdbcTemplate, NOW, "resource-exists-second");
         adapter.save(createResource(firstTenantId, "room-a"));
 
         assertTrue(adapter.existsByTenantIdAndSlug(firstTenantId, new ResourceSlug("room-a")));
@@ -101,8 +101,8 @@ class ResourcePersistenceAdapterTest {
 
     @Test
     void findByTenantIdAndStatus_returnsOnlyRequestedStatusForTenant() {
-        final var tenantId = insertTenantDirectly("resource-status");
-        final var otherTenantId = insertTenantDirectly("resource-status-other");
+        final var tenantId = insertTenantDirectly(jdbcTemplate, NOW, "resource-status");
+        final var otherTenantId = insertTenantDirectly(jdbcTemplate, NOW, "resource-status-other");
         adapter.save(createResource(tenantId, "active-room"));
         adapter.save(createResource(tenantId, "inactive-room").deactivate(NOW.plusSeconds(60)));
         adapter.save(createResource(otherTenantId, "other-room"));
@@ -112,24 +112,6 @@ class ResourcePersistenceAdapterTest {
 
         assertEquals(1, activeResources.size());
         assertEquals("active-room", activeResources.getFirst().slug().value());
-    }
-
-    private TenantId insertTenantDirectly(final String slugPrefix) {
-        final var id = UUID.randomUUID();
-        jdbcTemplate.update(
-                """
-                INSERT INTO tenant (id, name, slug, timezone, slot_duration, hold_ttl, cancellation_window, created_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-                """,
-                id,
-                "Test Tenant",
-                slugPrefix + "-" + Math.abs(System.nanoTime()),
-                "UTC",
-                30,
-                5,
-                0,
-                Timestamp.from(NOW));
-        return TenantId.of(id);
     }
 
     private static Resource createResource(final TenantId tenantId, final String slug) {
