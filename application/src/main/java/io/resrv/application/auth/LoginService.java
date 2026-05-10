@@ -7,7 +7,6 @@ import io.resrv.application.auth.out.TokenGenerationPort;
 import io.resrv.application.auth.out.UserCredentials;
 import io.resrv.application.security.out.PasswordHashingPort;
 import io.resrv.application.tenant.out.TenantQueryPort;
-import org.jspecify.annotations.Nullable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -70,7 +69,7 @@ class LoginService implements LoginUseCase {
         return new LoginResult(result.accessToken(), result.expiresIn());
     }
 
-    private static boolean isBlank(@Nullable final String value) {
+    private static boolean isBlank(final String value) {
         return value == null || value.isBlank();
     }
 }

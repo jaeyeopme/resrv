@@ -4,13 +4,12 @@ import io.resrv.domain.resource.Resource;
 import io.resrv.domain.resource.ResourceStatus;
 import java.time.Instant;
 import java.util.UUID;
-import org.jspecify.annotations.Nullable;
 
 public record ResourceResult(
         UUID id,
         String name,
         String slug,
-        @Nullable String description,
+        String description,
         ResourceStatus status,
         Instant createdAt,
         Instant updatedAt) {

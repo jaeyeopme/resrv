@@ -6,7 +6,6 @@ plugins {
 }
 
 dependencies {
-    api(libs.jspecify)
     api(libs.java.uuid.generator)
 
     testImplementation(libs.spring.boot.starter.test)

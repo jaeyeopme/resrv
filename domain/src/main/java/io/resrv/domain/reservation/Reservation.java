@@ -5,7 +5,6 @@ import io.resrv.domain.resource.ResourceId;
 import io.resrv.domain.tenant.TenantId;
 import java.time.Instant;
 import java.util.Objects;
-import org.jspecify.annotations.Nullable;
 
 public final class Reservation {
 
@@ -16,11 +15,11 @@ public final class Reservation {
     private final Instant startAt;
     private final Instant endAt;
     private final ReservationStatus status;
-    @Nullable private final Instant holdExpiresAt;
+    private final Instant holdExpiresAt;
     private final Instant createdAt;
     private final Instant updatedAt;
-    @Nullable private final Instant confirmedAt;
-    @Nullable private final Instant cancelledAt;
+    private final Instant confirmedAt;
+    private final Instant cancelledAt;
 
     private Reservation(
             final ReservationId id,
@@ -30,11 +29,11 @@ public final class Reservation {
             final Instant startAt,
             final Instant endAt,
             final ReservationStatus status,
-            @Nullable final Instant holdExpiresAt,
+            final Instant holdExpiresAt,
             final Instant createdAt,
             final Instant updatedAt,
-            @Nullable final Instant confirmedAt,
-            @Nullable final Instant cancelledAt) {
+            final Instant confirmedAt,
+            final Instant cancelledAt) {
         validateRange(startAt, endAt);
         this.id = Objects.requireNonNull(id, "Reservation id must not be null");
         this.tenantId = Objects.requireNonNull(tenantId, "Reservation tenant id must not be null");
@@ -88,11 +87,11 @@ public final class Reservation {
             final Instant startAt,
             final Instant endAt,
             final ReservationStatus status,
-            @Nullable final Instant holdExpiresAt,
+            final Instant holdExpiresAt,
             final Instant createdAt,
             final Instant updatedAt,
-            @Nullable final Instant confirmedAt,
-            @Nullable final Instant cancelledAt) {
+            final Instant confirmedAt,
+            final Instant cancelledAt) {
         return new Reservation(
                 id,
                 tenantId,
@@ -224,7 +223,7 @@ public final class Reservation {
         return status;
     }
 
-    public @Nullable Instant holdExpiresAt() {
+    public Instant holdExpiresAt() {
         return holdExpiresAt;
     }
 
@@ -236,11 +235,11 @@ public final class Reservation {
         return updatedAt;
     }
 
-    public @Nullable Instant confirmedAt() {
+    public Instant confirmedAt() {
         return confirmedAt;
     }
 
-    public @Nullable Instant cancelledAt() {
+    public Instant cancelledAt() {
         return cancelledAt;
     }
 

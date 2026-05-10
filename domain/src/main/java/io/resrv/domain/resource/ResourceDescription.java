@@ -1,8 +1,6 @@
 package io.resrv.domain.resource;
 
-import org.jspecify.annotations.Nullable;
-
-public record ResourceDescription(@Nullable String value) {
+public record ResourceDescription(String value) {
 
     private static final int MAX_LENGTH = 500;
 

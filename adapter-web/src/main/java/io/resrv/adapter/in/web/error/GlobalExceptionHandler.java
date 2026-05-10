@@ -17,7 +17,6 @@ import jakarta.servlet.http.HttpServletRequest;
 import java.net.URI;
 import java.time.DateTimeException;
 import java.util.Objects;
-import org.jspecify.annotations.Nullable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.converter.HttpMessageNotReadableException;
@@ -120,7 +119,7 @@ final class GlobalExceptionHandler {
 
     record FieldError(String field, String message) {
 
-        FieldError(final String field, @Nullable final String message) {
+        FieldError(final String field, final String message) {
             this.field = field;
             this.message = Objects.requireNonNullElse(message, "Invalid value");
         }

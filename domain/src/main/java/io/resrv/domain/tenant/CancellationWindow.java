@@ -1,7 +1,6 @@
 package io.resrv.domain.tenant;
 
 import java.util.Objects;
-import org.jspecify.annotations.Nullable;
 
 public record CancellationWindow(int minutes) {
 
@@ -14,7 +13,7 @@ public record CancellationWindow(int minutes) {
         }
     }
 
-    public static CancellationWindow of(final @Nullable Integer minutes) {
+    public static CancellationWindow of(final Integer minutes) {
         return new CancellationWindow(Objects.requireNonNullElse(minutes, DEFAULT_MINUTES));
     }
 }
