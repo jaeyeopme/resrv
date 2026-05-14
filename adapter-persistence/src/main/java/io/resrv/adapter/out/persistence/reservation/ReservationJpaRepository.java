@@ -28,6 +28,25 @@ interface ReservationJpaRepository extends CrudRepository<ReservationJpaEntity, 
             """
             SELECT reservation FROM ReservationJpaEntity reservation
             WHERE reservation.tenantId = :tenantId
+              AND reservation.startAt < :rangeEnd
+              AND reservation.endAt > :rangeStart
+              AND (:resourceId IS NULL OR reservation.resourceId = :resourceId)
+              AND (:customerId IS NULL OR reservation.customerId = :customerId)
+              AND (:status IS NULL OR reservation.status = :status)
+            ORDER BY reservation.startAt ASC, reservation.id ASC
+            """)
+    List<ReservationJpaEntity> findByTenantIdBetweenWithFilters(
+            UUID tenantId,
+            Instant rangeStart,
+            Instant rangeEnd,
+            UUID resourceId,
+            UUID customerId,
+            String status);
+
+    @Query(
+            """
+            SELECT reservation FROM ReservationJpaEntity reservation
+            WHERE reservation.tenantId = :tenantId
               AND reservation.resourceId = :resourceId
               AND reservation.status IN ('HELD', 'CONFIRMED', 'CHECKED_IN')
               AND reservation.startAt < :endAt
