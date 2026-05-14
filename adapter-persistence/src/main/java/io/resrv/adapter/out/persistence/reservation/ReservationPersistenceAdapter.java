@@ -89,6 +89,27 @@ class ReservationPersistenceAdapter implements ReservationCommandPort, Reservati
     }
 
     @Override
+    public List<Reservation> findByTenantIdBetweenWithFilters(
+            final TenantId tenantId,
+            final Instant rangeStart,
+            final Instant rangeEnd,
+            final Optional<ResourceId> resourceId,
+            final Optional<CustomerId> customerId,
+            final Optional<ReservationStatus> status) {
+        return reservationJpaRepository
+                .findByTenantIdBetweenWithFilters(
+                        tenantId.value(),
+                        rangeStart,
+                        rangeEnd,
+                        resourceId.map(ResourceId::value).orElse(null),
+                        customerId.map(CustomerId::value).orElse(null),
+                        status.map(ReservationStatus::name).orElse(null))
+                .stream()
+                .map(ReservationPersistenceMapper::toDomain)
+                .toList();
+    }
+
+    @Override
     public boolean existsActiveOverlap(
             final TenantId tenantId,
             final ResourceId resourceId,

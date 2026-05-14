@@ -57,6 +57,10 @@ JWTs include `jti`, `userId`, `tenantId`, `role`, `iss`, `aud`, and `exp` claims
 | `PUT` | `/api/resources/{resourceId}/availability-exceptions/{date}` | Admin JWT | Upsert a date closure or special hours |
 | `DELETE` | `/api/resources/{resourceId}/availability-exceptions/{date}` | Admin JWT | Delete a date exception |
 | `GET` | `/api/resources/{resourceId}/reservations?date=YYYY-MM-DD` | Admin JWT | List reservations for one resource |
+| `GET` | `/api/reservations?date=YYYY-MM-DD&resourceId=&customerId=&status=` | Admin JWT | Search tenant reservations for a bounded operator schedule view |
+| `POST` | `/api/reservations/{reservationId}/admin-cancel` | Admin JWT | Cancel a held or confirmed reservation as an operator |
+| `POST` | `/api/reservations/{reservationId}/check-in` | Admin JWT | Mark a confirmed reservation checked in at or after its start time |
+| `POST` | `/api/reservations/{reservationId}/no-show` | Admin JWT | Mark a confirmed reservation no-show at or after its end time |
 
 ### Customer reservation
 
@@ -133,7 +137,12 @@ A closed date is represented as:
 }
 ```
 
-Reservation `status` can be `HELD`, `CONFIRMED`, `CUSTOMER_CANCELLED`, `ADMIN_CANCELLED`, `CHECKED_IN`, `NO_SHOW`, or `EXPIRED`.
+Reservation `status` can be `HELD`, `CONFIRMED`, `CUSTOMER_CANCELLED`,
+`ADMIN_CANCELLED`, `CHECKED_IN`, `NO_SHOW`, or `EXPIRED`.
+Admin operator transitions are intentionally bounded: admin-cancel accepts `HELD`
+or `CONFIRMED`, check-in accepts `CONFIRMED` at/after `startAt`, and no-show
+accepts `CONFIRMED` at/after `endAt`. `ADMIN_CANCELLED` and `NO_SHOW` release
+the slot; `CHECKED_IN` remains an active occupancy state.
 
 ## Error model
 
@@ -158,4 +167,7 @@ A reviewer can verify the core backend quickly with this flow:
 5. Use the customer JWT to list slots and create a reservation hold.
 6. Confirm that a second hold for the same slot fails with `409 Conflict`.
 7. Confirm the held reservation and verify the status in both customer and admin views.
-8. Cancel the reservation as the customer and confirm the slot becomes available again.
+8. Use the admin operator reservation search for the tenant-local date to inspect the day schedule.
+9. For operator lifecycle verification, mark a confirmed reservation checked in or
+   no-show when its time window allows it.
+10. Cancel the reservation as the customer and confirm the slot becomes available again.

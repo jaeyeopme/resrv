@@ -18,7 +18,7 @@ The Phase 1 reservation MVP is implemented enough for external readers to judge 
 - Resource management
 - Availability rules and exceptions
 - Reservation hold/confirm/list/cancel flow
-- Admin reservation audit
+- Admin reservation audit and bounded operator reservation search
 - Springdoc OpenAPI/Swagger UI
 - ProblemDetail error responses
 - Testcontainers-backed integration-test structure
@@ -35,6 +35,8 @@ The Phase 1 reservation MVP is implemented enough for external readers to judge 
 | Customer reservation confirm | `POST /api/reservation-holds/{reservationId}/confirm` |
 | Customer reservation list/cancel | `/api/me/reservations/**` |
 | Admin reservation audit | `GET /api/resources/{resourceId}/reservations` |
+| Admin reservation operator search | `GET /api/reservations?date=YYYY-MM-DD&...` |
+| Admin reservation lifecycle controls | `admin-cancel`, `check-in`, and `no-show` reservation transitions |
 | DB-level no-overbooking | `V7__create_reservation.sql` exclusion constraint |
 | Scale-out token revocation | `V8__create_revoked_token.sql`, `TokenRevocationPersistenceAdapter`, `RevokedTokenCleanup` |
 | End-to-end flow test | `ReservationMvpIntegrationTest` |
@@ -60,7 +62,6 @@ These items would improve review ergonomics, but they are not required to unders
 | P1 | Add operation-level OpenAPI request/response examples | Reviewers can reproduce the demo flow from Swagger alone |
 | P1 | Add a README curl walkthrough | Reviewers can quickly follow the local success path |
 | P1 | Add more reservation domain/application unit tests | State-transition rules become fast to verify without Testcontainers |
-| P2 | Add admin reservation status transition API | Operators can manage check-in/no-show/admin-cancel states |
 | P2 | Add seed/demo profile | Reduces demo setup time |
 | P2 | Publish read-only hosted demo policy | Provides a safer external review path than a mutable demo environment |
 

@@ -126,6 +126,46 @@ class ReservationTest {
                 ReservationInvalidStateException.class, () -> cancelledHeld.cancelByAdmin(LATER));
     }
 
+    @Test
+    void checkInConfirmedReservationAtOrAfterStart() {
+        final var confirmed = heldReservation().confirm(LATER);
+        final var checkedIn = confirmed.checkIn(START_AT);
+
+        assertEquals(ReservationStatus.CHECKED_IN, checkedIn.status());
+        assertEquals(START_AT, checkedIn.updatedAt());
+        assertEquals(confirmed.confirmedAt(), checkedIn.confirmedAt());
+        assertNull(checkedIn.cancelledAt());
+
+        assertThrows(
+                ReservationInvalidStateException.class,
+                () -> confirmed.checkIn(START_AT.minusSeconds(1)));
+        assertThrows(
+                ReservationInvalidStateException.class, () -> heldReservation().checkIn(START_AT));
+        assertThrows(
+                ReservationInvalidStateException.class,
+                () -> checkedIn.checkIn(START_AT.plusSeconds(1)));
+    }
+
+    @Test
+    void markNoShowConfirmedReservationAtOrAfterEnd() {
+        final var confirmed = heldReservation().confirm(LATER);
+        final var noShow = confirmed.markNoShow(END_AT);
+
+        assertEquals(ReservationStatus.NO_SHOW, noShow.status());
+        assertEquals(END_AT, noShow.updatedAt());
+        assertEquals(confirmed.confirmedAt(), noShow.confirmedAt());
+        assertNull(noShow.cancelledAt());
+
+        assertThrows(
+                ReservationInvalidStateException.class,
+                () -> confirmed.markNoShow(END_AT.minusSeconds(1)));
+        assertThrows(
+                ReservationInvalidStateException.class, () -> heldReservation().markNoShow(END_AT));
+        assertThrows(
+                ReservationInvalidStateException.class,
+                () -> noShow.markNoShow(END_AT.plusSeconds(1)));
+    }
+
     private static Reservation heldReservation() {
         return Reservation.hold(
                 TENANT_ID, RESOURCE_ID, CUSTOMER_ID, START_AT, END_AT, HOLD_EXPIRES_AT, NOW);

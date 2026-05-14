@@ -15,6 +15,7 @@ import io.resrv.domain.resource.ResourceId;
 import io.resrv.domain.tenant.TenantId;
 import java.sql.Timestamp;
 import java.time.Instant;
+import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -130,6 +131,96 @@ class ReservationPersistenceAdapterTest {
         adapter.save(cancelled);
 
         assertFalse(adapter.existsActiveOverlap(tenantId, resourceId, START_AT, END_AT));
+    }
+
+    @Test
+    void adminFilteredQueryCombinesTenantDateResourceCustomerAndStatus() {
+        final var tenantId = insertTenantDirectly(jdbcTemplate, NOW, "reservation-filter");
+        final var otherTenantId =
+                insertTenantDirectly(jdbcTemplate, NOW, "reservation-filter-other");
+        final var resourceId = insertResourceDirectly(jdbcTemplate, NOW, tenantId, "filter-room");
+        final var otherResourceId =
+                insertResourceDirectly(jdbcTemplate, NOW, tenantId, "filter-room-other");
+        final var foreignResourceId =
+                insertResourceDirectly(jdbcTemplate, NOW, otherTenantId, "filter-foreign-room");
+        final var customerId = insertCustomerDirectly(tenantId, "filter@example.com");
+        final var otherCustomerId = insertCustomerDirectly(tenantId, "filter-other@example.com");
+        final var foreignCustomerId =
+                insertCustomerDirectly(otherTenantId, "filter-foreign@example.com");
+        final var matching =
+                holdReservation(tenantId, resourceId, customerId, START_AT, END_AT)
+                        .confirm(NOW.plusSeconds(30));
+        final var wrongResource =
+                holdReservation(
+                                tenantId,
+                                otherResourceId,
+                                customerId,
+                                START_AT.plusSeconds(3600),
+                                END_AT.plusSeconds(3600))
+                        .confirm(NOW.plusSeconds(30));
+        final var wrongCustomer =
+                holdReservation(
+                                tenantId,
+                                resourceId,
+                                otherCustomerId,
+                                START_AT.plusSeconds(7200),
+                                END_AT.plusSeconds(7200))
+                        .confirm(NOW.plusSeconds(30));
+        final var foreignTenant =
+                holdReservation(
+                                otherTenantId,
+                                foreignResourceId,
+                                foreignCustomerId,
+                                START_AT,
+                                END_AT)
+                        .confirm(NOW.plusSeconds(30));
+        adapter.save(matching);
+        adapter.save(wrongResource);
+        adapter.save(wrongCustomer);
+        adapter.save(foreignTenant);
+
+        final var results =
+                adapter.findByTenantIdBetweenWithFilters(
+                        tenantId,
+                        START_AT.minusSeconds(60),
+                        END_AT.plusSeconds(3 * 3600L),
+                        Optional.of(resourceId),
+                        Optional.of(customerId),
+                        Optional.of(ReservationStatus.CONFIRMED));
+
+        assertEquals(1, results.size());
+        assertEquals(matching.id(), results.getFirst().id());
+    }
+
+    @Test
+    void noShowReleasesSlotAndCheckInBlocksSlot() {
+        final var tenantId = insertTenantDirectly(jdbcTemplate, NOW, "reservation-slot-state");
+        final var resourceId =
+                insertResourceDirectly(jdbcTemplate, NOW, tenantId, "slot-state-room");
+        final var customerId = insertCustomerDirectly(tenantId, "slot-state@example.com");
+        final var noShow =
+                holdReservation(tenantId, resourceId, customerId, START_AT, END_AT)
+                        .confirm(NOW.plusSeconds(30))
+                        .markNoShow(END_AT);
+        final var checkedIn =
+                holdReservation(
+                                tenantId,
+                                resourceId,
+                                customerId,
+                                START_AT.plusSeconds(3600),
+                                END_AT.plusSeconds(3600))
+                        .confirm(NOW.plusSeconds(30))
+                        .checkIn(START_AT.plusSeconds(3600));
+        adapter.save(noShow);
+        adapter.save(checkedIn);
+
+        assertFalse(adapter.existsActiveOverlap(tenantId, resourceId, START_AT, END_AT));
+        assertTrue(
+                adapter.existsActiveOverlap(
+                        tenantId,
+                        resourceId,
+                        START_AT.plusSeconds(3600),
+                        END_AT.plusSeconds(3600)));
     }
 
     private CustomerId insertCustomerDirectly(final TenantId tenantId, final String email) {
