@@ -26,6 +26,10 @@ class ReservationMvpIntegrationTest extends AbstractIntegrationTest {
     private static final String TENANT_SLUG = "reservation-mvp";
     private static final LocalDate MONDAY = LocalDate.of(2030, 1, 7);
     private static final String FIRST_SLOT_START = "2030-01-07T09:00:00Z";
+    private static final LocalDate PAST_MONDAY = LocalDate.of(2026, 5, 11);
+    private static final String PAST_SLOT_09 = "2026-05-11T09:00:00Z";
+    private static final String PAST_SLOT_10 = "2026-05-11T10:00:00Z";
+    private static final String PAST_SLOT_11 = "2026-05-11T11:00:00Z";
 
     @BeforeEach
     void setUpReservationFixture() {
@@ -164,6 +168,91 @@ class ReservationMvpIntegrationTest extends AbstractIntegrationTest {
                 .andExpect(jsonPath("$.length()").value(1))
                 .andExpect(jsonPath("$[0].id").value(reservationId))
                 .andExpect(jsonPath("$[0].status").value("CUSTOMER_CANCELLED"));
+    }
+
+    @Test
+    void adminCanSearchAndOperateReservationLifecycle() throws Exception {
+        final var adminAuthorization = adminBearer();
+        final var customerAuthorization = customerBearer("ops@example.com", "Ops Customer");
+        mockMvc.perform(
+                        put(
+                                        "/api/resources/{resourceId}/weekly-availability/{dayOfWeek}",
+                                        RESOURCE_ID,
+                                        1)
+                                .header(HttpHeaders.AUTHORIZATION, adminAuthorization)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(weeklyAvailabilityJson("09:00", "12:00")))
+                .andExpect(status().isOk());
+
+        final var noShowReservationId = holdAndConfirm(customerAuthorization, PAST_SLOT_09);
+        mockMvc.perform(
+                        get("/api/reservations")
+                                .param("date", PAST_MONDAY.toString())
+                                .param("resourceId", RESOURCE_ID.toString())
+                                .param("status", "CONFIRMED")
+                                .header(HttpHeaders.AUTHORIZATION, adminAuthorization))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(1))
+                .andExpect(jsonPath("$[0].id").value(noShowReservationId));
+
+        mockMvc.perform(
+                        post("/api/reservations/{reservationId}/no-show", noShowReservationId)
+                                .header(HttpHeaders.AUTHORIZATION, adminAuthorization))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("NO_SHOW"));
+
+        mockMvc.perform(
+                        post("/api/reservation-holds")
+                                .header(HttpHeaders.AUTHORIZATION, customerAuthorization)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(holdJson(PAST_SLOT_09)))
+                .andExpect(status().isCreated());
+
+        final var checkedInReservationId = holdAndConfirm(customerAuthorization, PAST_SLOT_10);
+        mockMvc.perform(
+                        post("/api/reservations/{reservationId}/check-in", checkedInReservationId)
+                                .header(HttpHeaders.AUTHORIZATION, adminAuthorization))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("CHECKED_IN"));
+        mockMvc.perform(
+                        post("/api/reservation-holds")
+                                .header(HttpHeaders.AUTHORIZATION, customerAuthorization)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(holdJson(PAST_SLOT_10)))
+                .andExpect(status().isConflict());
+
+        final var cancelledReservationId = holdAndConfirm(customerAuthorization, PAST_SLOT_11);
+        mockMvc.perform(
+                        post(
+                                        "/api/reservations/{reservationId}/admin-cancel",
+                                        cancelledReservationId)
+                                .header(HttpHeaders.AUTHORIZATION, adminAuthorization))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("ADMIN_CANCELLED"));
+        mockMvc.perform(
+                        get("/api/resources/{resourceId}/reservations", RESOURCE_ID)
+                                .param("date", PAST_MONDAY.toString())
+                                .header(HttpHeaders.AUTHORIZATION, adminAuthorization))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(4));
+    }
+
+    private String holdAndConfirm(final String customerAuthorization, final String slotStart)
+            throws Exception {
+        final var holdResult =
+                mockMvc.perform(
+                                post("/api/reservation-holds")
+                                        .header(HttpHeaders.AUTHORIZATION, customerAuthorization)
+                                        .contentType(MediaType.APPLICATION_JSON)
+                                        .content(holdJson(slotStart)))
+                        .andExpect(status().isCreated())
+                        .andReturn();
+        final var reservationId = stringField(holdResult.getResponse().getContentAsString(), "id");
+        mockMvc.perform(
+                        post("/api/reservation-holds/{reservationId}/confirm", reservationId)
+                                .header(HttpHeaders.AUTHORIZATION, customerAuthorization))
+                .andExpect(status().isOk());
+        return reservationId;
     }
 
     private String adminBearer() throws Exception {

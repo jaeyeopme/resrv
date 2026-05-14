@@ -37,6 +37,14 @@ class OpenApiIntegrationTest extends AbstractIntegrationTest {
                                 .exists())
                 .andExpect(jsonPath("$.paths['/api/resources/{resourceId}/slots']").exists())
                 .andExpect(jsonPath("$.paths['/api/resources/{resourceId}/reservations']").exists())
+                .andExpect(jsonPath("$.paths['/api/reservations']").exists())
+                .andExpect(
+                        jsonPath("$.paths['/api/reservations/{reservationId}/admin-cancel']")
+                                .exists())
+                .andExpect(
+                        jsonPath("$.paths['/api/reservations/{reservationId}/check-in']").exists())
+                .andExpect(
+                        jsonPath("$.paths['/api/reservations/{reservationId}/no-show']").exists())
                 .andExpect(jsonPath("$.paths['/api/reservation-holds']").exists())
                 .andExpect(
                         jsonPath("$.paths['/api/reservation-holds/{reservationId}/confirm']")
@@ -89,6 +97,30 @@ class OpenApiIntegrationTest extends AbstractIntegrationTest {
                 .andExpect(
                         jsonPath("$.paths['/api/resources/{resourceId}/reservations'].get.tags[0]")
                                 .value("Availability"))
+                .andExpect(
+                        jsonPath("$.paths['/api/reservations'].get.tags[0]")
+                                .value("Admin Reservations"))
+                .andExpect(
+                        jsonPath("$.paths['/api/reservations'].get.parameters[0].required")
+                                .value(true))
+                .andExpect(jsonPath("$.paths['/api/reservations'].get.responses.200").exists())
+                .andExpect(jsonPath("$.paths['/api/reservations'].get.responses.400").exists())
+                .andExpect(
+                        jsonPath("$.paths['/api/reservations'].get.security[0].bearerAuth")
+                                .exists())
+                .andExpect(
+                        jsonPath(
+                                        "$.paths['/api/reservations/{reservationId}/admin-cancel'].post.responses.409")
+                                .exists())
+                .andExpect(
+                        jsonPath(
+                                        "$.paths['/api/reservations/{reservationId}/check-in']"
+                                                + ".post.security[0].bearerAuth")
+                                .exists())
+                .andExpect(
+                        jsonPath(
+                                        "$.paths['/api/reservations/{reservationId}/no-show'].post.responses.200")
+                                .exists())
                 .andExpect(
                         jsonPath("$.paths['/api/reservation-holds'].post.tags[0]")
                                 .value("Reservations"))
