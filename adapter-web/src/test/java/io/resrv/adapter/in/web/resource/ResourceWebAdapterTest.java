@@ -36,6 +36,7 @@ import io.resrv.domain.tenant.TenantId;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
+import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -101,11 +102,10 @@ class ResourceWebAdapterTest {
         final var captor = ArgumentCaptor.forClass(CreateResourceCommand.class);
         verify(createResourceUseCase).create(captor.capture());
         final var command = captor.getValue();
-        org.assertj.core.api.Assertions.assertThat(command.tenantId().value())
-                .isEqualTo(TENANT_ID_VALUE);
-        org.assertj.core.api.Assertions.assertThat(command.name()).isEqualTo("Room A");
-        org.assertj.core.api.Assertions.assertThat(command.slug()).isEqualTo("room-a");
-        org.assertj.core.api.Assertions.assertThat(command.description()).isEqualTo("Quiet room");
+        Assertions.assertThat(command.tenantId().value()).isEqualTo(TENANT_ID_VALUE);
+        Assertions.assertThat(command.name()).isEqualTo("Room A");
+        Assertions.assertThat(command.slug()).isEqualTo("room-a");
+        Assertions.assertThat(command.description()).isEqualTo("Quiet room");
     }
 
     @Test
@@ -168,13 +168,11 @@ class ResourceWebAdapterTest {
         final var captor = ArgumentCaptor.forClass(UpdateResourceCommand.class);
         verify(updateResourceUseCase).update(captor.capture());
         final var command = captor.getValue();
-        org.assertj.core.api.Assertions.assertThat(command.tenantId().value())
-                .isEqualTo(TENANT_ID_VALUE);
-        org.assertj.core.api.Assertions.assertThat(command.resourceId().value())
-                .isEqualTo(RESOURCE_ID_VALUE);
-        org.assertj.core.api.Assertions.assertThat(command.name()).isEqualTo("Room B");
-        org.assertj.core.api.Assertions.assertThat(command.slug()).isEqualTo("room-b");
-        org.assertj.core.api.Assertions.assertThat(command.description()).isEqualTo("Updated");
+        Assertions.assertThat(command.tenantId().value()).isEqualTo(TENANT_ID_VALUE);
+        Assertions.assertThat(command.resourceId().value()).isEqualTo(RESOURCE_ID_VALUE);
+        Assertions.assertThat(command.name()).isEqualTo("Room B");
+        Assertions.assertThat(command.slug()).isEqualTo("room-b");
+        Assertions.assertThat(command.description()).isEqualTo("Updated");
     }
 
     @Test

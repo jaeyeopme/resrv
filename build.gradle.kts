@@ -1,5 +1,6 @@
 import io.spring.gradle.dependencymanagement.DependencyManagementPlugin
 import io.spring.gradle.dependencymanagement.dsl.DependencyManagementExtension
+import org.openrewrite.gradle.RewriteExtension
 import org.springframework.boot.gradle.plugin.SpringBootPlugin.BOM_COORDINATES
 
 val jacocoLineCoverageMinimums =
@@ -14,6 +15,7 @@ val jacocoLineCoverageMinimums =
 plugins {
     alias(libs.plugins.spring.boot) apply false
     alias(libs.plugins.dependency.management) apply false
+    alias(libs.plugins.openrewrite) apply false
     alias(libs.plugins.spotless)
     checkstyle
 }
@@ -58,6 +60,13 @@ subprojects {
     }
 
     plugins.withType<JavaPlugin> {
+        apply(plugin = "org.openrewrite.rewrite")
+
+        configure<RewriteExtension> {
+            setConfigFile(rootProject.file("rewrite.yml"))
+            activeRecipe("io.resrv.OpenRewriteCleanup")
+        }
+
         configure<JavaPluginExtension> {
             toolchain {
                 languageVersion = JavaLanguageVersion.of(25)
