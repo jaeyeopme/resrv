@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 
 import io.resrv.domain.admin.Admin;
+import io.resrv.domain.admin.AdminId;
 import io.resrv.domain.admin.AdminRole;
 import io.resrv.domain.admin.Email;
 import io.resrv.domain.tenant.TenantId;
@@ -19,7 +20,7 @@ class AdminPersistenceMapperTest {
         final var tenantId = TenantId.create();
         final var admin =
                 Admin.reconstitute(
-                        io.resrv.domain.admin.AdminId.create(),
+                        AdminId.create(),
                         tenantId,
                         new Email("staff@example.com"),
                         "$argon2id$hashed",

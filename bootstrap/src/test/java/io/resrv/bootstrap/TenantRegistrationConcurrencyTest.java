@@ -3,6 +3,7 @@ package io.resrv.bootstrap;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 
+import java.util.List;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import org.junit.jupiter.api.Test;
@@ -57,7 +58,7 @@ class TenantRegistrationConcurrencyTest extends AbstractIntegrationTest {
             final var status1 = future1.get();
             final var status2 = future2.get();
 
-            final var statuses = java.util.List.of(status1, status2);
+            final var statuses = List.of(status1, status2);
             assertThat(statuses).containsExactlyInAnyOrder(201, 409);
         }
     }

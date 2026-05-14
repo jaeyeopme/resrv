@@ -19,6 +19,7 @@ import io.resrv.application.reservation.in.ReservationResult;
 import io.resrv.application.reservation.in.SlotResult;
 import io.resrv.application.reservation.out.ReservationCommandPort;
 import io.resrv.application.reservation.out.ReservationQueryPort;
+import io.resrv.application.resource.out.ResourceQueryPort;
 import io.resrv.application.security.ForbiddenOperationException;
 import io.resrv.application.tenant.TenantNotFoundException;
 import io.resrv.application.tenant.out.TenantQueryPort;
@@ -40,6 +41,7 @@ import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
@@ -60,7 +62,7 @@ class ReservationService
     private final Clock clock;
     private final TenantQueryPort tenantQueryPort;
     private final CustomerQueryPort customerQueryPort;
-    private final io.resrv.application.resource.out.ResourceQueryPort resourceQueryPort;
+    private final ResourceQueryPort resourceQueryPort;
     private final WeeklyAvailabilityQueryPort weeklyAvailabilityQueryPort;
     private final DateAvailabilityOverrideQueryPort dateAvailabilityOverrideQueryPort;
     private final ReservationCommandPort reservationCommandPort;
@@ -70,7 +72,7 @@ class ReservationService
             final Clock clock,
             final TenantQueryPort tenantQueryPort,
             final CustomerQueryPort customerQueryPort,
-            final io.resrv.application.resource.out.ResourceQueryPort resourceQueryPort,
+            final ResourceQueryPort resourceQueryPort,
             final WeeklyAvailabilityQueryPort weeklyAvailabilityQueryPort,
             final DateAvailabilityOverrideQueryPort dateAvailabilityOverrideQueryPort,
             final ReservationCommandPort reservationCommandPort,
@@ -185,7 +187,7 @@ class ReservationService
                 date.atTime(window.get().endTime()).atZone(tenant.timezone().value()).toInstant();
         final var slotSeconds = tenant.slotDuration().minutes() * 60L;
 
-        final var candidates = new java.util.ArrayList<SlotResult>();
+        final var candidates = new ArrayList<SlotResult>();
         for (var slotStart = startAt;
                 !slotStart.plusSeconds(slotSeconds).isAfter(endAt);
                 slotStart = slotStart.plusSeconds(slotSeconds)) {

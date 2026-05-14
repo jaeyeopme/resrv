@@ -21,6 +21,7 @@ import io.resrv.domain.customer.CustomerEmailAlreadyExistsException;
 import io.resrv.domain.tenant.TenantId;
 import java.time.Instant;
 import java.util.UUID;
+import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -77,10 +78,10 @@ class CustomerWebAdapterTest {
         final var captor = ArgumentCaptor.forClass(RegisterCustomerCommand.class);
         verify(registerCustomerUseCase).register(captor.capture());
         final var command = captor.getValue();
-        org.assertj.core.api.Assertions.assertThat(command.tenantSlug()).isEqualTo(TENANT_SLUG);
-        org.assertj.core.api.Assertions.assertThat(command.email()).isEqualTo("customer@test.com");
-        org.assertj.core.api.Assertions.assertThat(command.name()).isEqualTo("Jane Customer");
-        org.assertj.core.api.Assertions.assertThat(command.password()).isEqualTo("password123");
+        Assertions.assertThat(command.tenantSlug()).isEqualTo(TENANT_SLUG);
+        Assertions.assertThat(command.email()).isEqualTo("customer@test.com");
+        Assertions.assertThat(command.name()).isEqualTo("Jane Customer");
+        Assertions.assertThat(command.password()).isEqualTo("password123");
     }
 
     @Test

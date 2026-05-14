@@ -10,6 +10,7 @@ Multi-tenant B2B SaaS reservation API. Hexagonal (Ports & Adapters), 5 Gradle su
 
 ```bash
 ./gradlew spotlessApply      # Auto-format (run before check)
+./gradlew rewriteDryRun      # Preview active OpenRewrite cleanup recipes
 ./gradlew check              # Full build + tests + Checkstyle + ArchUnit + JaCoCo coverage gate
 ./gradlew :bootstrap:bootRun # Run locally — uses compose.yml and a dev JWT fallback
 ```
