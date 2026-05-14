@@ -195,6 +195,44 @@ public final class Reservation {
                 now);
     }
 
+    public Reservation checkIn(final Instant now) {
+        if (status != ReservationStatus.CONFIRMED || now.isBefore(startAt)) {
+            throw new ReservationInvalidStateException(id, status, "checked in");
+        }
+        return new Reservation(
+                id,
+                tenantId,
+                resourceId,
+                customerId,
+                startAt,
+                endAt,
+                ReservationStatus.CHECKED_IN,
+                holdExpiresAt,
+                createdAt,
+                now,
+                confirmedAt,
+                cancelledAt);
+    }
+
+    public Reservation markNoShow(final Instant now) {
+        if (status != ReservationStatus.CONFIRMED || now.isBefore(endAt)) {
+            throw new ReservationInvalidStateException(id, status, "marked no-show");
+        }
+        return new Reservation(
+                id,
+                tenantId,
+                resourceId,
+                customerId,
+                startAt,
+                endAt,
+                ReservationStatus.NO_SHOW,
+                holdExpiresAt,
+                createdAt,
+                now,
+                confirmedAt,
+                cancelledAt);
+    }
+
     public ReservationId id() {
         return id;
     }
