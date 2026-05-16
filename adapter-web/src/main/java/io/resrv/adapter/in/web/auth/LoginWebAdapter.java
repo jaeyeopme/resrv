@@ -5,12 +5,6 @@ import io.resrv.adapter.in.web.auth.dto.LoginResponse;
 import io.resrv.application.auth.AuthenticationFailedException;
 import io.resrv.application.auth.in.LoginCommand;
 import io.resrv.application.auth.in.LoginUseCase;
-import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.Parameter;
-import io.swagger.v3.oas.annotations.media.Content;
-import io.swagger.v3.oas.annotations.media.Schema;
-import io.swagger.v3.oas.annotations.responses.ApiResponse;
-import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import java.net.URI;
 import org.springframework.http.HttpStatus;
@@ -26,8 +20,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/public/{tenantSlug}/auth")
-@Tag(name = "Authentication", description = "Public tenant administrator authentication")
-class LoginWebAdapter {
+class LoginWebAdapter implements LoginApiDocs {
 
     private final LoginUseCase loginUseCase;
 
@@ -35,20 +28,10 @@ class LoginWebAdapter {
         this.loginUseCase = loginUseCase;
     }
 
-    @Operation(
-            summary = "Log in as a tenant administrator",
-            description =
-                    "Authenticates an OWNER or STAFF account for the tenant identified by the URL slug.")
-    @ApiResponse(responseCode = "200", description = "JWT issued")
-    @ApiResponse(
-            responseCode = "401",
-            description = "Invalid tenant slug, credentials, or malformed login body",
-            content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
+    @Override
     @PostMapping("/login")
-    ResponseEntity<LoginResponse> login(
-            @Parameter(description = "Public tenant slug.", example = "demo-studio") @PathVariable
-                    final String tenantSlug,
-            @RequestBody final LoginRequest request) {
+    public ResponseEntity<LoginResponse> login(
+            @PathVariable final String tenantSlug, @RequestBody final LoginRequest request) {
         final var command = new LoginCommand(tenantSlug, request.email(), request.password());
         final var result = loginUseCase.login(command);
         return ResponseEntity.ok(LoginResponse.from(result));
