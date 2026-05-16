@@ -54,7 +54,7 @@ bootstrap: runtime assembly, Security/JWT/Password/OpenAPI adapters, integration
 | Availability write | JWT `tenantId` | Bearer JWT | `OWNER`/`STAFF` |
 | Slot search | JWT `tenantId` | Bearer JWT | Admin or customer |
 | Customer reservation | JWT `tenantId` | Bearer JWT | `CUSTOMER` |
-| Admin reservation audit | JWT `tenantId` | Bearer JWT | `OWNER`/`STAFF` |
+| Admin reservation operations | JWT `tenantId` | Bearer JWT | `OWNER`/`STAFF` |
 
 JWTs are self-issued HS256 tokens. Access tokens live for 30 minutes, and refresh tokens are outside the MVP scope. Logout writes the token `jti` to a PostgreSQL-backed `revoked_token` table so revocation works across application instances. Expired revocation rows are ignored during authentication and removed by a scheduled cleanup using `resrv.auth.revocation-cleanup-interval`.
 
@@ -113,7 +113,7 @@ Representative integration tests:
 
 - `AuthIntegrationTest`: login/logout/me behavior and revoked-token rejection
 - `ResourceManagementIntegrationTest`: admin login and Resource CRUD flow
-- `ReservationMvpIntegrationTest`: customer registration/login, availability, slots, hold/confirm/cancel, and no-overbooking flow
+- `ReservationMvpIntegrationTest`: customer registration/login, availability, slots, hold/confirm/cancel, admin reservation search/lifecycle operations, and no-overbooking flow
 - `OpenApiIntegrationTest`: OpenAPI/Swagger public access and current API path exposure
 
 ## Explicitly deferred hardening
