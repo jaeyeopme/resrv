@@ -172,3 +172,84 @@ A reviewer can verify the core backend quickly with this flow:
    check-in or no-show when their time windows allow it.
 10. Cancel a customer-owned held or confirmed reservation and confirm the slot
     becomes available again.
+
+## Compact curl walkthrough
+
+The commands below exercise the same happy path without depending on Swagger
+mutating requests. They assume the app is running at `localhost:8080` and use
+`jq` only to capture ids and tokens from responses. If you rerun the walkthrough
+against the same database, change `TENANT_SLUG`, `ADMIN_EMAIL`, and
+`CUSTOMER_EMAIL` first because tenant slugs and customer emails are unique.
+
+```bash
+BASE=http://localhost:8080
+TENANT_SLUG=demo-studio
+ADMIN_EMAIL=owner@example.com
+CUSTOMER_EMAIL=customer@example.com
+PASSWORD=password123
+DEMO_DATE=2030-01-07 # Monday
+DEMO_START=2030-01-07T09:00:00Z
+
+curl -s -X POST "$BASE/api/tenants" \
+  -H 'Content-Type: application/json' \
+  -d "{
+    \"name\":\"Demo Studio\",
+    \"slug\":\"$TENANT_SLUG\",
+    \"timezone\":\"UTC\",
+    \"slotDuration\":60,
+    \"holdTtl\":15,
+    \"cancellationWindow\":60,
+    \"admin\":{\"email\":\"$ADMIN_EMAIL\",\"password\":\"$PASSWORD\"}
+  }"
+
+ADMIN_TOKEN=$(
+  curl -s -X POST "$BASE/public/$TENANT_SLUG/auth/login" \
+    -H 'Content-Type: application/json' \
+    -d "{\"email\":\"$ADMIN_EMAIL\",\"password\":\"$PASSWORD\"}" |
+    jq -r '.accessToken'
+)
+
+RESOURCE_ID=$(
+  curl -s -X POST "$BASE/api/resources" \
+    -H "Authorization: Bearer $ADMIN_TOKEN" \
+    -H 'Content-Type: application/json' \
+    -d '{"name":"Room A","slug":"room-a","description":"Consulting room"}' |
+    jq -r '.id'
+)
+
+curl -s -X PUT "$BASE/api/resources/$RESOURCE_ID/weekly-availability/1" \
+  -H "Authorization: Bearer $ADMIN_TOKEN" \
+  -H 'Content-Type: application/json' \
+  -d '{"startTime":"09:00:00","endTime":"12:00:00"}'
+
+curl -s -X POST "$BASE/public/$TENANT_SLUG/customers" \
+  -H 'Content-Type: application/json' \
+  -d "{\"email\":\"$CUSTOMER_EMAIL\",\"name\":\"Jane Customer\",\"password\":\"$PASSWORD\"}"
+
+CUSTOMER_TOKEN=$(
+  curl -s -X POST "$BASE/public/$TENANT_SLUG/customers/login" \
+    -H 'Content-Type: application/json' \
+    -d "{\"email\":\"$CUSTOMER_EMAIL\",\"password\":\"$PASSWORD\"}" |
+    jq -r '.accessToken'
+)
+
+curl -s "$BASE/api/resources/$RESOURCE_ID/slots?date=$DEMO_DATE" \
+  -H "Authorization: Bearer $CUSTOMER_TOKEN"
+
+RESERVATION_ID=$(
+  curl -s -X POST "$BASE/api/reservation-holds" \
+    -H "Authorization: Bearer $CUSTOMER_TOKEN" \
+    -H 'Content-Type: application/json' \
+    -d "{\"resourceId\":\"$RESOURCE_ID\",\"startAt\":\"$DEMO_START\"}" |
+    jq -r '.id'
+)
+
+curl -s -X POST "$BASE/api/reservation-holds/$RESERVATION_ID/confirm" \
+  -H "Authorization: Bearer $CUSTOMER_TOKEN"
+
+curl -s "$BASE/api/reservations?date=$DEMO_DATE&resourceId=$RESOURCE_ID" \
+  -H "Authorization: Bearer $ADMIN_TOKEN"
+
+curl -s -X POST "$BASE/api/me/reservations/$RESERVATION_ID/cancel" \
+  -H "Authorization: Bearer $CUSTOMER_TOKEN"
+```
