@@ -43,7 +43,7 @@ JWTs include `jti`, `userId`, `tenantId`, `role`, `iss`, `aud`, and `exp` claims
 | `POST` | `/api/auth/logout` | Bearer JWT | Persistently revoke the current JWT JTI until expiration |
 | `GET` | `/api/auth/me` | Bearer JWT | Return the current JWT `userId`, `tenantId`, and `role` |
 
-### Admin resource and availability
+### Admin resource, availability, and reservations
 
 | Method | Path | Auth | Description |
 |---|---|---|---|
@@ -168,6 +168,7 @@ A reviewer can verify the core backend quickly with this flow:
 6. Confirm that a second hold for the same slot fails with `409 Conflict`.
 7. Confirm the held reservation and verify the status in both customer and admin views.
 8. Use the admin operator reservation search for the tenant-local date to inspect the day schedule.
-9. For operator lifecycle verification, mark a confirmed reservation checked in or
-   no-show when its time window allows it.
-10. Cancel the reservation as the customer and confirm the slot becomes available again.
+9. For operator lifecycle verification, use separate confirmed reservations to test
+   check-in or no-show when their time windows allow it.
+10. Cancel a customer-owned held or confirmed reservation and confirm the slot
+    becomes available again.
