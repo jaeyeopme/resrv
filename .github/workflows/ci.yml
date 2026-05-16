@@ -25,25 +25,81 @@ jobs:
         run: npm ci
 
       - name: Lint commit messages
+        shell: bash
+        env:
+          BEFORE_SHA: ${{ github.event.before }}
+          CURRENT_SHA: ${{ github.sha }}
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+          EVENT_NAME: ${{ github.event_name }}
+          PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          REF_NAME: ${{ github.ref_name }}
         run: |
-          lint_all_commits() {
-            root="$(git rev-list --max-parents=0 HEAD)"
-            root_msg="$(mktemp)"
-            git log -1 --format=%B "$root" > "$root_msg"
-            npx commitlint --edit "$root_msg"
-            npx commitlint --from "$root" --to HEAD --verbose
+          set -euo pipefail
+
+          zero_sha="0000000000000000000000000000000000000000"
+
+          lint_range() {
+            local from="$1"
+            local to="$2"
+            local count
+
+            count="$(git rev-list --count "${from}..${to}")"
+            if [ "$count" -eq 0 ]; then
+              echo "No commits to lint in ${from}..${to}"
+              return 0
+            fi
+
+            npx commitlint --from "$from" --to "$to" --verbose
           }
 
-          if [ "${{ github.event_name }}" = "pull_request" ]; then
-            npx commitlint --from "${{ github.event.pull_request.base.sha }}" --to "${{ github.event.pull_request.head.sha }}" --verbose
-          elif [ "${{ github.event.before }}" = "0000000000000000000000000000000000000000" ]; then
-            lint_all_commits
-          elif ! git cat-file -e "${{ github.event.before }}^{commit}" 2>/dev/null; then
-            lint_all_commits
-          elif ! git merge-base --is-ancestor "${{ github.event.before }}" "${{ github.sha }}"; then
-            lint_all_commits
+          lint_all_reachable() {
+            local to="$1"
+            local root
+            local root_msg
+
+            root="$(git rev-list --max-parents=0 "$to" | tail -n 1)"
+            root_msg="$(mktemp)"
+            trap 'rm -f "$root_msg"' EXIT
+            git log -1 --format=%B "$root" > "$root_msg"
+            npx commitlint --edit "$root_msg" --verbose
+            rm -f "$root_msg"
+            trap - EXIT
+
+            lint_range "$root" "$to"
+          }
+
+          lint_since_default_branch() {
+            local to="$1"
+            local default_ref="origin/${DEFAULT_BRANCH}"
+            local from
+            local count
+
+            if from="$(git merge-base "$default_ref" "$to" 2>/dev/null)"; then
+              count="$(git rev-list --count "${from}..${to}")"
+              if [ "$count" -gt 0 ]; then
+                lint_range "$from" "$to"
+                return 0
+              fi
+
+              if [ "$REF_NAME" != "$DEFAULT_BRANCH" ]; then
+                echo "No branch-only commits to lint in ${from}..${to}"
+                return 0
+              fi
+            fi
+
+            echo "Falling back to linting all commits reachable from $to"
+            lint_all_reachable "$to"
+          }
+
+          if [ "$EVENT_NAME" = "pull_request" ]; then
+            lint_range "$PR_BASE_SHA" "$PR_HEAD_SHA"
+          elif [ "$BEFORE_SHA" != "$zero_sha" ] &&
+               git cat-file -e "${BEFORE_SHA}^{commit}" 2>/dev/null &&
+               git merge-base --is-ancestor "$BEFORE_SHA" "$CURRENT_SHA"; then
+            lint_range "$BEFORE_SHA" "$CURRENT_SHA"
           else
-            npx commitlint --from "${{ github.event.before }}" --to "${{ github.sha }}" --verbose
+            lint_since_default_branch "$CURRENT_SHA"
           fi
 
       - name: Set up JDK 25
