@@ -19,7 +19,7 @@ Small businesses often manage reservations across phone calls, messages, handwri
 
 | User | Description | Current MVP capabilities |
 |---|---|---|
-| Tenant Admin | Business owner/operator | Create tenant, manage resources, configure availability, view reservations |
+| Tenant Admin | Business owner/operator | Create tenant, manage resources, configure availability, search reservations, and apply bounded operator lifecycle transitions |
 | Tenant Staff | Operations staff | Foundation for `STAFF` role access to operational APIs |
 | Customer | Reservation customer | Register, log in, search slots, hold/confirm/cancel own reservations |
 | Integrator | External UI/automation integrator | Read OpenAPI docs and integrate a client/frontend |
@@ -51,7 +51,9 @@ The current MVP provides this end-to-end flow:
 7. A second active reservation for the same resource/time is blocked by database constraints.
 8. The customer confirms the hold.
 9. The customer lists and cancels their own reservations.
-10. The administrator lists reservations for a resource.
+10. The administrator searches reservations for the tenant schedule.
+11. The administrator can apply bounded operator transitions: admin-cancel,
+    check-in, or no-show when the reservation state and time window allow it.
 
 ## Business rules
 
