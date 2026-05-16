@@ -60,7 +60,7 @@ These items would improve review ergonomics, but they are not required to unders
 | Priority | Item | Reason |
 |---|---|---|
 | P1 | Add operation-level OpenAPI request/response examples | Reviewers can reproduce the demo flow from Swagger alone |
-| P1 | Add a README curl walkthrough | Reviewers can quickly follow the local success path |
+| P1 | Add a compact curl walkthrough | Reviewers can quickly follow the local success path without bloating the root README |
 | P1 | Add more reservation domain/application unit tests | State-transition rules become fast to verify without Testcontainers |
 | P2 | Add seed/demo profile | Reduces demo setup time |
 | P2 | Publish read-only hosted demo policy | Provides a safer external review path than a mutable demo environment |
