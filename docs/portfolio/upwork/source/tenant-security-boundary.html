@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <link rel="stylesheet" href="shared.css" />
+  <style>
+    .boundary {
+      margin-top: 34px;
+      display: grid;
+      grid-template-columns: 1fr 72px 1fr 72px 1fr;
+      gap: 18px;
+      align-items: stretch;
+    }
+    .arrow-box {
+      display: grid;
+      place-items: center;
+      color: var(--accent);
+      font-size: 52px;
+      font-weight: 800;
+    }
+    .boundary-card {
+      min-height: 230px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      gap: 18px;
+    }
+    .boundary-card .card-title { font-size: 32px; }
+    .claim-list {
+      margin-top: 20px;
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+    }
+    .claim { min-height: 108px; padding: 20px; }
+    .claim .card-title { font-size: 26px; margin-bottom: 8px; }
+    .claim .body-text { font-size: 20px; line-height: 1.3; }
+  </style>
+</head>
+<body>
+  <main class="asset">
+    <section class="header">
+      <div class="eyebrow">Auth and tenant boundary</div>
+      <h1>Tenant & auth boundary</h1>
+      <p class="subtitle">JWT role and tenant scope protect business APIs without trusting client-supplied tenant ids.</p>
+    </section>
+
+    <section class="boundary">
+      <article class="card boundary-card">
+        <div class="step-num">A</div>
+        <div>
+          <h2 class="card-title">Public tenant slug</h2>
+          <p class="body-text">Signup and login use a tenant slug; the server resolves the tenant id.</p>
+        </div>
+      </article>
+      <div class="arrow-box">→</div>
+      <article class="card boundary-card">
+        <div class="step-num">B</div>
+        <div>
+          <h2 class="card-title">Issued JWT claims</h2>
+          <p class="body-text">Token carries tenantId, userId, role, expiration, and jti.</p>
+        </div>
+      </article>
+      <div class="arrow-box">→</div>
+      <article class="card boundary-card">
+        <div class="step-num">C</div>
+        <div>
+          <h2 class="card-title">Protected APIs</h2>
+          <p class="body-text">Business endpoints use JWT tenantId and role guards for access.</p>
+        </div>
+      </article>
+    </section>
+
+    <section class="claim-list">
+      <article class="card claim"><h3 class="card-title">Tenant scope</h3><p class="body-text">Repositories require tenant id inputs.</p></article>
+      <article class="card claim"><h3 class="card-title">Role boundary</h3><p class="body-text">Admin and customer flows are separated.</p></article>
+      <article class="card claim"><h3 class="card-title">Revocation</h3><p class="body-text">Logout stores token jti until expiration.</p></article>
+      <article class="card claim"><h3 class="card-title">Data checks</h3><p class="body-text">Tenant-scoped unique constraints preserve boundaries.</p></article>
+    </section>
+
+    <footer class="footer">
+      <span>Source: README.md + docs/api.md + docs/architecture.md + docs/decisions.md</span>
+      <span class="line"></span>
+      <span>JWT boundary sample</span>
+    </footer>
+  </main>
+</body>
+</html>
