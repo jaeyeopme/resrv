@@ -1,42 +1,46 @@
 # resrv
 
 `resrv` is a Java 25 + Spring Boot 4 backend for a multi-tenant B2B reservation
-platform. The redesign branch models platform accounts, businesses, memberships, timeslot booking
-settings, resources, schedules, virtual slots, and reservation lifecycle transitions.
+platform.
 
-The core correctness question is:
+It models platform accounts, businesses, memberships, booking settings,
+resources, schedules, virtual slots, and reservation lifecycle transitions. The
+main correctness goal is to answer:
 
-> Who reserved which resource, for which business, and for which time range, without leaking
-> business data, trusting client-supplied authorization, or allowing active overbooking?
+> Who reserved which resource, for which business, and for which time range,
+> without leaking business data, trusting client-supplied authorization, or
+> allowing active overbooking?
 
-## Current Redesign State
+## Current State
 
-Current modules:
+The active redesign uses three Gradle modules:
 
-```text
-shared-kernel
-platform
-timeslot
-```
+| Module | Role |
+|---|---|
+| `shared-kernel` | Shared IDs and time primitives |
+| `platform` | Account, login, business, membership, runnable API |
+| `timeslot` | Booking settings, resources, schedules, slots, reservations |
 
-- `platform` is the runnable platform API assembly.
-- `timeslot` contains the booking API assembly, but its `bootJar` and `bootRun` tasks are currently
-  disabled pending final packaging.
-- `docs/adr/0001-bounded-context-module-baseline.md` records the superseded 11-module baseline.
-- `docs/adr/0017-collapse-to-bounded-context-modules.md` records the active three-module decision.
+`platform` is runnable today. `timeslot` has API code, but `bootJar` and
+`bootRun` are disabled until runtime packaging is finalized.
 
-## Read Order
+## Project Entry Points
 
 | Document | Purpose |
 |---|---|
-| [PRD](docs/prd.md) | Product scope, users, requirements, non-goals |
-| [ADR](docs/adr/) | Durable architecture decisions |
-| [TRD](docs/trd.md) | Technical design, runtime structure, data model, constraints |
-| [Architecture](docs/architecture.md) | Stable high-level system and dependency boundaries |
-| [Security](docs/security.md) | JWT, membership authorization, public endpoints, deferred hardening |
-| [Testing](docs/testing.md) | Test strategy, quality gates, coverage thresholds |
-| [Operations](docs/operations.md) | Local run, environment, database, troubleshooting |
-| [Glossary](docs/glossary.md) | Canonical domain terms |
+| [README](README.md) | Repository entry point, current structure, key commands |
+| [PRD](docs/prd.md) | Product requirements and open product questions |
+| [TRD](docs/trd.md) | Technical requirements and design |
+| [Architecture](docs/architecture.md) | Current architecture summary |
+| [ADR index](docs/adr/README.md) | Architecture decision record index |
+| [AGENTS](AGENTS.md) | Agent working rules, guardrails, build commands |
+
+Supporting docs:
+
+- [Security](docs/security.md)
+- [Testing](docs/testing.md)
+- [Operations](docs/operations.md)
+- [Glossary](docs/glossary.md)
 
 ## Tech Stack
 

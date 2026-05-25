@@ -1,44 +1,89 @@
 # AGENTS.md
 
-> Team-owned — commit every discovery. Personal overrides: `AGENTS.local.md` (.gitignored).
+## Project Snapshot
 
-## Project
+`resrv` is a multi-tenant B2B reservation API built with Java 25, Spring Boot 4,
+PostgreSQL, and Gradle. The codebase uses bounded-context modules with hexagonal
+package boundaries.
 
-Multi-tenant B2B SaaS reservation API. Hexagonal (Ports & Adapters), Java 25 + Spring Boot 4 + PostgreSQL.
+Current Gradle modules:
 
-Current redesign branch uses 3 Gradle modules. `docs/adr/0001-bounded-context-module-baseline.md`
-records the superseded 11-module implementation baseline. `docs/adr/0017-collapse-to-bounded-context-modules.md`
-is the active module decision.
-
-## Build Commands
-
-```bash
-./gradlew spotlessApply      # Auto-format (run before check)
-./gradlew rewriteDryRun      # Preview active OpenRewrite cleanup recipes
-./gradlew check              # Full build + tests + Checkstyle + ArchUnit + JaCoCo coverage gate
-./gradlew :platform:bootRun # Run platform API locally — requires RESRV_JWT_* env vars
+```text
+shared-kernel
+platform
+timeslot
 ```
 
-Tests use Testcontainers — Docker must be running.
+`platform` is the runnable Spring Boot API. `timeslot` contains booking API code,
+but its `bootJar` and `bootRun` tasks are intentionally disabled until runtime
+packaging is decided.
 
-## Document Sources of Truth
+## Required Commands
 
-| Surface | Role |
+Run formatting before full verification:
+
+```bash
+./gradlew spotlessApply
+./gradlew rewriteDryRun
+./gradlew check
+```
+
+Run the platform API locally:
+
+```bash
+RESRV_JWT_SECRET_KEY=01234567890123456789012345678901 \
+RESRV_JWT_ISSUER=resrv-dev \
+RESRV_JWT_AUDIENCE=resrv-api \
+RESRV_JWT_EXPIRATION=3600 \
+./gradlew :platform:bootRun
+```
+
+Tests use Testcontainers. Docker must be running.
+
+## Project Entry Points
+
+| File | Purpose |
 |---|---|
-| `README.md` | Short external entry point and navigation hub |
-| `docs/prd.md` | Product requirements |
+| `README.md` | Repository entry point, current structure, key commands |
+| `docs/prd.md` | Product requirements and open product questions |
 | `docs/trd.md` | Technical requirements and design |
-| `docs/architecture.md` | Stable architecture overview |
-| `docs/security.md` | Authentication, authorization, and deferred hardening |
-| `docs/testing.md` | Test strategy and quality gates |
-| `docs/operations.md` | Local run and operational notes |
-| `docs/glossary.md` | Canonical terms |
-| `docs/adr/` | Architecture decision records |
-| `AGENTS.md` | Agent operating rules, build commands, non-goals, and durable project caveats |
+| `docs/architecture.md` | Current architecture summary |
+| `docs/adr/README.md` | Architecture decision record index |
+| `AGENTS.md` | Repository automation rules, guardrails, build commands |
 
-Do not reintroduce Spec Kit as a source of truth. Do not recreate `.specify/`, `specs/`, `.github/agents/speckit.*`, `.github/prompts/speckit.*`, or Spec Kit skill/reference copies unless the user explicitly requests a new Spec Kit setup.
+Supporting docs:
 
-## API Contract Rules
+- `docs/security.md`
+- `docs/testing.md`
+- `docs/operations.md`
+- `docs/glossary.md`
+- `docs/spec-kit.md`
+- `.specify/memory/constitution.md`
+- `specs/` when Spec Kit feature specs exist
+
+ADRs are the decision record. Generated OpenAPI is the endpoint contract.
+Spec Kit specs may drive new work, but they do not replace ADRs or generated API
+contracts.
+
+## Spec Kit
+
+Read `docs/spec-kit.md` before starting or reviewing Spec Kit work.
+
+Use this workflow for spec-driven work:
+
+- `$speckit-constitution`
+- `$speckit-specify`
+- `$speckit-clarify`
+- `$speckit-plan`
+- `$speckit-tasks`
+- `$speckit-analyze`
+- `$speckit-implement`
+
+Keep generated specs aligned with `docs/prd.md`, `docs/trd.md`, and ADRs. Spec
+Kit outputs may guide implementation, but accepted ADRs and generated OpenAPI
+remain authoritative for durable decisions and API contracts.
+
+## API Contract
 
 Generated OpenAPI/Swagger is the API contract surface. Do not create or maintain a hand-written
 `docs/api.md` endpoint catalog.
@@ -52,7 +97,7 @@ When changing API behavior:
 - Mention only high-level API groups in narrative docs unless a concrete endpoint example is needed
   to explain a decision.
 
-## Persistence Access Rules
+## Persistence Access
 
 - Production code defaults to Spring Data JPA for owned persistence.
 - Direct database access primitives (`EntityManager`, `DataSource`, native SQL) belong only in
@@ -62,7 +107,7 @@ When changing API behavior:
 - Timeslot must not read platform tables directly. Use explicit `platform.contract` types from the
   timeslot outbound platform adapter.
 
-## Phase 2 — Do Not Implement
+## Deferred Phase 2 Work
 
 Deferred by design. Do not add code for these unless explicitly asked:
 
@@ -74,7 +119,6 @@ Deferred by design. Do not add code for these unless explicitly asked:
 
 ## Commit Messages
 
-Use the user-level `caveman-commit` skill whenever writing or rewriting commit messages.
 Match the repository's existing Conventional Commit subject style before committing.
 
 Subject format:
@@ -97,8 +141,12 @@ Rules:
 - Do not use `Confidence:` or `Scope-risk:` in normal commit messages.
 - Never include file lists, AI attribution, or work-log narration in commit messages.
 
-## Learnings
+## Durable Learnings
 
 > One-liner rules added after PR corrections. Format: `- <rule>`
 
 - Do not duplicate booking policy fallback logic across services; resolve it through the domain policy type.
+
+<!-- SPECKIT START -->
+When working from a Spec Kit plan, read the active plan before implementation.
+<!-- SPECKIT END -->
