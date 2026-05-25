@@ -39,10 +39,11 @@ The current branch has 3 Gradle modules:
 |---|---|
 | `shared-kernel` | Shared IDs and timezone value object |
 | `platform` | Platform domain, use cases, adapters, Flyway migration, Spring Boot runtime, and security |
-| `timeslot` | Timeslot domain, use cases, adapters, Flyway migration, booking API assembly, and platform lookup adapter |
+| `timeslot` | Timeslot domain, use cases, adapters, Flyway migration, booking API assembly, and platform contract adapter |
 
 Hexagonal layers remain as Java package boundaries inside `platform` and `timeslot`. ArchUnit
-enforces dependency direction.
+enforces dependency direction, keeps direct database access in outbound adapter packages, and limits
+timeslot-to-platform dependencies to explicit platform application lookup/access contracts.
 
 ## API Boundary
 
@@ -59,6 +60,8 @@ Timeslot API owns booking lifecycle:
 - Replace weekly schedules and date overrides.
 - List virtual slots.
 - Hold, confirm, release, cancel, check-in, and mark no-show reservations.
+- List business reservations for a business-local date, with optional resource, customer account,
+  and derived-state filters.
 
 `timeslot` has an application class, but local runtime packaging is not final because `bootJar` and
 `bootRun` are currently disabled.
@@ -97,6 +100,11 @@ Timeslot schema:
 
 Timeslot records reference `business_id` and `customer_account_id` by UUID. The current migrations
 do not add cross-schema foreign keys from timeslot to platform.
+
+Production persistence code defaults to Spring Data JPA for owned tables. Native SQL or JDBC is
+reserved for outbound adapters where database-specific behavior is required, such as PostgreSQL
+advisory locks. Timeslot obtains platform business and membership data through platform application
+contracts rather than reading platform tables directly.
 
 ## Reservation Correctness
 

@@ -52,7 +52,14 @@ ArchUnit verifies:
 - Timeslot domain does not depend on application, adapters, or API runtime.
 - Timeslot domain has no Spring, Jakarta, or Hibernate dependencies.
 - Timeslot application does not depend on adapters or API runtime.
-- Timeslot does not depend on platform domain or platform application packages.
+- Timeslot does not depend on platform domain, adapters, API runtime, repositories, entities, or
+  persistence schema.
+- Only the timeslot outbound platform adapter may depend on explicit platform application
+  lookup/access contracts.
+- Direct database access primitives stay inside outbound adapter packages in production code.
+
+Reservation list/search tests verify business membership authorization, business-local date
+windows, optional resource/customer/state filters, and deterministic start-time ordering.
 
 ## Testcontainers
 
@@ -68,6 +75,5 @@ JWT tests use a fixed local test secret and test issuer/audience values.
 ## Known Gaps
 
 - `timeslot` local boot packaging is pending.
-- Business-facing reservation search/list endpoints are not documented as implemented.
 - Login rate limiting and failed-login lockout are deferred.
 - Token revocation for redesigned account JWTs is deferred.

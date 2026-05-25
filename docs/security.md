@@ -23,8 +23,8 @@ Required claims:
 | `aud` | Configured audience |
 | `exp` | Expiration |
 
-Platform validation requires `sub` and `accountId` to be UUIDs and to match. Timeslot validation
-accepts either `sub` or `accountId` as a UUID so it can consume platform-issued account tokens.
+Platform and Timeslot validation require `sub` and `accountId` to be UUIDs, require `jti`, and
+require `sub` to match `accountId`.
 
 JWTs must not contain:
 
@@ -62,9 +62,9 @@ Timeslot public read endpoints:
 
 Business write operations require active `BusinessMembership` with role `OWNER` or `STAFF`.
 
-Timeslot checks membership through `BusinessAccessPort`, implemented in the runtime adapter against
-platform persistence data. Timeslot application code does not depend directly on platform domain or
-platform application packages.
+Timeslot checks membership through `BusinessAccessPort`, implemented by an outbound adapter that
+calls an explicit platform application access contract. Timeslot application code does not depend
+directly on platform domain, repositories, entities, or persistence schema.
 
 ## Reservation Authorization
 
@@ -76,6 +76,7 @@ Customer-scoped transitions require reservation ownership:
 
 Business-scoped transitions require owner/staff access:
 
+- Business reservation list/search.
 - Business cancel.
 - Check-in.
 - No-show.
@@ -103,4 +104,3 @@ These are intentionally not implemented in the current phase:
 - Do not use the documented development secret outside local development or tests.
 - Use distinct issuer and audience values per environment.
 - Do not put secrets in generated OpenAPI examples, docs, or logs.
-

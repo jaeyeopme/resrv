@@ -52,6 +52,16 @@ When changing API behavior:
 - Mention only high-level API groups in narrative docs unless a concrete endpoint example is needed
   to explain a decision.
 
+## Persistence Access Rules
+
+- Production code defaults to Spring Data JPA for owned persistence.
+- Direct database access primitives (`EntityManager`, `DataSource`, native SQL) belong only in
+  outbound adapter packages.
+- Test `JdbcTemplate` use is allowed for fixtures and database assertions.
+- If production code needs native SQL/JDBC, document why JPA is not the right fit.
+- Timeslot must not read platform tables directly. Use explicit platform application lookup/access
+  contracts from the timeslot outbound platform adapter.
+
 ## Phase 2 — Do Not Implement
 
 Deferred by design. Do not add code for these unless explicitly asked:

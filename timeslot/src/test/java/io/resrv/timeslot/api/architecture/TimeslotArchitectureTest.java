@@ -51,13 +51,41 @@ final class TimeslotArchitectureTest {
     }
 
     @Test
-    void timeslot_does_not_depend_on_platform_domain() {
+    void timeslot_does_not_depend_on_platform_internals() {
         noClasses()
                 .that()
                 .resideInAPackage("io.resrv.timeslot..")
                 .should()
                 .dependOnClassesThat()
-                .resideInAnyPackage("io.resrv.platform.domain..", "io.resrv.platform.application..")
+                .resideInAnyPackage(
+                        "io.resrv.platform.domain..",
+                        "io.resrv.platform.adapter..",
+                        "io.resrv.platform.api..")
+                .check(classes);
+    }
+
+    @Test
+    void only_platform_outbound_adapter_uses_platform_application_contracts() {
+        noClasses()
+                .that()
+                .resideInAPackage("io.resrv.timeslot..")
+                .and()
+                .resideOutsideOfPackage("io.resrv.timeslot.adapter.out.platform..")
+                .should()
+                .dependOnClassesThat()
+                .resideInAPackage("io.resrv.platform.application..")
+                .check(classes);
+    }
+
+    @Test
+    void direct_database_access_stays_in_outbound_adapters() {
+        noClasses()
+                .that()
+                .resideOutsideOfPackage("io.resrv.timeslot.adapter.out..")
+                .should()
+                .dependOnClassesThat()
+                .resideInAnyPackage(
+                        "jakarta.persistence..", "javax.sql..", "org.springframework.jdbc..")
                 .check(classes);
     }
 }
