@@ -57,6 +57,7 @@ HELP.md
 
 # Local agent wiki/state
 omx_wiki/
+.worktrees/
 
 # Node-based repository tooling
 node_modules/
