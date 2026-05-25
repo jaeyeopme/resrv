@@ -54,8 +54,7 @@ ArchUnit verifies:
 - Timeslot application does not depend on adapters or API runtime.
 - Timeslot does not depend on platform domain, adapters, API runtime, repositories, entities, or
   persistence schema.
-- Only the timeslot outbound platform adapter may depend on explicit `platform.contract` types and
-  the platform services that implement them for runtime wiring.
+- Only the timeslot outbound platform adapter may depend on explicit `platform.contract` types.
 - Direct database access primitives stay inside outbound adapter packages in production code.
 
 Reservation list/search tests verify business membership authorization, business-local date
