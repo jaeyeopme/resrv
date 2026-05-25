@@ -48,14 +48,15 @@ Keep hexagonal layers as Java package boundaries:
 ```text
 platform.domain
 platform.application
-platform.adapter.persistence
-platform.adapter.web
+platform.adapter.in.web
+platform.adapter.out.persistence
 platform.api
 
 timeslot.domain
 timeslot.application
-timeslot.adapter.persistence
-timeslot.adapter.web
+timeslot.adapter.in.web
+timeslot.adapter.out.persistence
+timeslot.adapter.out.platform
 timeslot.api
 ```
 
@@ -65,7 +66,12 @@ Use ArchUnit to enforce:
 - Application may depend on domain and ports, but not adapters or API runtime.
 - Adapters may depend inward on application ports and domain.
 - API packages assemble runtime concerns.
-- Timeslot must not depend on platform domain/application packages directly.
+- Timeslot must not depend on platform domain, adapters, API runtime, repositories, entities, or
+  persistence schema directly. The timeslot outbound platform adapter may depend on explicit
+  platform application lookup/access contracts.
+- Direct database access primitives must stay in outbound adapter packages. Production code should
+  default to Spring Data JPA for owned persistence; native SQL is reserved for adapter-local
+  database-specific behavior such as advisory locks.
 
 ## Alternatives
 

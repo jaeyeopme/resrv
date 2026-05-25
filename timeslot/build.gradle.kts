@@ -20,6 +20,7 @@ tasks.named<org.springframework.boot.gradle.tasks.run.BootRun>("bootRun") {
 
 dependencies {
     implementation(project(":shared-kernel"))
+    implementation(project(":platform"))
 
     implementation(libs.spring.tx)
     implementation(libs.spring.context)
@@ -33,7 +34,6 @@ dependencies {
     implementation(libs.flyway.database.postgresql)
     compileOnly(libs.swagger.annotations.jakarta)
 
-    runtimeOnly(project(":platform"))
     runtimeOnly(libs.postgresql)
 
     developmentOnly(libs.spring.boot.docker.compose)

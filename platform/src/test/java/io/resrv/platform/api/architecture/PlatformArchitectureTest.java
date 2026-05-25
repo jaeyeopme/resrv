@@ -49,4 +49,16 @@ final class PlatformArchitectureTest {
                 .resideInAnyPackage("io.resrv.platform.adapter..", "io.resrv.platform.api..")
                 .check(classes);
     }
+
+    @Test
+    void direct_database_access_stays_in_outbound_adapters() {
+        noClasses()
+                .that()
+                .resideOutsideOfPackage("io.resrv.platform.adapter.out..")
+                .should()
+                .dependOnClassesThat()
+                .resideInAnyPackage(
+                        "jakarta.persistence..", "javax.sql..", "org.springframework.jdbc..")
+                .check(classes);
+    }
 }

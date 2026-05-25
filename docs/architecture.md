@@ -38,7 +38,16 @@ Rules:
 - Application code defines ports and use cases.
 - Adapters implement ports.
 - API packages assemble web, persistence, security, and configuration.
-- Timeslot code must not depend on platform domain/application code directly.
+- Timeslot code must not depend on platform domain, adapters, API runtime, repositories, entities,
+  or persistence schema. Its outbound platform adapter may depend only on explicit platform
+  application lookup/access contracts.
+- Direct database access primitives are limited to outbound adapters.
+
+## Persistence Access Policy
+
+Owned persistence defaults to Spring Data JPA repositories inside `adapter.out.persistence`.
+Database-specific behavior may use native SQL only inside outbound adapters. Current production use
+is PostgreSQL advisory locking in timeslot persistence.
 
 ## Platform Context
 

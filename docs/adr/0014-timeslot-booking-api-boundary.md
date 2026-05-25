@@ -27,9 +27,12 @@ Expose timeslot endpoints for:
 - Date override replacement.
 - Slot listing.
 - Reservation hold, confirm, release, cancel, check-in, and no-show.
+- Business reservation list/search by business-local date with optional resource, customer account,
+  and state filters.
 
-Add a `PlatformBusinessLookupAdapter` in the timeslot API runtime that implements timeslot ports by
-reading platform persistence data.
+Add a `PlatformBusinessLookupAdapter` outbound adapter that implements timeslot ports by calling an
+explicit platform application lookup/access contract. Timeslot does not read platform tables or
+columns directly.
 
 Timeslot security accepts account-scoped JWTs and resolves business access server-side.
 
@@ -40,13 +43,16 @@ Timeslot security accepts account-scoped JWTs and resolves business access serve
 This would reduce runtime modules but erase the boundary between platform lifecycle and booking
 workflow.
 
-### Let Timeslot Depend On Platform Application Services
+### Let Timeslot Read Platform Schema Directly
 
-This would reuse code directly but couples bounded contexts at the application layer.
+This avoids a compile-time platform dependency but couples timeslot to platform table and column
+names.
 
 ## Consequences
 
 - Timeslot owns its HTTP surface.
 - Cross-context reads go through narrow ports.
+- Timeslot may depend only on the explicit platform application lookup/access contract, not
+  platform domain, repositories, entities, or persistence schema.
 - Timeslot runtime packaging remains pending because `bootJar` and `bootRun` are currently
   disabled.
