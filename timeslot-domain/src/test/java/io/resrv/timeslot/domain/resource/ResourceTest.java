@@ -1,5 +1,6 @@
 package io.resrv.timeslot.domain.resource;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -56,6 +57,41 @@ class ResourceTest {
 
         assertNull(resource.description());
         assertEquals(ResourceBookingOverrides.none(), resource.bookingOverrides());
+    }
+
+    @Test
+    void descriptionAllowsFiveHundredCharactersAfterTrimming() {
+        final var description = "x".repeat(500);
+
+        final var resource =
+                Resource.create(
+                        BusinessId.create(),
+                        new ResourceName("Room A"),
+                        new ResourceSlug("room-a"),
+                        " " + description + " ",
+                        ResourceBookingOverrides.none(),
+                        NOW);
+
+        assertEquals(description, resource.description());
+    }
+
+    @Test
+    void descriptionLongerThanFiveHundredCharactersIsRejectedAfterTrimming() {
+        final var exception =
+                assertThrows(
+                        IllegalArgumentException.class,
+                        () ->
+                                Resource.create(
+                                        BusinessId.create(),
+                                        new ResourceName("Room A"),
+                                        new ResourceSlug("room-a"),
+                                        "x".repeat(501),
+                                        ResourceBookingOverrides.none(),
+                                        NOW));
+
+        assertEquals(
+                "Resource description must be 0-500 characters after trimming",
+                exception.getMessage());
     }
 
     @Test
@@ -118,11 +154,14 @@ class ResourceTest {
 
     @Test
     void invalidSlugIsRejected() {
+        assertDoesNotThrow(() -> new ResourceSlug("abc"));
+        assertDoesNotThrow(() -> new ResourceSlug("a".repeat(63)));
         assertThrows(NullPointerException.class, () -> new ResourceSlug(null));
         assertThrows(IllegalArgumentException.class, () -> new ResourceSlug("ab"));
         assertThrows(IllegalArgumentException.class, () -> new ResourceSlug("Room-A"));
         assertThrows(IllegalArgumentException.class, () -> new ResourceSlug("-room"));
         assertThrows(IllegalArgumentException.class, () -> new ResourceSlug("room-"));
+        assertThrows(IllegalArgumentException.class, () -> new ResourceSlug("room--a"));
         assertThrows(IllegalArgumentException.class, () -> new ResourceSlug("a".repeat(64)));
     }
 

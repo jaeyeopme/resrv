@@ -16,6 +16,8 @@ public record Resource(
         Instant createdAt,
         Instant updatedAt) {
 
+    private static final int MAX_DESCRIPTION_LENGTH = 500;
+
     public Resource {
         Objects.requireNonNull(id, "Resource id must not be null");
         Objects.requireNonNull(businessId, "Business id must not be null");
@@ -87,6 +89,13 @@ public record Resource(
             return null;
         }
         final var trimmed = description.strip();
-        return trimmed.isBlank() ? null : trimmed;
+        if (trimmed.isBlank()) {
+            return null;
+        }
+        if (trimmed.length() > MAX_DESCRIPTION_LENGTH) {
+            throw new IllegalArgumentException(
+                    "Resource description must be 0-500 characters after trimming");
+        }
+        return trimmed;
     }
 }
