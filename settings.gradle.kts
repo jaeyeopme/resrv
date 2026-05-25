@@ -16,9 +16,4 @@ include(
     "timeslot-adapter-persistence",
     "timeslot-adapter-web",
     "timeslot-booking-api",
-    "domain",
-    "application",
-    "adapter-web",
-    "adapter-persistence",
-    "bootstrap",
 )
