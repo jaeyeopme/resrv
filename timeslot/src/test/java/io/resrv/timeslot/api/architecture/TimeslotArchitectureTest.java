@@ -82,8 +82,6 @@ final class TimeslotArchitectureTest {
         noClasses()
                 .that()
                 .resideInAPackage("io.resrv.timeslot..")
-                .and()
-                .resideOutsideOfPackage("io.resrv.timeslot.adapter.out.platform..")
                 .should()
                 .dependOnClassesThat()
                 .resideInAPackage("io.resrv.platform.application..")
