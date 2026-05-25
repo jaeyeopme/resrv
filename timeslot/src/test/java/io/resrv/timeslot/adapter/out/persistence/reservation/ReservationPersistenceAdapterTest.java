@@ -1,6 +1,7 @@
 package io.resrv.timeslot.adapter.out.persistence.reservation;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import io.resrv.shared.kernel.AccountId;
 import io.resrv.shared.kernel.BusinessId;
@@ -9,6 +10,8 @@ import io.resrv.timeslot.application.reservation.out.ReservationCommandPort;
 import io.resrv.timeslot.application.reservation.out.ReservationQueryPort;
 import io.resrv.timeslot.domain.reservation.Reservation;
 import java.time.Instant;
+import java.util.Set;
+import java.util.stream.Collectors;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
@@ -37,18 +40,9 @@ class ReservationPersistenceAdapterTest {
     @Autowired private ReservationQueryPort queryPort;
 
     @Test
-    void activeBlockerQueryExcludesExpiredHolds() {
+    void activeBlockerQueryMatchesDomainBlockerStates() {
         final var businessId = BusinessId.create();
         final var resourceId = ResourceId.create();
-        final var expiredHold =
-                Reservation.hold(
-                        businessId,
-                        resourceId,
-                        AccountId.create(),
-                        START_AT,
-                        END_AT,
-                        NOW.minusSeconds(60),
-                        NOW.minusSeconds(120));
         final var activeHold =
                 Reservation.hold(
                         businessId,
@@ -58,14 +52,95 @@ class ReservationPersistenceAdapterTest {
                         END_AT,
                         NOW.plusSeconds(60),
                         NOW);
-        commandPort.save(expiredHold);
+        final var confirmed =
+                Reservation.hold(
+                                businessId,
+                                resourceId,
+                                AccountId.create(),
+                                START_AT,
+                                END_AT,
+                                NOW.plusSeconds(60),
+                                NOW)
+                        .confirm(NOW);
+        final var checkedIn =
+                Reservation.hold(
+                                businessId,
+                                resourceId,
+                                AccountId.create(),
+                                START_AT,
+                                END_AT,
+                                NOW.plusSeconds(60),
+                                NOW)
+                        .confirm(NOW)
+                        .checkIn(START_AT);
+        final var expiredHold =
+                Reservation.hold(
+                        businessId,
+                        resourceId,
+                        AccountId.create(),
+                        START_AT,
+                        END_AT,
+                        NOW.minusSeconds(60),
+                        NOW.minusSeconds(120));
+        final var released =
+                Reservation.hold(
+                                businessId,
+                                resourceId,
+                                AccountId.create(),
+                                START_AT,
+                                END_AT,
+                                NOW.plusSeconds(60),
+                                NOW)
+                        .release(NOW);
+        final var customerCancelled =
+                Reservation.hold(
+                                businessId,
+                                resourceId,
+                                AccountId.create(),
+                                START_AT,
+                                END_AT,
+                                NOW.plusSeconds(60),
+                                NOW)
+                        .confirm(NOW)
+                        .cancelByCustomer(NOW, START_AT);
+        final var businessCancelled =
+                Reservation.hold(
+                                businessId,
+                                resourceId,
+                                AccountId.create(),
+                                START_AT,
+                                END_AT,
+                                NOW.plusSeconds(60),
+                                NOW)
+                        .confirm(NOW)
+                        .cancelByBusiness(NOW);
+        final var noShow =
+                Reservation.hold(
+                                businessId,
+                                resourceId,
+                                AccountId.create(),
+                                START_AT,
+                                END_AT,
+                                NOW.plusSeconds(60),
+                                NOW)
+                        .confirm(NOW)
+                        .markNoShow(END_AT);
         commandPort.save(activeHold);
+        commandPort.save(confirmed);
+        commandPort.save(checkedIn);
+        commandPort.save(expiredHold);
+        commandPort.save(released);
+        commandPort.save(customerCancelled);
+        commandPort.save(businessCancelled);
+        commandPort.save(noShow);
 
         final var blockers =
                 queryPort.findActiveBlockers(businessId, resourceId, START_AT, END_AT, NOW);
 
-        assertEquals(1, blockers.size());
-        assertEquals(activeHold.id(), blockers.getFirst().id());
+        assertEquals(
+                Set.of(activeHold.id(), confirmed.id(), checkedIn.id()),
+                blockers.stream().map(Reservation::id).collect(Collectors.toSet()));
+        assertTrue(blockers.stream().allMatch(reservation -> reservation.blocksSlotAt(NOW)));
     }
 
     @Test

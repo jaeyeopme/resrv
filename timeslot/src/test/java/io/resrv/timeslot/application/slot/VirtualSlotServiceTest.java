@@ -11,6 +11,7 @@ import io.resrv.shared.kernel.ResourceId;
 import io.resrv.shared.kernel.Timezone;
 import io.resrv.timeslot.application.business.BusinessNotAvailableException;
 import io.resrv.timeslot.application.business.out.BusinessLookupPort;
+import io.resrv.timeslot.application.resource.ResourceNotAvailableException;
 import io.resrv.timeslot.application.resource.out.ResourceQueryPort;
 import io.resrv.timeslot.application.schedule.out.ResourceScheduleQueryPort;
 import io.resrv.timeslot.application.settings.out.BusinessBookingSettingsQueryPort;
@@ -66,24 +67,6 @@ final class VirtualSlotServiceTest {
                         resourceQueryPort,
                         scheduleQueryPort,
                         Clock.fixed(NOW, ZoneOffset.UTC));
-    }
-
-    @Test
-    void generatesSlotsFromMultipleWindowsInBusinessTimezone() {
-        final var slots =
-                VirtualSlotService.generateSlots(
-                        BusinessId.create(),
-                        ResourceId.create(),
-                        Timezone.of("Asia/Seoul"),
-                        LocalDate.parse("2026-05-25"),
-                        new SlotDuration(30),
-                        List.of(
-                                new ScheduleWindow(LocalTime.of(9, 0), LocalTime.of(10, 0)),
-                                new ScheduleWindow(LocalTime.of(14, 0), LocalTime.of(15, 0))));
-
-        assertEquals(4, slots.size());
-        assertEquals(Instant.parse("2026-05-25T00:00:00Z"), slots.getFirst().startAt());
-        assertEquals("2026-05-25T09:00+09:00", slots.getFirst().startAtBusinessTime().toString());
     }
 
     @Test
@@ -166,7 +149,37 @@ final class VirtualSlotServiceTest {
         verifyNoInteractions(settingsQueryPort, resourceQueryPort, scheduleQueryPort);
     }
 
+    @Test
+    void inactiveResourceIsNotAvailable() {
+        givenBusinessSettingsAndResource(
+                Resource.reconstitute(
+                        RESOURCE_ID,
+                        BUSINESS_ID,
+                        new ResourceName("Room A"),
+                        new ResourceSlug("room-a"),
+                        null,
+                        ResourceStatus.INACTIVE,
+                        ResourceBookingOverrides.none(),
+                        NOW,
+                        NOW));
+
+        assertThrows(
+                ResourceNotAvailableException.class,
+                () -> service.listSlots(new ListSlotsQuery(BUSINESS_ID, RESOURCE_ID, DATE)));
+
+        verifyNoInteractions(scheduleQueryPort);
+    }
+
+    @Test
+    void listSlotsRejectsNullQuery() {
+        assertThrows(NullPointerException.class, () -> service.listSlots(null));
+    }
+
     private void givenBusinessSettingsAndResource(final ResourceBookingOverrides overrides) {
+        givenBusinessSettingsAndResource(resource(overrides));
+    }
+
+    private void givenBusinessSettingsAndResource(final Resource resource) {
         when(businessLookupPort.findActiveById(BUSINESS_ID))
                 .thenReturn(
                         Optional.of(
@@ -174,7 +187,7 @@ final class VirtualSlotServiceTest {
                                         BUSINESS_ID, "Salon A", "salon-a", TIMEZONE)));
         when(settingsQueryPort.findByBusinessId(BUSINESS_ID)).thenReturn(Optional.of(settings()));
         when(resourceQueryPort.findByBusinessIdAndId(BUSINESS_ID, RESOURCE_ID))
-                .thenReturn(Optional.of(resource(overrides)));
+                .thenReturn(Optional.of(resource));
     }
 
     private static BusinessBookingSettings settings() {

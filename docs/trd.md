@@ -119,6 +119,7 @@ Hold creation:
 Active blocker query includes:
 
 - Confirmed reservations.
+- Checked-in reservations.
 - Holds where `hold_expires_at > now`.
 
 It excludes released, cancelled, and no-show reservations.

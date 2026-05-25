@@ -7,8 +7,10 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import io.resrv.shared.kernel.BusinessId;
 import io.resrv.shared.kernel.ResourceId;
+import io.resrv.timeslot.domain.settings.BusinessBookingSettings;
 import io.resrv.timeslot.domain.settings.CancellationWindow;
 import io.resrv.timeslot.domain.settings.HoldTtl;
+import io.resrv.timeslot.domain.settings.MaxAdvanceBookingDays;
 import io.resrv.timeslot.domain.settings.SlotDuration;
 import java.time.Instant;
 import org.junit.jupiter.api.Test;
@@ -57,6 +59,33 @@ class ResourceTest {
 
         assertNull(resource.description());
         assertEquals(ResourceBookingOverrides.none(), resource.bookingOverrides());
+    }
+
+    @Test
+    void bookingOverridesResolveToEffectivePolicy() {
+        final var settings =
+                BusinessBookingSettings.create(
+                        BusinessId.create(),
+                        new SlotDuration(30),
+                        new HoldTtl(10),
+                        new CancellationWindow(60),
+                        new MaxAdvanceBookingDays(14),
+                        NOW);
+
+        final var defaults = ResourceBookingOverrides.none().resolve(settings);
+        final var overrides =
+                new ResourceBookingOverrides(
+                                new SlotDuration(45), new HoldTtl(5), new CancellationWindow(120))
+                        .resolve(settings);
+
+        assertEquals(new SlotDuration(30), defaults.slotDuration());
+        assertEquals(new HoldTtl(10), defaults.holdTtl());
+        assertEquals(new CancellationWindow(60), defaults.cancellationWindow());
+        assertEquals(new MaxAdvanceBookingDays(14), defaults.maxAdvanceBookingDays());
+        assertEquals(new SlotDuration(45), overrides.slotDuration());
+        assertEquals(new HoldTtl(5), overrides.holdTtl());
+        assertEquals(new CancellationWindow(120), overrides.cancellationWindow());
+        assertEquals(new MaxAdvanceBookingDays(14), overrides.maxAdvanceBookingDays());
     }
 
     @Test

@@ -1,7 +1,9 @@
 package io.resrv.timeslot.domain.reservation;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import io.resrv.shared.kernel.AccountId;
 import io.resrv.shared.kernel.BusinessId;
@@ -24,6 +26,8 @@ final class ReservationTest {
         assertEquals(
                 ReservationState.HELD, reservation.stateAt(Instant.parse("2026-05-25T00:09:59Z")));
         assertEquals(ReservationState.EXPIRED, reservation.stateAt(HOLD_EXPIRES_AT));
+        assertTrue(reservation.blocksSlotAt(Instant.parse("2026-05-25T00:09:59Z")));
+        assertFalse(reservation.blocksSlotAt(HOLD_EXPIRES_AT));
     }
 
     @Test
@@ -115,6 +119,31 @@ final class ReservationTest {
         final var noShow = confirmed.markNoShow(END_AT);
 
         assertEquals(ReservationState.NO_SHOW, noShow.stateAt(END_AT));
+    }
+
+    @Test
+    void onlyHeldConfirmedAndCheckedInReservationsBlockSlots() {
+        final var held = hold();
+        final var confirmed = hold().confirm(Instant.parse("2026-05-25T00:09:59Z"));
+        final var checkedIn = confirmed.checkIn(START_AT);
+
+        assertTrue(held.blocksSlotAt(Instant.parse("2026-05-25T00:09:59Z")));
+        assertTrue(confirmed.blocksSlotAt(HOLD_EXPIRES_AT));
+        assertTrue(checkedIn.blocksSlotAt(START_AT));
+        assertFalse(
+                hold().release(Instant.parse("2026-05-25T00:09:59Z"))
+                        .blocksSlotAt(HOLD_EXPIRES_AT));
+        assertFalse(
+                confirmed
+                        .cancelByCustomer(
+                                Instant.parse("2026-05-25T00:19:59Z"),
+                                Instant.parse("2026-05-25T00:20:00Z"))
+                        .blocksSlotAt(HOLD_EXPIRES_AT));
+        assertFalse(
+                confirmed
+                        .cancelByBusiness(Instant.parse("2026-05-25T00:10:00Z"))
+                        .blocksSlotAt(HOLD_EXPIRES_AT));
+        assertFalse(confirmed.markNoShow(END_AT).blocksSlotAt(END_AT));
     }
 
     @Test

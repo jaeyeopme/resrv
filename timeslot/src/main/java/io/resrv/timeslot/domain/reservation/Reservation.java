@@ -132,6 +132,13 @@ public record Reservation(
         return ReservationState.HELD;
     }
 
+    public boolean blocksSlotAt(final Instant now) {
+        return switch (stateAt(now)) {
+            case HELD, CONFIRMED, CHECKED_IN -> true;
+            case EXPIRED, RELEASED, CUSTOMER_CANCELLED, BUSINESS_CANCELLED, NO_SHOW -> false;
+        };
+    }
+
     public Reservation confirm(final Instant now) {
         requireHeld(now, "Only held reservation can be confirmed");
         return new Reservation(
