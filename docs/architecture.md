@@ -1,48 +1,81 @@
 # Architecture
 
-`resrv` is a Java 25 + Spring Boot 4 backend organized around bounded contexts and
-hexagonal boundaries.
+`resrv` is organized around bounded contexts and hexagonal boundaries.
 
-## Deployables
+## Bounded Contexts
 
-| Deployable | Role |
+| Context | Owns |
 |---|---|
-| `platform-api` | Account login, Business creation, BusinessMembership ownership |
-| `timeslot-booking-api` | Resource schedules, virtual slots, hold/confirm/reservation transitions |
+| Platform | Account identity, login, business creation, business membership |
+| Timeslot | Booking settings, resources, schedules, virtual slots, reservations |
+| Shared kernel | Stable identity and time primitives shared by contexts |
 
-## Modules
+## Current Module State
 
-| Module | Responsibility |
-|---|---|
-| `shared-kernel` | Shared IDs and timezone value objects |
-| `platform-domain` | Account, Business, BusinessMembership domain |
-| `platform-application` | Platform use cases and ports |
-| `platform-adapter-persistence` | Platform JPA/Flyway persistence |
-| `platform-adapter-web` | Platform REST adapters |
-| `platform-api` | Platform runtime assembly/security |
-| `timeslot-domain` | Booking settings, resources, schedules, slots, reservation facts |
-| `timeslot-application` | Timeslot use cases and ports |
-| `timeslot-adapter-persistence` | Timeslot JPA/Flyway persistence and slot advisory lock |
-| `timeslot-adapter-web` | Timeslot REST adapters |
-| `timeslot-booking-api` | Timeslot runtime assembly/security and platform read adapter |
+The current branch uses bounded-context Gradle modules. This is recorded in
+[ADR-0017](adr/0017-collapse-to-bounded-context-modules.md).
 
-## Domain Direction
+```text
+shared-kernel
+platform
+timeslot
+```
 
-Domain modules do not depend on Spring, JPA, adapters, or API runtimes. Application modules
-define ports. Adapters implement ports. Runtime modules assemble security, persistence, and web
-adapters.
+[ADR-0001](adr/0001-bounded-context-module-baseline.md) records the superseded 11-module baseline.
+Hexagonal layers are enforced as packages.
 
-Business replaces Tenant in domain and API terminology. Customer is now a platform `Account`.
-`BusinessMembership` grants `OWNER` or `STAFF` access to a Business.
+## Dependency Direction
+
+Dependency direction points inward:
+
+```text
+api/runtime -> adapters -> application -> domain
+```
+
+Rules:
+
+- Domain code must not depend on Spring, JPA, adapters, application services, or API runtime.
+- Application code defines ports and use cases.
+- Adapters implement ports.
+- API packages assemble web, persistence, security, and configuration.
+- Timeslot code must not depend on platform domain/application code directly.
+
+## Platform Context
+
+Platform uses:
+
+- `Account` for identity.
+- `Business` for organization ownership.
+- `BusinessMembership` for `OWNER` and `STAFF` access.
+
+Account-scoped JWTs identify the caller. Business access is resolved server-side from membership
+data.
+
+## Timeslot Context
+
+Timeslot uses:
+
+- `BusinessBookingSettings` for defaults.
+- `Resource` for bookable capacity.
+- Weekly schedules and date override schedules.
+- Virtual slots encoded as opaque `slotId`.
+- Reservation facts for lifecycle transitions.
+
+Slots are not persisted. They are generated from business timezone, settings, resource overrides,
+and schedule windows.
 
 ## Reservation Correctness
 
-Timeslot booking stores resources, schedules, booking settings, slots, and reservations.
-Slots are virtual and selected by opaque `slotId`.
+Hold creation uses PostgreSQL advisory transaction locking plus an active blocker query. This keeps
+correctness independent from cleanup jobs.
 
-Hold creation uses a PostgreSQL advisory transaction lock for the selected resource/start time,
-then queries active blockers. Active blockers are confirmed reservations or holds whose
-`holdExpiresAt` is still in the future.
+Active blockers:
 
-Reservation state is derived from timestamp facts; `HELD` and `EXPIRED` are not persisted
-statuses. Expired hold cleanup worker is not part of correctness.
+- Confirmed reservations.
+- Holds whose `holdExpiresAt` is still in the future.
+
+Released, cancelled, no-show, and expired holds do not block capacity.
+
+## Decision Log
+
+Architecture decisions live in [docs/adr](adr/).

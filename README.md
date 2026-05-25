@@ -1,81 +1,83 @@
-# resrv — Multi-tenant Reservation API
+# resrv
 
-[![CI](https://github.com/jaeyeopme/resrv/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/jaeyeopme/resrv/actions/workflows/ci.yml)
+`resrv` is a Java 25 + Spring Boot 4 backend for a multi-tenant B2B reservation
+platform. The redesign branch models platform accounts, businesses, memberships, timeslot booking
+settings, resources, schedules, virtual slots, and reservation lifecycle transitions.
 
-`resrv` is a multi-tenant B2B reservation API built to show end-to-end backend product delivery: requirements translated into API contracts, tenant isolation, JWT security, reservation lifecycle rules, PostgreSQL consistency guarantees, and Testcontainers-backed verification.
+The core correctness question is:
 
-The core operational question is: **who reserved which resource, for which tenant, and for which time range — without leaking tenant data, allowing unauthorized actors, or permitting active overbooking?**
+> Who reserved which resource, for which business, and for which time range, without leaking
+> business data, trusting client-supplied authorization, or allowing active overbooking?
 
-## What reviewers can verify
+## Current Redesign State
 
-| Review angle | What to inspect | Evidence |
-|---|---|---|
-| Product problem | The project models a real reservation workflow with tenants, operators, customers, resources, availability, and reservation states. | [`docs/product.md`](docs/product.md), [`docs/case-study.md`](docs/case-study.md) |
-| Design choices | Tenant scope, admin/customer roles, JWT boundaries, reservation states, and database constraints are explicit decisions. | [`docs/architecture.md`](docs/architecture.md), [`docs/decisions.md`](docs/decisions.md) |
-| Implementation | Public onboarding, admin operations, customer reservations, persistence, and runtime assembly are wired end to end. | [`docs/api.md`](docs/api.md), [`docs/status.md`](docs/status.md) |
-| Verification | Unit, slice, integration, architecture, coverage, and CI checks back the main claims. | [`bootstrap/src/test/java/io/resrv/bootstrap`](bootstrap/src/test/java/io/resrv/bootstrap), [`.github/workflows/ci.yml`](.github/workflows/ci.yml) |
+Current modules:
 
-## How to inspect it
+```text
+shared-kernel
+platform
+timeslot
+```
 
-| If you have... | Start here | What you should see |
-|---|---|---|
-| 30 seconds | This README + [`docs/status.md`](docs/status.md) | Implemented scope, current evidence, and intentionally deferred hardening. |
-| 3 minutes | [`docs/case-study.md`](docs/case-study.md) | Problem → design choices → implementation evidence → verification, kept short. |
-| Architecture review time | [`docs/architecture.md`](docs/architecture.md), [`docs/api.md`](docs/api.md), [`docs/decisions.md`](docs/decisions.md) | Module boundaries, tenancy/security model, endpoint surface, and durable decisions. |
-| Local API review | `./gradlew :bootstrap:bootRun` then `/swagger-ui.html` | Public OpenAPI/Swagger surface with mutating `Try it out` disabled by default. |
+- `platform` is the runnable platform API assembly.
+- `timeslot` contains the booking API assembly, but its `bootJar` and `bootRun` tasks are currently
+  disabled pending final packaging.
+- `docs/adr/0001-bounded-context-module-baseline.md` records the superseded 11-module baseline.
+- `docs/adr/0017-collapse-to-bounded-context-modules.md` records the active three-module decision.
 
-## Implemented scope
+## Read Order
 
-| Area | Implemented capability |
+| Document | Purpose |
 |---|---|
-| Tenant onboarding | Tenant creation with the first `OWNER` administrator |
-| Auth | Administrator login, customer login, JWT issuance, logout JTI blacklist, `/me` |
-| Resource management | Tenant-scoped resource create/read/update/deactivate |
-| Availability | Weekly recurring hours and date-specific closures/special hours |
-| Slot search | Available-slot calculation using tenant timezone and slot duration |
-| Reservation lifecycle | Customer-authenticated hold → confirm → list → customer cancel |
-| Admin operations | Resource reservation audit, tenant-wide reservation search, admin cancel, check-in, and no-show |
-| No overbooking | PostgreSQL `EXCLUDE USING gist` constraint blocks active reservation overlaps |
-| API docs | Public Springdoc OpenAPI JSON/YAML and Swagger UI |
+| [PRD](docs/prd.md) | Product scope, users, requirements, non-goals |
+| [ADR](docs/adr/) | Durable architecture decisions |
+| [TRD](docs/trd.md) | Technical design, runtime structure, data model, constraints |
+| [Architecture](docs/architecture.md) | Stable high-level system and dependency boundaries |
+| [Security](docs/security.md) | JWT, membership authorization, public endpoints, deferred hardening |
+| [Testing](docs/testing.md) | Test strategy, quality gates, coverage thresholds |
+| [Operations](docs/operations.md) | Local run, environment, database, troubleshooting |
+| [Glossary](docs/glossary.md) | Canonical domain terms |
 
-## Tech stack
+## Tech Stack
 
-| Category | Technology |
+| Area | Technology |
 |---|---|
-| Language / runtime | Java 25 |
+| Language | Java 25 |
 | Framework | Spring Boot 4, Spring MVC, Spring Security |
-| API docs | Springdoc OpenAPI, Swagger UI |
 | Persistence | PostgreSQL 16, Flyway, Spring Data JPA |
-| Security | JWT HS256, Argon2id password hashing, PostgreSQL-backed JTI revocation blacklist with scheduled cleanup |
-| Build / quality | Gradle 9, OpenRewrite, Spotless, Checkstyle, JaCoCo, ArchUnit, commitlint, Lefthook |
-| Tests | JUnit 5, Testcontainers |
+| API docs | Springdoc OpenAPI, Swagger UI |
+| Security | JWT HS256, Argon2 password hashing |
+| Build | Gradle 9 |
+| Quality | Spotless, Checkstyle, OpenRewrite, JaCoCo, ArchUnit |
+| Tests | JUnit 5, Spring Boot tests, Testcontainers |
 
-## Run locally
+## Build And Verify
 
-### Prerequisites
-
-- JDK 25+
-- Node.js 24+ for repository tooling hooks
-- Docker running for PostgreSQL/Testcontainers
-
-### Install local Git hooks
+Docker must be running for Testcontainers-backed tests.
 
 ```bash
 npm ci
 npm run hooks:install
+./gradlew spotlessApply
+./gradlew rewriteDryRun
+./gradlew check
 ```
 
-Commit subjects are validated with commitlint through Lefthook and in CI. Use Conventional Commit subjects such as `fix(auth): persist logout revocation`.
+`./gradlew check` runs compilation, tests, Checkstyle, ArchUnit tests, JaCoCo report generation, and
+coverage verification.
 
-### Start the API
+## Run Platform API Locally
+
+`platform` can be run with Spring Boot Docker Compose support. It discovers the root
+`compose.yml` when started from the repository root.
 
 ```bash
-./gradlew :bootstrap:bootRun
+RESRV_JWT_SECRET_KEY=01234567890123456789012345678901 \
+RESRV_JWT_ISSUER=resrv-dev \
+RESRV_JWT_AUDIENCE=resrv-api \
+RESRV_JWT_EXPIRATION=3600 \
+./gradlew :platform:bootRun
 ```
-
-`bootRun` starts PostgreSQL through the root `compose.yml` and uses a built-in development JWT secret so the API can be reviewed without extra setup. Set `JWT_SECRET_KEY` to a 32+ byte value for any shared, staged, or production-like environment.
-
-Keep the terminal open while reviewing the API. Startup is complete when the log prints `Started ResrvApplication`; because `bootRun` is a long-running server task, it does not return `BUILD SUCCESSFUL` until the process exits. If you stop it with `Ctrl-C` or a forced kill, Gradle may report a non-zero exit such as `130` or `143` even though startup already succeeded.
 
 Then open:
 
@@ -83,45 +85,8 @@ Then open:
 - OpenAPI JSON: <http://localhost:8080/v3/api-docs>
 - OpenAPI YAML: <http://localhost:8080/v3/api-docs.yaml>
 
-Swagger UI is public for review, but mutating `Try it out` is disabled by default in `application.yml`.
+Generated OpenAPI is the API contract surface. Do not maintain a separate hand-written endpoint
+catalog.
 
-## Representative API flow
-
-1. `POST /api/tenants` — create a tenant and first `OWNER` admin.
-2. `POST /public/{tenantSlug}/auth/login` — log in as an admin and receive a Bearer token.
-3. `POST /api/resources` — create a reservable resource.
-4. `PUT /api/resources/{resourceId}/weekly-availability/{dayOfWeek}` — set weekly hours.
-5. `POST /public/{tenantSlug}/customers` — register a customer.
-6. `POST /public/{tenantSlug}/customers/login` — log in as a customer.
-7. `GET /api/resources/{resourceId}/slots?date=YYYY-MM-DD` — list available slots.
-8. `POST /api/reservation-holds` — hold a slot as the logged-in customer.
-9. `POST /api/reservation-holds/{reservationId}/confirm` — confirm the hold.
-10. `POST /api/me/reservations/{reservationId}/cancel` — cancel a customer-owned reservation.
-11. `GET /api/reservations?date=YYYY-MM-DD&resourceId=&customerId=&status=` — search tenant reservations as an operator.
-12. `POST /api/reservations/{reservationId}/admin-cancel`, `/check-in`, or `/no-show` — apply bounded operator lifecycle transitions when the reservation state and time window allow it.
-
-Detailed endpoint and payload notes are in [`docs/api.md`](docs/api.md).
-
-## Verification
-
-```bash
-npm run commitlint
-./gradlew spotlessApply
-./gradlew rewriteDryRun
-./gradlew check
-```
-
-`npm run commitlint` validates the latest commit message. `rewriteDryRun` previews the active OpenRewrite cleanup recipe without changing files. `check` runs compilation, unit/slice/integration tests, Checkstyle, ArchUnit, JaCoCo coverage verification/report generation, and Testcontainers-backed checks. Docker must be running for the Testcontainers portion.
-
-## Reviewer checklist
-
-- Read [`docs/case-study.md`](docs/case-study.md) for the short problem → design → implementation → verification narrative.
-- Inspect [`docs/api.md`](docs/api.md) or Swagger UI to see the public, admin, and customer workflow surfaces.
-- Inspect [`docs/architecture.md`](docs/architecture.md) for module boundaries, tenant/auth model, data model, and ArchUnit enforcement.
-- Inspect [`adapter-persistence/src/main/resources/db/migration/V7__create_reservation.sql`](adapter-persistence/src/main/resources/db/migration/V7__create_reservation.sql) for DB-level no-overbooking.
-- Inspect [`application/src/main/java/io/resrv/application/reservation`](application/src/main/java/io/resrv/application/reservation) and [`adapter-web/src/main/java/io/resrv/adapter/in/web/reservation`](adapter-web/src/main/java/io/resrv/adapter/in/web/reservation) for reservation use cases and REST adapters.
-- Inspect [`bootstrap/src/test/java/io/resrv/bootstrap/ReservationMvpIntegrationTest.java`](bootstrap/src/test/java/io/resrv/bootstrap/ReservationMvpIntegrationTest.java), [`application/src/test/java/io/resrv/application/reservation`](application/src/test/java/io/resrv/application/reservation), and [`adapter-web/src/test/java/io/resrv/adapter/in/web/reservation`](adapter-web/src/test/java/io/resrv/adapter/in/web/reservation) for workflow and boundary verification.
-
-## Explicitly deferred
-
-The following hardening items are intentionally deferred and should not be treated as accidental gaps: login rate limiting, failed-login lockout, and tenant/admin active-state validation filter. See [`docs/status.md`](docs/status.md).
+Timeslot local runtime packaging remains intentionally disabled as recorded in
+[ADR-0014](docs/adr/0014-timeslot-booking-api-boundary.md).

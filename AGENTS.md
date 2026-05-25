@@ -4,7 +4,11 @@
 
 ## Project
 
-Multi-tenant B2B SaaS reservation API. Hexagonal (Ports & Adapters), 5 Gradle subprojects, Java 25 + Spring Boot 4 + PostgreSQL.
+Multi-tenant B2B SaaS reservation API. Hexagonal (Ports & Adapters), Java 25 + Spring Boot 4 + PostgreSQL.
+
+Current redesign branch uses 3 Gradle modules. `docs/adr/0001-bounded-context-module-baseline.md`
+records the superseded 11-module implementation baseline. `docs/adr/0017-collapse-to-bounded-context-modules.md`
+is the active module decision.
 
 ## Build Commands
 
@@ -12,7 +16,7 @@ Multi-tenant B2B SaaS reservation API. Hexagonal (Ports & Adapters), 5 Gradle su
 ./gradlew spotlessApply      # Auto-format (run before check)
 ./gradlew rewriteDryRun      # Preview active OpenRewrite cleanup recipes
 ./gradlew check              # Full build + tests + Checkstyle + ArchUnit + JaCoCo coverage gate
-./gradlew :bootstrap:bootRun # Run locally — uses compose.yml and a dev JWT fallback
+./gradlew :platform:bootRun # Run platform API locally — requires RESRV_JWT_* env vars
 ```
 
 Tests use Testcontainers — Docker must be running.
@@ -22,10 +26,31 @@ Tests use Testcontainers — Docker must be running.
 | Surface | Role |
 |---|---|
 | `README.md` | Short external entry point and navigation hub |
-| `docs/` | Curated product, architecture, roadmap, and decision docs |
+| `docs/prd.md` | Product requirements |
+| `docs/trd.md` | Technical requirements and design |
+| `docs/architecture.md` | Stable architecture overview |
+| `docs/security.md` | Authentication, authorization, and deferred hardening |
+| `docs/testing.md` | Test strategy and quality gates |
+| `docs/operations.md` | Local run and operational notes |
+| `docs/glossary.md` | Canonical terms |
+| `docs/adr/` | Architecture decision records |
 | `AGENTS.md` | Agent operating rules, build commands, non-goals, and durable project caveats |
 
 Do not reintroduce Spec Kit as a source of truth. Do not recreate `.specify/`, `specs/`, `.github/agents/speckit.*`, `.github/prompts/speckit.*`, or Spec Kit skill/reference copies unless the user explicitly requests a new Spec Kit setup.
+
+## API Contract Rules
+
+Generated OpenAPI/Swagger is the API contract surface. Do not create or maintain a hand-written
+`docs/api.md` endpoint catalog.
+
+When changing API behavior:
+
+- Update controllers, DTOs, validation, and Springdoc annotations where needed.
+- Update or add API integration tests.
+- Let `/v3/api-docs`, `/v3/api-docs.yaml`, and `/swagger-ui.html` expose the contract.
+- Keep human docs focused on product, architecture, security, operations, and testing context.
+- Mention only high-level API groups in narrative docs unless a concrete endpoint example is needed
+  to explain a decision.
 
 ## Phase 2 — Do Not Implement
 
@@ -35,7 +60,7 @@ Deferred by design. Do not add code for these unless explicitly asked:
 |---|---|
 | T100 | Rate limiting on login |
 | T101 | Login lock (`failed_attempts`, `locked_until`) |
-| T102 | `UserStateValidationFilter` — enforce `TenantStatus.ACTIVE` and admin active |
+| T102 | Request-time active-state validation filter beyond current login/membership checks |
 
 ## Commit Messages
 
