@@ -6,6 +6,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import io.resrv.platform.application.account.in.RegisterAccountCommand;
@@ -87,5 +88,34 @@ class RegisterAccountServiceTest {
 
         assertEquals("Account email already exists: owner@example.com", exception.getMessage());
         verify(commandPort, never()).save(any());
+        verify(passwordHashingPort, never()).hash(any());
+    }
+
+    @Test
+    void blankPasswordRejectedBeforeHashing() {
+        final var exception =
+                assertThrows(
+                        IllegalArgumentException.class,
+                        () ->
+                                service.register(
+                                        new RegisterAccountCommand(
+                                                "owner@example.com", "Owner", " ")));
+
+        assertEquals("Account password must not be blank", exception.getMessage());
+        verifyNoInteractions(passwordHashingPort);
+    }
+
+    @Test
+    void nullPasswordRejectedBeforeHashing() {
+        final var exception =
+                assertThrows(
+                        IllegalArgumentException.class,
+                        () ->
+                                service.register(
+                                        new RegisterAccountCommand(
+                                                "owner@example.com", "Owner", null)));
+
+        assertEquals("Account password must not be blank", exception.getMessage());
+        verifyNoInteractions(passwordHashingPort);
     }
 }
