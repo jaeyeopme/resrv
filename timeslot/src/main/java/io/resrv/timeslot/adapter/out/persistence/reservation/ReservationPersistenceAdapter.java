@@ -1,5 +1,6 @@
 package io.resrv.timeslot.adapter.out.persistence.reservation;
 
+import io.resrv.shared.kernel.AccountId;
 import io.resrv.shared.kernel.BusinessId;
 import io.resrv.shared.kernel.ReservationId;
 import io.resrv.shared.kernel.ResourceId;
@@ -34,6 +35,25 @@ class ReservationPersistenceAdapter implements ReservationCommandPort, Reservati
             final Instant now) {
         return repository
                 .findActiveBlockers(businessId.value(), resourceId.value(), startAt, endAt, now)
+                .stream()
+                .map(ReservationJpaEntity::toDomain)
+                .toList();
+    }
+
+    @Override
+    public List<Reservation> findByBusinessDateWindow(
+            final BusinessId businessId,
+            final Instant startInclusive,
+            final Instant endExclusive,
+            final ResourceId resourceId,
+            final AccountId customerAccountId) {
+        return repository
+                .findByBusinessDateWindow(
+                        businessId.value(),
+                        startInclusive,
+                        endExclusive,
+                        resourceId == null ? null : resourceId.value(),
+                        customerAccountId == null ? null : customerAccountId.value())
                 .stream()
                 .map(ReservationJpaEntity::toDomain)
                 .toList();

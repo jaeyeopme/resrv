@@ -12,6 +12,7 @@ import io.resrv.timeslot.application.reservation.in.CancelReservationCommand;
 import io.resrv.timeslot.application.reservation.in.CheckInReservationCommand;
 import io.resrv.timeslot.application.reservation.in.ConfirmReservationCommand;
 import io.resrv.timeslot.application.reservation.in.HoldReservationCommand;
+import io.resrv.timeslot.application.reservation.in.ListBusinessReservationsQuery;
 import io.resrv.timeslot.application.reservation.in.MarkNoShowReservationCommand;
 import io.resrv.timeslot.application.reservation.in.ReleaseReservationCommand;
 import io.resrv.timeslot.application.reservation.in.ReservationResult;
@@ -105,7 +106,7 @@ public class ReservationService {
                         now.plusSeconds(holdTtl.minutes() * 60L),
                         now);
         reservationCommandPort.save(reservation);
-        return ReservationResult.from(reservation, now);
+        return ReservationResult.from(reservation, now, context.business().timezone().value());
     }
 
     public ReservationResult confirm(final ConfirmReservationCommand command) {
@@ -115,7 +116,7 @@ public class ReservationService {
         requireCustomerOwner(reservation, command.accountId());
         final var confirmed = reservation.confirm(now);
         reservationCommandPort.save(confirmed);
-        return ReservationResult.from(confirmed, now);
+        return ReservationResult.from(confirmed, now, businessZone(command.businessId()));
     }
 
     public ReservationResult release(final ReleaseReservationCommand command) {
@@ -125,7 +126,7 @@ public class ReservationService {
         requireCustomerOwner(reservation, command.accountId());
         final var released = reservation.release(now);
         reservationCommandPort.save(released);
-        return ReservationResult.from(released, now);
+        return ReservationResult.from(released, now, businessZone(command.businessId()));
     }
 
     public ReservationResult cancel(final CancelReservationCommand command) {
@@ -138,7 +139,7 @@ public class ReservationService {
                     case BUSINESS -> cancelByBusiness(command, reservation, now);
                 };
         reservationCommandPort.save(cancelled);
-        return ReservationResult.from(cancelled, now);
+        return ReservationResult.from(cancelled, now, businessZone(command.businessId()));
     }
 
     public ReservationResult checkIn(final CheckInReservationCommand command) {
@@ -148,7 +149,7 @@ public class ReservationService {
         requireBusinessAccess(command.accountId(), command.businessId());
         final var checkedIn = reservation.checkIn(now);
         reservationCommandPort.save(checkedIn);
-        return ReservationResult.from(checkedIn, now);
+        return ReservationResult.from(checkedIn, now, businessZone(command.businessId()));
     }
 
     public ReservationResult markNoShow(final MarkNoShowReservationCommand command) {
@@ -158,7 +159,36 @@ public class ReservationService {
         requireBusinessAccess(command.accountId(), command.businessId());
         final var noShow = reservation.markNoShow(now);
         reservationCommandPort.save(noShow);
-        return ReservationResult.from(noShow, now);
+        return ReservationResult.from(noShow, now, businessZone(command.businessId()));
+    }
+
+    public List<ReservationResult> listBusinessReservations(
+            final ListBusinessReservationsQuery query) {
+        Objects.requireNonNull(query, "Query must not be null");
+        requireBusinessAccess(query.accountId(), query.businessId());
+        final var business =
+                businessLookupPort
+                        .findActiveById(query.businessId())
+                        .orElseThrow(() -> new BusinessNotAvailableException(query.businessId()));
+        final var startInclusive =
+                query.date().atStartOfDay(business.timezone().value()).toInstant();
+        final var endExclusive =
+                query.date().plusDays(1).atStartOfDay(business.timezone().value()).toInstant();
+        final var now = clock.instant();
+        return reservationQueryPort
+                .findByBusinessDateWindow(
+                        query.businessId(),
+                        startInclusive,
+                        endExclusive,
+                        query.resourceId(),
+                        query.customerAccountId())
+                .stream()
+                .map(
+                        reservation ->
+                                ReservationResult.from(
+                                        reservation, now, business.timezone().value()))
+                .filter(result -> query.state() == null || result.state() == query.state())
+                .toList();
     }
 
     private Reservation cancelByCustomer(
@@ -187,6 +217,14 @@ public class ReservationService {
         return reservationCommandPort
                 .findByBusinessIdAndIdForUpdate(businessId, reservationId)
                 .orElseThrow(() -> new ReservationNotFoundException(businessId, reservationId));
+    }
+
+    private java.time.ZoneId businessZone(final BusinessId businessId) {
+        return businessLookupPort
+                .findActiveById(businessId)
+                .orElseThrow(() -> new BusinessNotAvailableException(businessId))
+                .timezone()
+                .value();
     }
 
     private BookingContext loadBookingContext(

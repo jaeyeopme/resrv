@@ -1,30 +1,35 @@
 package io.resrv.timeslot.adapter.in.web.reservation;
 
+import io.resrv.shared.kernel.AccountId;
 import io.resrv.shared.kernel.BusinessId;
 import io.resrv.shared.kernel.ReservationId;
 import io.resrv.shared.kernel.ResourceId;
 import io.resrv.timeslot.adapter.in.web.security.AuthenticatedAccount;
-import io.resrv.timeslot.application.business.out.BusinessLookupPort;
 import io.resrv.timeslot.application.reservation.ReservationService;
 import io.resrv.timeslot.application.reservation.in.CancelReservationCommand;
 import io.resrv.timeslot.application.reservation.in.CheckInReservationCommand;
 import io.resrv.timeslot.application.reservation.in.ConfirmReservationCommand;
 import io.resrv.timeslot.application.reservation.in.HoldReservationCommand;
+import io.resrv.timeslot.application.reservation.in.ListBusinessReservationsQuery;
 import io.resrv.timeslot.application.reservation.in.MarkNoShowReservationCommand;
 import io.resrv.timeslot.application.reservation.in.ReleaseReservationCommand;
 import io.resrv.timeslot.application.reservation.in.ReservationResult;
 import io.resrv.timeslot.domain.reservation.ReservationCancellationActor;
+import io.resrv.timeslot.domain.reservation.ReservationState;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import java.time.LocalDate;
 import java.time.OffsetDateTime;
-import java.time.ZoneOffset;
+import java.util.List;
 import java.util.UUID;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -32,12 +37,9 @@ import org.springframework.web.bind.annotation.RestController;
 class ReservationWebAdapter {
 
     private final ReservationService service;
-    private final BusinessLookupPort businessLookupPort;
 
-    ReservationWebAdapter(
-            final ReservationService service, final BusinessLookupPort businessLookupPort) {
+    ReservationWebAdapter(final ReservationService service) {
         this.service = service;
-        this.businessLookupPort = businessLookupPort;
     }
 
     @PostMapping
@@ -53,6 +55,28 @@ class ReservationWebAdapter {
                                 ResourceId.of(request.resourceId()),
                                 account.accountId(),
                                 request.slotId())));
+    }
+
+    @GetMapping
+    List<ReservationResponse> list(
+            @PathVariable final UUID businessId,
+            final JwtAuthenticationToken authentication,
+            @RequestParam final LocalDate date,
+            @RequestParam(required = false) final UUID resourceId,
+            @RequestParam(required = false) final UUID customerAccountId,
+            @RequestParam(required = false) final String state) {
+        final var account = AuthenticatedAccount.from(authentication);
+        final var stateFilter = ReservationStateFilter.parse(state);
+        final var query =
+                new ListBusinessReservationsQuery(
+                        BusinessId.of(businessId),
+                        account.accountId(),
+                        date,
+                        resourceId == null ? null : ResourceId.of(resourceId),
+                        customerAccountId == null ? null : AccountId.of(customerAccountId),
+                        stateFilter == null ? null : stateFilter.domainState());
+        final var results = service.listBusinessReservations(query);
+        return results.stream().map(ReservationResponse::from).toList();
     }
 
     @PostMapping("/{reservationId}/confirm")
@@ -93,7 +117,7 @@ class ReservationWebAdapter {
         final var actor =
                 request == null || request.actor() == null
                         ? ReservationCancellationActor.CUSTOMER
-                        : request.actor();
+                        : request.actor().domainActor();
         return toResponse(
                 service.cancel(
                         new CancelReservationCommand(
@@ -132,17 +156,59 @@ class ReservationWebAdapter {
     }
 
     private ReservationResponse toResponse(final ReservationResult result) {
-        final var zone =
-                businessLookupPort
-                        .findActiveById(BusinessId.of(result.businessId()))
-                        .map(business -> business.timezone().value())
-                        .orElse(ZoneOffset.UTC);
-        return ReservationResponse.from(result, zone);
+        return ReservationResponse.from(result);
     }
 
     record HoldRequest(@NotNull UUID resourceId, @NotBlank String slotId) {}
 
-    record CancelRequest(ReservationCancellationActor actor) {}
+    record CancelRequest(CancelActor actor) {}
+
+    enum CancelActor {
+        CUSTOMER(ReservationCancellationActor.CUSTOMER),
+        BUSINESS(ReservationCancellationActor.BUSINESS);
+
+        private final ReservationCancellationActor domainActor;
+
+        CancelActor(final ReservationCancellationActor domainActor) {
+            this.domainActor = domainActor;
+        }
+
+        ReservationCancellationActor domainActor() {
+            return domainActor;
+        }
+    }
+
+    enum ReservationStateFilter {
+        HELD(ReservationState.HELD),
+        EXPIRED(ReservationState.EXPIRED),
+        CONFIRMED(ReservationState.CONFIRMED),
+        RELEASED(ReservationState.RELEASED),
+        CUSTOMER_CANCELLED(ReservationState.CUSTOMER_CANCELLED),
+        BUSINESS_CANCELLED(ReservationState.BUSINESS_CANCELLED),
+        CHECKED_IN(ReservationState.CHECKED_IN),
+        NO_SHOW(ReservationState.NO_SHOW);
+
+        private final ReservationState domainState;
+
+        ReservationStateFilter(final ReservationState domainState) {
+            this.domainState = domainState;
+        }
+
+        ReservationState domainState() {
+            return domainState;
+        }
+
+        static ReservationStateFilter parse(final String value) {
+            if (value == null) {
+                return null;
+            }
+            try {
+                return ReservationStateFilter.valueOf(value);
+            } catch (final IllegalArgumentException exception) {
+                throw new IllegalArgumentException("Invalid reservation state");
+            }
+        }
+    }
 
     record ReservationResponse(
             UUID id,
@@ -154,17 +220,16 @@ class ReservationWebAdapter {
             String state,
             OffsetDateTime holdExpiresAt) {
 
-        static ReservationResponse from(
-                final ReservationResult result, final java.time.ZoneId zone) {
+        static ReservationResponse from(final ReservationResult result) {
             return new ReservationResponse(
                     result.id(),
                     result.businessId(),
                     result.resourceId(),
                     result.customerAccountId(),
-                    result.startAt().atZone(zone).toOffsetDateTime(),
-                    result.endAt().atZone(zone).toOffsetDateTime(),
+                    result.startAt().atZone(result.businessZone()).toOffsetDateTime(),
+                    result.endAt().atZone(result.businessZone()).toOffsetDateTime(),
                     result.state().name(),
-                    result.holdExpiresAt().atZone(zone).toOffsetDateTime());
+                    result.holdExpiresAt().atZone(result.businessZone()).toOffsetDateTime());
         }
     }
 }
