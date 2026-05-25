@@ -90,7 +90,7 @@ reservations.
 - Timeslot booking must not trust client-supplied business role claims.
 - Slot IDs must bind to business, resource, start time, and end time.
 - Hold creation must reject stale, malformed, wrong-business, wrong-resource, or unavailable slots.
-- Active blockers must include confirmed reservations and unexpired holds.
+- Active blockers must include unexpired holds, confirmed reservations, and checked-in reservations.
 - Expired holds must stop blocking without a status mutation.
 - Customer reservation transitions must require reservation ownership.
 - Business reservation transitions must require active owner/staff membership.
