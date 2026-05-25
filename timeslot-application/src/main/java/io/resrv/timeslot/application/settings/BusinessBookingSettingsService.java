@@ -13,6 +13,7 @@ import io.resrv.timeslot.domain.settings.HoldTtl;
 import io.resrv.timeslot.domain.settings.MaxAdvanceBookingDays;
 import io.resrv.timeslot.domain.settings.SlotDuration;
 import java.time.Clock;
+import java.util.Objects;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -39,15 +40,17 @@ public class BusinessBookingSettingsService implements UpsertBusinessBookingSett
     @Override
     public BusinessBookingSettingsResult upsert(
             final UpsertBusinessBookingSettingsCommand command) {
-        if (businessLookupPort.findActiveById(command.businessId()).isEmpty()) {
-            throw new BusinessNotAvailableException(command.businessId());
-        }
-
+        Objects.requireNonNull(command, "Command must not be null");
         final var slotDuration = new SlotDuration(command.slotDurationMinutes());
         final var holdTtl = new HoldTtl(command.holdTtlMinutes());
         final var cancellationWindow = new CancellationWindow(command.cancellationWindowMinutes());
         final var maxAdvanceBookingDays =
                 new MaxAdvanceBookingDays(command.maxAdvanceBookingDays());
+
+        if (businessLookupPort.findActiveById(command.businessId()).isEmpty()) {
+            throw new BusinessNotAvailableException(command.businessId());
+        }
+
         final var now = clock.instant();
 
         final var existing = queryPort.findByBusinessId(command.businessId());

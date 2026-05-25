@@ -149,8 +149,34 @@ class BusinessBookingSettingsServiceTest {
         assertEquals(
                 "Slot duration must be 5-480 minutes in 5 minute increments",
                 exception.getMessage());
+        verify(businessLookupPort, never()).findActiveById(any());
         verify(queryPort, never()).findByBusinessId(any());
         verify(commandPort, never()).save(any());
+    }
+
+    @Test
+    void nullCommandFailsBeforePorts() {
+        final var exception = assertThrows(NullPointerException.class, () -> service.upsert(null));
+
+        assertEquals("Command must not be null", exception.getMessage());
+        verify(businessLookupPort, never()).findActiveById(any());
+        verify(queryPort, never()).findByBusinessId(any());
+        verify(commandPort, never()).save(any());
+    }
+
+    @Test
+    void businessViewRejectsNullValues() {
+        final var exception =
+                assertThrows(
+                        NullPointerException.class,
+                        () ->
+                                new BusinessLookupPort.BusinessView(
+                                        null,
+                                        "Owner Studio",
+                                        "owner-studio",
+                                        Timezone.of("Asia/Seoul")));
+
+        assertEquals("Business id must not be null", exception.getMessage());
     }
 
     private static BusinessLookupPort.BusinessView activeBusiness() {
