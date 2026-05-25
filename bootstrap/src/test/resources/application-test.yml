@@ -1,4 +1,0 @@
-# Test profile configuration
-# Main properties inherited from application.yml
-# Testcontainers provides datasource via @ServiceConnection
-JWT_SECRET_KEY: my-super-secret-key-for-local-development-only-32bytes!

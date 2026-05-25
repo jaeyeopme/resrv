@@ -16,11 +16,6 @@ val jacocoLineCoverageMinimums =
         "timeslot-adapter-web" to "0.90".toBigDecimal(),
         "timeslot-adapter-persistence" to "0.90".toBigDecimal(),
         "timeslot-booking-api" to "0.90".toBigDecimal(),
-        "domain" to "0.85".toBigDecimal(),
-        "application" to "0.90".toBigDecimal(),
-        "adapter-web" to "0.90".toBigDecimal(),
-        "adapter-persistence" to "0.90".toBigDecimal(),
-        "bootstrap" to "0.90".toBigDecimal(),
     )
 
 plugins {
