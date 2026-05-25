@@ -55,9 +55,28 @@ bin/
 # Generated docs
 HELP.md
 
-# Local agent wiki/state
+# Local agent/wiki state
+AGENTS.local.md
+.agents/
+.codex/
 omx_wiki/
 .worktrees/
+
+# AI tooling internals
+.specify/extensions.yml
+.specify/extensions/
+.specify/integrations/
+.specify/scripts/
+.specify/workflows/
+.specify/init-options.json
+.specify/integration.json
+
+# Spec Kit local session state
+.specify/feature.json
+.specify/.cache/
+.specify/cache/
+.specify/tmp/
+.specify/logs/
 
 # Node-based repository tooling
 node_modules/
