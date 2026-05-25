@@ -29,6 +29,17 @@ final class TimeslotArchitectureTest {
     }
 
     @Test
+    void domain_has_no_framework_dependencies() {
+        noClasses()
+                .that()
+                .resideInAPackage("io.resrv.timeslot.domain..")
+                .should()
+                .dependOnClassesThat()
+                .resideInAnyPackage("org.springframework..", "jakarta..", "org.hibernate..")
+                .check(classes);
+    }
+
+    @Test
     void timeslot_does_not_depend_on_platform_domain() {
         noClasses()
                 .that()

@@ -6,6 +6,19 @@ plugins {
     jacoco
 }
 
+tasks.named<org.springframework.boot.gradle.tasks.bundling.BootJar>("bootJar") {
+    enabled = false
+}
+
+tasks.named<Jar>("jar") {
+    enabled = true
+}
+
+// Run from the repository root so Spring Boot Docker Compose can discover ./compose.yml.
+tasks.named<org.springframework.boot.gradle.tasks.run.BootRun>("bootRun") {
+    workingDir = rootProject.projectDir
+}
+
 dependencies {
     implementation(project(":platform-application"))
     implementation(project(":platform-domain"))
