@@ -84,7 +84,7 @@ public record Resource(
                 now);
     }
 
-    private static String normalizeDescription(final String description) {
+    public static String normalizeDescription(final String description) {
         if (description == null) {
             return null;
         }
