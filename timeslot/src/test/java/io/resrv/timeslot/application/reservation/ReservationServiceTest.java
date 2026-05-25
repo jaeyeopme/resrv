@@ -96,6 +96,11 @@ final class ReservationServiceTest {
     }
 
     @Test
+    void holdRejectsNullCommand() {
+        assertThrows(NullPointerException.class, () -> service.hold(null));
+    }
+
+    @Test
     void holdRejectsExpiredSlotIdDate() {
         givenBookingContext(ResourceBookingOverrides.none());
         final var expiredSlotId =

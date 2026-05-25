@@ -100,3 +100,5 @@ Rules:
 ## Learnings
 
 > One-liner rules added after PR corrections. Format: `- <rule>`
+
+- Do not duplicate booking policy fallback logic across services; resolve it through the domain policy type.

@@ -23,15 +23,13 @@ import io.resrv.timeslot.application.resource.out.ResourceQueryPort;
 import io.resrv.timeslot.application.schedule.out.ResourceScheduleQueryPort;
 import io.resrv.timeslot.application.settings.BookingSettingsRequiredException;
 import io.resrv.timeslot.application.settings.out.BusinessBookingSettingsQueryPort;
-import io.resrv.timeslot.application.slot.VirtualSlotService;
 import io.resrv.timeslot.domain.reservation.Reservation;
-import io.resrv.timeslot.domain.resource.Resource;
+import io.resrv.timeslot.domain.resource.EffectiveBookingPolicy;
 import io.resrv.timeslot.domain.resource.ResourceStatus;
-import io.resrv.timeslot.domain.settings.BusinessBookingSettings;
-import io.resrv.timeslot.domain.settings.CancellationWindow;
-import io.resrv.timeslot.domain.settings.HoldTtl;
-import io.resrv.timeslot.domain.settings.SlotDuration;
+import io.resrv.timeslot.domain.schedule.DateResourceScheduleOverride;
+import io.resrv.timeslot.domain.schedule.WeeklyResourceSchedule;
 import io.resrv.timeslot.domain.slot.Slot;
+import io.resrv.timeslot.domain.slot.SlotGenerator;
 import io.resrv.timeslot.domain.slot.SlotId;
 import java.time.Clock;
 import java.time.Duration;
@@ -95,7 +93,6 @@ public class ReservationService {
             throw new SlotUnavailableException(command.resourceId(), slot.startAt());
         }
 
-        final var holdTtl = effectiveHoldTtl(context.settings().holdTtl(), context.resource());
         final var reservation =
                 Reservation.hold(
                         command.businessId(),
@@ -103,7 +100,7 @@ public class ReservationService {
                         command.accountId(),
                         slot.startAt(),
                         slot.endAt(),
-                        now.plusSeconds(holdTtl.minutes() * 60L),
+                        now.plusSeconds(context.policy().holdTtl().minutes() * 60L),
                         now);
         reservationCommandPort.save(reservation);
         return ReservationResult.from(reservation, now, context.business().timezone().value());
@@ -197,11 +194,10 @@ public class ReservationService {
             final Instant now) {
         requireCustomerOwner(reservation, command.accountId());
         final var context = loadBookingContext(command.businessId(), reservation.resourceId());
-        final var cancellationWindow =
-                effectiveCancellationWindow(
-                        context.settings().cancellationWindow(), context.resource());
         final var cutoff =
-                reservation.startAt().minus(Duration.ofMinutes(cancellationWindow.minutes()));
+                reservation
+                        .startAt()
+                        .minus(Duration.ofMinutes(context.policy().cancellationWindow().minutes()));
         return reservation.cancelByCustomer(now, cutoff);
     }
 
@@ -243,7 +239,7 @@ public class ReservationService {
                         .filter(value -> value.status() == ResourceStatus.ACTIVE)
                         .orElseThrow(
                                 () -> new ResourceNotAvailableException(businessId, resourceId));
-        return new BookingContext(business, settings, resource);
+        return new BookingContext(business, resource.bookingOverrides().resolve(settings));
     }
 
     private Slot decodeAndValidateSlot(
@@ -259,8 +255,7 @@ public class ReservationService {
                 LocalDate.ofInstant(decoded.startAt(), context.business().timezone().value());
         final var today = LocalDate.now(clock.withZone(context.business().timezone().value()));
         if (date.isBefore(today)
-                || date.isAfter(
-                        today.plusDays(context.settings().maxAdvanceBookingDays().days()))) {
+                || date.isAfter(today.plusDays(context.policy().maxAdvanceBookingDays().days()))) {
             throw new SlotUnavailableException(command.resourceId(), decoded.startAt());
         }
 
@@ -284,20 +279,20 @@ public class ReservationService {
         final var windows =
                 scheduleQueryPort
                         .findDateOverride(businessId, resourceId, date)
-                        .map(value -> value.windows())
+                        .map(DateResourceScheduleOverride::windows)
                         .orElseGet(
                                 () ->
                                         scheduleQueryPort
                                                 .findWeekly(
                                                         businessId, resourceId, date.getDayOfWeek())
-                                                .map(value -> value.windows())
+                                                .map(WeeklyResourceSchedule::windows)
                                                 .orElse(List.of()));
-        return VirtualSlotService.generateSlots(
+        return SlotGenerator.generate(
                 businessId,
                 resourceId,
                 context.business().timezone(),
                 date,
-                effectiveSlotDuration(context.settings().slotDuration(), context.resource()),
+                context.policy().slotDuration(),
                 windows);
     }
 
@@ -313,25 +308,6 @@ public class ReservationService {
         }
     }
 
-    private static SlotDuration effectiveSlotDuration(
-            final SlotDuration defaultSlotDuration, final Resource resource) {
-        final var override = resource.bookingOverrides().slotDuration();
-        return override == null ? defaultSlotDuration : override;
-    }
-
-    private static HoldTtl effectiveHoldTtl(final HoldTtl defaultHoldTtl, final Resource resource) {
-        final var override = resource.bookingOverrides().holdTtl();
-        return override == null ? defaultHoldTtl : override;
-    }
-
-    private static CancellationWindow effectiveCancellationWindow(
-            final CancellationWindow defaultCancellationWindow, final Resource resource) {
-        final var override = resource.bookingOverrides().cancellationWindow();
-        return override == null ? defaultCancellationWindow : override;
-    }
-
     private record BookingContext(
-            BusinessLookupPort.BusinessView business,
-            BusinessBookingSettings settings,
-            Resource resource) {}
+            BusinessLookupPort.BusinessView business, EffectiveBookingPolicy policy) {}
 }

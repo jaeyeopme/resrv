@@ -67,12 +67,13 @@ Timeslot uses:
 
 - `BusinessBookingSettings` for defaults.
 - `Resource` for bookable capacity.
+- `EffectiveBookingPolicy` to resolve business defaults and resource overrides.
 - Weekly schedules and date override schedules.
 - Virtual slots encoded as opaque `slotId`.
 - Reservation facts for lifecycle transitions.
 
-Slots are not persisted. They are generated from business timezone, settings, resource overrides,
-and schedule windows.
+Slots are not persisted. `SlotGenerator` creates them from business timezone, effective booking
+policy, and schedule windows.
 
 ## Reservation Correctness
 
@@ -82,6 +83,7 @@ correctness independent from cleanup jobs.
 Active blockers:
 
 - Confirmed reservations.
+- Checked-in reservations.
 - Holds whose `holdExpiresAt` is still in the future.
 
 Released, cancelled, no-show, and expired holds do not block capacity.
