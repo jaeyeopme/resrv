@@ -2,6 +2,7 @@ package io.resrv.timeslot.application.resource;
 
 import io.resrv.timeslot.application.resource.in.CreateResourceCommand;
 import io.resrv.timeslot.application.resource.in.CreateResourceUseCase;
+import io.resrv.timeslot.application.resource.in.ListResourcesUseCase;
 import io.resrv.timeslot.application.resource.in.ResourceResult;
 import io.resrv.timeslot.application.resource.out.ResourceCommandPort;
 import io.resrv.timeslot.application.resource.out.ResourceQueryPort;
@@ -15,13 +16,14 @@ import io.resrv.timeslot.domain.settings.CancellationWindow;
 import io.resrv.timeslot.domain.settings.HoldTtl;
 import io.resrv.timeslot.domain.settings.SlotDuration;
 import java.time.Clock;
+import java.util.List;
 import java.util.Objects;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @Transactional
-public class ResourceService implements CreateResourceUseCase {
+public class ResourceService implements CreateResourceUseCase, ListResourcesUseCase {
 
     private final BusinessBookingSettingsQueryPort settingsQueryPort;
     private final ResourceCommandPort commandPort;
@@ -69,5 +71,14 @@ public class ResourceService implements CreateResourceUseCase {
                 Resource.create(command.businessId(), name, slug, description, overrides, now);
         commandPort.save(resource);
         return ResourceResult.from(resource);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<ResourceResult> listActive(final io.resrv.shared.kernel.BusinessId businessId) {
+        Objects.requireNonNull(businessId, "Business id must not be null");
+        return queryPort.findActiveByBusinessId(businessId).stream()
+                .map(ResourceResult::from)
+                .toList();
     }
 }

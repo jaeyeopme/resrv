@@ -23,6 +23,7 @@ dependencies {
     implementation(project(":timeslot-domain"))
     implementation(project(":timeslot-adapter-web"))
     implementation(project(":timeslot-adapter-persistence"))
+    implementation(project(":platform-adapter-persistence"))
     implementation(project(":shared-kernel"))
     implementation(libs.spring.boot.starter.security)
     implementation(libs.spring.boot.starter.oauth2.resource.server)
