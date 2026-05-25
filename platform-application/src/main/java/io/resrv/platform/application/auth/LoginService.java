@@ -33,10 +33,12 @@ public class LoginService implements LoginUseCase {
     @Override
     public LoginResult login(final LoginCommand command) {
         if (command == null || isBlank(command.email()) || isBlank(command.password())) {
+            passwordHashingPort.matches(rawPasswordOrEmpty(command), dummyHash);
             throw new AuthenticationFailedException();
         }
 
-        final var account = accountQueryPort.findByEmail(accountEmail(command.email()));
+        final var account =
+                accountQueryPort.findByEmail(accountEmail(command.email(), command.password()));
         final var hashedPassword = account.map(Account::hashedPassword).orElse(dummyHash);
         final var passwordMatches = passwordHashingPort.matches(command.password(), hashedPassword);
         final var activeAccount =
@@ -48,12 +50,20 @@ public class LoginService implements LoginUseCase {
         return tokenGenerationPort.generate(activeAccount.id());
     }
 
-    private AccountEmail accountEmail(final String value) {
+    private AccountEmail accountEmail(final String value, final String rawPassword) {
         try {
             return new AccountEmail(value);
         } catch (final IllegalArgumentException exception) {
+            passwordHashingPort.matches(rawPassword, dummyHash);
             throw new AuthenticationFailedException();
         }
+    }
+
+    private static String rawPasswordOrEmpty(final LoginCommand command) {
+        if (command == null || command.password() == null) {
+            return "";
+        }
+        return command.password();
     }
 
     private static boolean isBlank(final String value) {

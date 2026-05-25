@@ -1,5 +1,6 @@
 package io.resrv.platform.adapter.in.web.auth;
 
+import io.resrv.platform.application.auth.AuthenticationFailedException;
 import io.resrv.platform.application.auth.in.LoginCommand;
 import io.resrv.platform.application.auth.in.LoginResult;
 import io.resrv.platform.application.auth.in.LoginUseCase;
@@ -21,6 +22,9 @@ class LoginWebAdapter {
 
     @PostMapping("/login")
     ResponseEntity<LoginResponse> login(@RequestBody final LoginRequest request) {
+        if (request == null) {
+            throw new AuthenticationFailedException();
+        }
         final var result =
                 loginUseCase.login(new LoginCommand(request.email(), request.password()));
         return ResponseEntity.ok(LoginResponse.from(result));
