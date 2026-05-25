@@ -173,8 +173,60 @@ class ResourceServiceTest {
                                                 null,
                                                 null)));
 
-        assertEquals("Resource slug already exists: room-a", exception.getMessage());
+        assertEquals(BUSINESS_ID, exception.businessId());
+        assertEquals(slug, exception.slug());
+        assertEquals(
+                "Resource slug already exists for business " + BUSINESS_ID.value() + ": room-a",
+                exception.getMessage());
         verify(commandPort, never()).save(any());
+    }
+
+    @Test
+    void nullCommandFailsBeforePorts() {
+        final var exception = assertThrows(NullPointerException.class, () -> service.create(null));
+
+        assertEquals("Command must not be null", exception.getMessage());
+        verifyNoPorts();
+    }
+
+    @Test
+    void invalidNameFailsBeforePorts() {
+        final var exception =
+                assertThrows(
+                        IllegalArgumentException.class,
+                        () ->
+                                service.create(
+                                        new CreateResourceCommand(
+                                                BUSINESS_ID,
+                                                " ",
+                                                "room-a",
+                                                null,
+                                                null,
+                                                null,
+                                                null)));
+
+        assertEquals("Resource name must be 1-100 characters", exception.getMessage());
+        verifyNoPorts();
+    }
+
+    @Test
+    void invalidSlugFailsBeforePorts() {
+        final var exception =
+                assertThrows(
+                        IllegalArgumentException.class,
+                        () ->
+                                service.create(
+                                        new CreateResourceCommand(
+                                                BUSINESS_ID,
+                                                "Room A",
+                                                "room--a",
+                                                null,
+                                                null,
+                                                null,
+                                                null)));
+
+        assertEquals("Resource slug must be 3-63 lowercase URL characters", exception.getMessage());
+        verifyNoPorts();
     }
 
     @Test
@@ -196,9 +248,7 @@ class ResourceServiceTest {
         assertEquals(
                 "Slot duration must be 5-480 minutes in 5 minute increments",
                 exception.getMessage());
-        verify(settingsQueryPort, never()).findByBusinessId(any());
-        verify(queryPort, never()).findByBusinessIdAndSlug(any(), any());
-        verify(commandPort, never()).save(any());
+        verifyNoPorts();
     }
 
     @Test
@@ -236,5 +286,11 @@ class ResourceServiceTest {
                 new CancellationWindow(120),
                 new MaxAdvanceBookingDays(90),
                 NOW);
+    }
+
+    private void verifyNoPorts() {
+        verify(settingsQueryPort, never()).findByBusinessId(any());
+        verify(queryPort, never()).findByBusinessIdAndSlug(any(), any());
+        verify(commandPort, never()).save(any());
     }
 }

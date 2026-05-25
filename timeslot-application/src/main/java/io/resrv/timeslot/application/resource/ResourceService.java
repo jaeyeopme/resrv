@@ -60,7 +60,7 @@ public class ResourceService implements CreateResourceUseCase {
             throw new BookingSettingsRequiredException(command.businessId());
         }
         if (queryPort.findByBusinessIdAndSlug(command.businessId(), slug).isPresent()) {
-            throw new ResourceSlugAlreadyExistsException(slug);
+            throw new ResourceSlugAlreadyExistsException(command.businessId(), slug);
         }
 
         final var now = clock.instant();
