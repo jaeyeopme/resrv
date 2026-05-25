@@ -125,3 +125,6 @@ The following security/operations hardening items are deferred to Phase 2 and sh
 | T100 | Login rate limiting |
 | T101 | Failed-login counter and lockout |
 | T102 | `UserStateValidationFilter` enforcing active tenant/admin state |
+| T103 | Active hold quota per customer |
+| T104 | Reservation hold/status model cleanup |
+| T105 | JPA enum mapping cleanup with `@Enumerated(EnumType.STRING)` |

@@ -73,6 +73,9 @@ The following authentication/operations items are intentionally outside the curr
 | T100 | Login rate limiting | Requires operations policy and storage/infrastructure choice |
 | T101 | Failed-login lockout | Requires user-state model and unlock policy |
 | T102 | Tenant/admin active-state validation filter | Requires state-transition policy and API error contract |
+| T103 | Active hold quota per customer | Prevents one customer from holding many slots at once; secondary to hot-slot concurrency controls |
+| T104 | Reservation hold/status model cleanup | Split persisted reservation lifecycle from derived hold/expiry state; avoid using one `status` column as a catch-all |
+| T105 | JPA enum mapping cleanup | Use `@Enumerated(EnumType.STRING)` with domain enums where appropriate while keeping database check constraints |
 
 ## Longer-term realism expansions
 

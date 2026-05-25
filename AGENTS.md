@@ -23,7 +23,6 @@ Tests use Testcontainers — Docker must be running.
 |---|---|
 | `README.md` | Short external entry point and navigation hub |
 | `docs/` | Curated product, architecture, roadmap, and decision docs |
-| `omx_wiki/` | Internal execution state, current-state notes, drift tracking, next actions |
 | `AGENTS.md` | Agent operating rules, build commands, non-goals, and durable project caveats |
 
 Do not reintroduce Spec Kit as a source of truth. Do not recreate `.specify/`, `specs/`, `.github/agents/speckit.*`, `.github/prompts/speckit.*`, or Spec Kit skill/reference copies unless the user explicitly requests a new Spec Kit setup.
