@@ -1,0 +1,29 @@
+plugins {
+    java
+    checkstyle
+    alias(libs.plugins.spring.boot)
+    alias(libs.plugins.dependency.management)
+    jacoco
+}
+
+dependencies {
+    implementation(project(":timeslot-application"))
+    implementation(project(":timeslot-domain"))
+    implementation(project(":timeslot-adapter-web"))
+    implementation(project(":timeslot-adapter-persistence"))
+    implementation(project(":shared-kernel"))
+    implementation(libs.spring.boot.starter.security)
+    implementation(libs.spring.boot.starter.oauth2.resource.server)
+    implementation(libs.spring.boot.starter.data.jpa)
+    implementation(libs.spring.boot.starter.webmvc)
+    implementation(libs.springdoc.openapi.starter.webmvc.ui)
+
+    developmentOnly(libs.spring.boot.docker.compose)
+
+    testImplementation(libs.spring.boot.starter.test)
+    testImplementation(libs.spring.boot.starter.webmvc.test)
+    testImplementation(libs.spring.boot.testcontainers)
+    testImplementation(libs.testcontainers.junit.jupiter)
+    testImplementation(libs.testcontainers.postgresql)
+    testImplementation(libs.archunit.junit5)
+}
