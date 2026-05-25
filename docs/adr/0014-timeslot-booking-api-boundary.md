@@ -11,6 +11,7 @@ Accepted.
 ## History
 
 - `195b6b5 feat(api): expose timeslot booking API`
+- `fee8676 fix(platform): hide lookup wiring`
 
 ## Context
 
@@ -34,6 +35,10 @@ Add a `PlatformBusinessLookupAdapter` outbound adapter that implements timeslot 
 explicit `platform.contract` lookup/access types. Timeslot does not read platform tables or columns
 directly.
 
+Platform owns `PlatformLookupContractConfiguration`, which wires the contract interfaces to
+platform application services and persistence implementations. Timeslot imports that contract
+configuration instead of importing platform application services directly.
+
 Timeslot security accepts account-scoped JWTs and resolves business access server-side.
 
 ## Alternatives
@@ -54,5 +59,6 @@ names.
 - Cross-context reads go through narrow ports.
 - Timeslot may depend only on explicit `platform.contract` types, not platform application
   services, domain, repositories, entities, or persistence schema.
+- Contract implementation wiring remains platform-owned.
 - Timeslot runtime packaging remains pending because `bootJar` and `bootRun` are currently
   disabled.

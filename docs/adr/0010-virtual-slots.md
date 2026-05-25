@@ -11,6 +11,7 @@ Accepted.
 ## History
 
 - `8753416 feat(timeslot): generate virtual slots`
+- `1b0f181 refactor(timeslot): centralize slot policy`
 
 ## Context
 
@@ -20,6 +21,9 @@ not need independent lifecycle before a customer attempts to hold one.
 ## Decision
 
 Generate slots virtually.
+
+Use a domain `SlotGenerator` to create deterministic slots from schedule windows, timezone, and the
+effective booking policy. Listing slots and validating reservation holds use the same generator.
 
 Each slot has:
 
@@ -47,4 +51,4 @@ This is transparent but invites clients to construct times that were not generat
 - Slot generation must be deterministic for the same settings/schedule/date.
 - Hold creation must decode and revalidate `slotId`.
 - Changing settings or schedules changes future generated slots without a migration.
-
+- Slot generation behavior belongs in the domain, not in a single application service.

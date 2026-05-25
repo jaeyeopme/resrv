@@ -11,11 +11,12 @@ Accepted.
 ## History
 
 - `a4a0ec4 feat(reservation): persist fact based reservations`
+- `1b0f181 refactor(timeslot): centralize slot policy`
 
 ## Context
 
-Hold correctness needs concurrency control. Active blockers are confirmed reservations and
-unexpired holds. Expired holds should stop blocking without mutation.
+Hold correctness needs concurrency control. Active blockers are unexpired holds, confirmed
+reservations, and checked-in reservations. Expired holds should stop blocking without mutation.
 
 ## Decision
 
@@ -27,6 +28,7 @@ Use:
 - PostgreSQL advisory transaction lock keyed by resource ID and slot start instant.
 - Active blocker query for overlapping resource/time ranges.
 - Pessimistic row lock for mutation of an existing reservation.
+- Domain-level blocker semantics through `Reservation.blocksSlotAt(now)`.
 
 ## Alternatives
 
@@ -45,5 +47,5 @@ Concurrent hold attempts could both observe no blocker and insert conflicting ho
 - Multi-node instances share correctness through PostgreSQL.
 - Cleanup jobs are not part of capacity correctness.
 - Lock key stability is critical.
-- Active blocker query must stay aligned with derived reservation state.
-
+- Active blocker query must stay aligned with derived reservation state and
+  `Reservation.blocksSlotAt(now)`.

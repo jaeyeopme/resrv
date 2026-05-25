@@ -9,7 +9,7 @@ that introduced or hardened the decision so future readers can inspect the imple
 
 | ADR | Status | Decision |
 |---|---|---|
-| [0001](0001-bounded-context-module-baseline.md) | Accepted | Context-by-layer Gradle module baseline |
+| [0001](0001-bounded-context-module-baseline.md) | Superseded | Context-by-layer Gradle module baseline |
 | [0002](0002-shared-kernel-identity-primitives.md) | Accepted | Shared identity and timezone primitives |
 | [0003](0003-platform-account-identity.md) | Accepted | Platform Account as the identity model |
 | [0004](0004-business-and-membership-boundary.md) | Accepted | Business and BusinessMembership replace tenant-local admin boundary |
