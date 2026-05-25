@@ -13,6 +13,7 @@ Accepted.
 - `8cf7fac feat(timeslot): add reservable resources`
 - `c8bd47c fix(timeslot): tighten resource validation`
 - `5f65794 fix(timeslot): validate resource description early`
+- `1b0f181 refactor(timeslot): centralize slot policy`
 
 ## Context
 
@@ -33,6 +34,11 @@ Create `Resource` with:
 Validate resource fields at command/domain boundaries before persistence. Resource creation requires
 business booking settings to exist so resource behavior has defaults.
 
+Resolve final booking policy through `ResourceBookingOverrides.resolve(BusinessBookingSettings)`.
+The resulting effective policy contains slot duration, hold TTL, cancellation window, and max
+advance booking days. Null override fallback must stay inside the domain model instead of being
+reimplemented by application services.
+
 ## Alternatives
 
 ### Store All Booking Policy Only On Resource
@@ -48,4 +54,5 @@ This is simpler, but many businesses need one resource to differ from the defaul
 - Resource defaults are inherited from business settings unless overridden.
 - Resource slug uniqueness is business-scoped.
 - Resource validation must reject invalid descriptions and malformed slugs before persistence.
-
+- Application services consume an effective policy instead of duplicating nullable override
+  fallback rules.

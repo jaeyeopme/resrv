@@ -11,6 +11,9 @@ Accepted.
 ## History
 
 - Supersedes [ADR-0001](0001-bounded-context-module-baseline.md) as the active module decision.
+- `dfefabf refactor(build): collapse context modules`
+- `fee8676 fix(platform): hide lookup wiring`
+- `78cc495 build: restore package coverage gates`
 
 ## Context
 
@@ -68,11 +71,13 @@ Use ArchUnit to enforce:
 - API packages assemble runtime concerns.
 - Timeslot must not depend on platform domain, adapters, API runtime, repositories, entities, or
   persistence schema directly. The timeslot outbound platform adapter may depend on explicit
-  `platform.contract` types; adapter configuration may import the platform services that implement
-  those contracts.
+  `platform.contract` types. Platform-owned contract configuration wires those contracts to
+  platform application services and persistence implementations.
 - Direct database access primitives must stay in outbound adapter packages. Production code should
   default to Spring Data JPA for owned persistence; native SQL is reserved for adapter-local
   database-specific behavior such as advisory locks.
+- Preserve package-level JaCoCo gates for domain, application, adapters, API, and contracts after
+  module collapse so module-level coverage gates do not hide weak package coverage.
 
 ## Alternatives
 
@@ -108,6 +113,6 @@ Costs:
 
 - `settings.gradle.kts` includes only `shared-kernel`, `platform`, and `timeslot`.
 - Existing code moves into package-level layers inside `platform` and `timeslot`.
-- JaCoCo coverage gates are recalibrated for the collapsed modules.
+- JaCoCo coverage gates are enforced at both module and package level.
 - ArchUnit tests become the primary layer enforcement mechanism.
 - ADR-0001 remains as the historical implemented baseline.
