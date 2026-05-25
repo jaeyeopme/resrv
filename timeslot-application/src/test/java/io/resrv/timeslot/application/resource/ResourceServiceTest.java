@@ -7,6 +7,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import io.resrv.shared.kernel.BusinessId;
@@ -252,6 +253,28 @@ class ResourceServiceTest {
     }
 
     @Test
+    void descriptionLongerThanFiveHundredCharactersFailsBeforePorts() {
+        final var exception =
+                assertThrows(
+                        IllegalArgumentException.class,
+                        () ->
+                                service.create(
+                                        new CreateResourceCommand(
+                                                BUSINESS_ID,
+                                                "Room A",
+                                                "room-a",
+                                                "x".repeat(501),
+                                                null,
+                                                null,
+                                                null)));
+
+        assertEquals(
+                "Resource description must be 0-500 characters after trimming",
+                exception.getMessage());
+        verifyNoPorts();
+    }
+
+    @Test
     void deactivateReturnsInactiveResourceWithoutChangingIdentityOrOverrides() {
         final var overrides =
                 new ResourceBookingOverrides(
@@ -289,8 +312,6 @@ class ResourceServiceTest {
     }
 
     private void verifyNoPorts() {
-        verify(settingsQueryPort, never()).findByBusinessId(any());
-        verify(queryPort, never()).findByBusinessIdAndSlug(any(), any());
-        verify(commandPort, never()).save(any());
+        verifyNoInteractions(settingsQueryPort, queryPort, commandPort);
     }
 }

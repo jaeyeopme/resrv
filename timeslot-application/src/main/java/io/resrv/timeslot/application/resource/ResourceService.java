@@ -44,6 +44,7 @@ public class ResourceService implements CreateResourceUseCase {
         Objects.requireNonNull(command, "Command must not be null");
         final var name = new ResourceName(command.name());
         final var slug = new ResourceSlug(command.slug());
+        final var description = Resource.normalizeDescription(command.description());
         final var overrides =
                 new ResourceBookingOverrides(
                         command.slotDurationMinutes() == null
@@ -65,8 +66,7 @@ public class ResourceService implements CreateResourceUseCase {
 
         final var now = clock.instant();
         final var resource =
-                Resource.create(
-                        command.businessId(), name, slug, command.description(), overrides, now);
+                Resource.create(command.businessId(), name, slug, description, overrides, now);
         commandPort.save(resource);
         return ResourceResult.from(resource);
     }
