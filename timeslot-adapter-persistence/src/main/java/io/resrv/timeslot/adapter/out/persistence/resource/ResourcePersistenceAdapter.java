@@ -6,6 +6,8 @@ import io.resrv.timeslot.application.resource.out.ResourceCommandPort;
 import io.resrv.timeslot.application.resource.out.ResourceQueryPort;
 import io.resrv.timeslot.domain.resource.Resource;
 import io.resrv.timeslot.domain.resource.ResourceSlug;
+import io.resrv.timeslot.domain.resource.ResourceStatus;
+import java.util.List;
 import java.util.Optional;
 import org.springframework.stereotype.Repository;
 
@@ -37,5 +39,14 @@ class ResourcePersistenceAdapter implements ResourceCommandPort, ResourceQueryPo
         return repository
                 .findByBusinessIdAndId(businessId.value(), resourceId.value())
                 .map(ResourceJpaEntity::toDomain);
+    }
+
+    @Override
+    public List<Resource> findActiveByBusinessId(final BusinessId businessId) {
+        return repository
+                .findByBusinessIdAndStatus(businessId.value(), ResourceStatus.ACTIVE)
+                .stream()
+                .map(ResourceJpaEntity::toDomain)
+                .toList();
     }
 }
