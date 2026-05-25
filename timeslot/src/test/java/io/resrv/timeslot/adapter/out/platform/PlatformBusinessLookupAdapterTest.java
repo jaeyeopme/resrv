@@ -6,9 +6,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import io.resrv.platform.application.business.in.LookupActiveBusinessResult;
-import io.resrv.platform.application.business.in.LookupActiveBusinessUseCase;
-import io.resrv.platform.application.membership.in.CheckBusinessAccessUseCase;
+import io.resrv.platform.contract.business.ActiveBusinessLookup;
+import io.resrv.platform.contract.business.ActiveBusinessView;
+import io.resrv.platform.contract.membership.BusinessAccessCheck;
 import io.resrv.shared.kernel.AccountId;
 import io.resrv.shared.kernel.BusinessId;
 import io.resrv.shared.kernel.Timezone;
@@ -21,20 +21,17 @@ final class PlatformBusinessLookupAdapterTest {
     private static final BusinessId BUSINESS_ID = BusinessId.create();
     private static final Timezone TIMEZONE = Timezone.of("Asia/Seoul");
 
-    private final LookupActiveBusinessUseCase lookupActiveBusinessUseCase =
-            mock(LookupActiveBusinessUseCase.class);
-    private final CheckBusinessAccessUseCase checkBusinessAccessUseCase =
-            mock(CheckBusinessAccessUseCase.class);
+    private final ActiveBusinessLookup activeBusinessLookup = mock(ActiveBusinessLookup.class);
+    private final BusinessAccessCheck businessAccessCheck = mock(BusinessAccessCheck.class);
     private final PlatformBusinessLookupAdapter adapter =
-            new PlatformBusinessLookupAdapter(
-                    lookupActiveBusinessUseCase, checkBusinessAccessUseCase);
+            new PlatformBusinessLookupAdapter(activeBusinessLookup, businessAccessCheck);
 
     @Test
     void mapsPlatformBusinessContractToTimeslotBusinessView() {
-        when(lookupActiveBusinessUseCase.findActiveById(BUSINESS_ID))
+        when(activeBusinessLookup.findActiveById(BUSINESS_ID))
                 .thenReturn(
                         Optional.of(
-                                new LookupActiveBusinessResult(
+                                new ActiveBusinessView(
                                         BUSINESS_ID, "Salon A", "salon-a", TIMEZONE)));
 
         final var business = adapter.findActiveById(BUSINESS_ID).orElseThrow();
@@ -47,20 +44,18 @@ final class PlatformBusinessLookupAdapterTest {
 
     @Test
     void mapsMissingPlatformBusinessToEmpty() {
-        when(lookupActiveBusinessUseCase.findActiveById(BUSINESS_ID)).thenReturn(Optional.empty());
+        when(activeBusinessLookup.findActiveById(BUSINESS_ID)).thenReturn(Optional.empty());
 
         assertTrue(adapter.findActiveById(BUSINESS_ID).isEmpty());
     }
 
     @Test
     void delegatesBusinessAccessCheckToPlatformContract() {
-        when(checkBusinessAccessUseCase.hasBusinessAccess(ACCOUNT_ID, BUSINESS_ID))
-                .thenReturn(true);
+        when(businessAccessCheck.hasBusinessAccess(ACCOUNT_ID, BUSINESS_ID)).thenReturn(true);
 
         assertTrue(adapter.hasBusinessAccess(ACCOUNT_ID, BUSINESS_ID));
 
-        when(checkBusinessAccessUseCase.hasBusinessAccess(ACCOUNT_ID, BUSINESS_ID))
-                .thenReturn(false);
+        when(businessAccessCheck.hasBusinessAccess(ACCOUNT_ID, BUSINESS_ID)).thenReturn(false);
 
         assertFalse(adapter.hasBusinessAccess(ACCOUNT_ID, BUSINESS_ID));
     }

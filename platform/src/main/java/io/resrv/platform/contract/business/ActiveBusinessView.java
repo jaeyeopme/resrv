@@ -1,13 +1,12 @@
-package io.resrv.platform.application.business.in;
+package io.resrv.platform.contract.business;
 
 import io.resrv.shared.kernel.BusinessId;
 import io.resrv.shared.kernel.Timezone;
 import java.util.Objects;
 
-public record LookupActiveBusinessResult(
-        BusinessId id, String name, String slug, Timezone timezone) {
+public record ActiveBusinessView(BusinessId id, String name, String slug, Timezone timezone) {
 
-    public LookupActiveBusinessResult {
+    public ActiveBusinessView {
         Objects.requireNonNull(id, "Business id must not be null");
         Objects.requireNonNull(name, "Business name must not be null");
         Objects.requireNonNull(slug, "Business slug must not be null");

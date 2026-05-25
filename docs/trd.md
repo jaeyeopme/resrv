@@ -43,7 +43,7 @@ The current branch has 3 Gradle modules:
 
 Hexagonal layers remain as Java package boundaries inside `platform` and `timeslot`. ArchUnit
 enforces dependency direction, keeps direct database access in outbound adapter packages, and limits
-timeslot-to-platform dependencies to explicit platform application lookup/access contracts.
+timeslot-to-platform dependencies to explicit `platform.contract` types.
 
 ## API Boundary
 

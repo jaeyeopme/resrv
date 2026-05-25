@@ -65,7 +65,20 @@ final class TimeslotArchitectureTest {
     }
 
     @Test
-    void only_platform_outbound_adapter_uses_platform_application_contracts() {
+    void only_platform_outbound_adapter_uses_platform_contracts() {
+        noClasses()
+                .that()
+                .resideInAPackage("io.resrv.timeslot..")
+                .and()
+                .resideOutsideOfPackage("io.resrv.timeslot.adapter.out.platform..")
+                .should()
+                .dependOnClassesThat()
+                .resideInAPackage("io.resrv.platform.contract..")
+                .check(classes);
+    }
+
+    @Test
+    void timeslot_does_not_depend_on_platform_application_directly() {
         noClasses()
                 .that()
                 .resideInAPackage("io.resrv.timeslot..")

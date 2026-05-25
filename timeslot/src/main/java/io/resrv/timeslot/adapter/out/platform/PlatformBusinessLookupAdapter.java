@@ -1,7 +1,7 @@
 package io.resrv.timeslot.adapter.out.platform;
 
-import io.resrv.platform.application.business.in.LookupActiveBusinessUseCase;
-import io.resrv.platform.application.membership.in.CheckBusinessAccessUseCase;
+import io.resrv.platform.contract.business.ActiveBusinessLookup;
+import io.resrv.platform.contract.membership.BusinessAccessCheck;
 import io.resrv.shared.kernel.AccountId;
 import io.resrv.shared.kernel.BusinessId;
 import io.resrv.timeslot.application.auth.out.BusinessAccessPort;
@@ -12,19 +12,19 @@ import org.springframework.stereotype.Repository;
 @Repository
 class PlatformBusinessLookupAdapter implements BusinessLookupPort, BusinessAccessPort {
 
-    private final LookupActiveBusinessUseCase lookupActiveBusinessUseCase;
-    private final CheckBusinessAccessUseCase checkBusinessAccessUseCase;
+    private final ActiveBusinessLookup activeBusinessLookup;
+    private final BusinessAccessCheck businessAccessCheck;
 
     PlatformBusinessLookupAdapter(
-            final LookupActiveBusinessUseCase lookupActiveBusinessUseCase,
-            final CheckBusinessAccessUseCase checkBusinessAccessUseCase) {
-        this.lookupActiveBusinessUseCase = lookupActiveBusinessUseCase;
-        this.checkBusinessAccessUseCase = checkBusinessAccessUseCase;
+            final ActiveBusinessLookup activeBusinessLookup,
+            final BusinessAccessCheck businessAccessCheck) {
+        this.activeBusinessLookup = activeBusinessLookup;
+        this.businessAccessCheck = businessAccessCheck;
     }
 
     @Override
     public Optional<BusinessView> findActiveById(final BusinessId businessId) {
-        return lookupActiveBusinessUseCase
+        return activeBusinessLookup
                 .findActiveById(businessId)
                 .map(
                         business ->
@@ -37,6 +37,6 @@ class PlatformBusinessLookupAdapter implements BusinessLookupPort, BusinessAcces
 
     @Override
     public boolean hasBusinessAccess(final AccountId accountId, final BusinessId businessId) {
-        return checkBusinessAccessUseCase.hasBusinessAccess(accountId, businessId);
+        return businessAccessCheck.hasBusinessAccess(accountId, businessId);
     }
 }
