@@ -10,14 +10,16 @@ import io.resrv.platform.application.membership.out.BusinessMembershipQueryPort;
 import io.resrv.platform.domain.membership.BusinessMembership;
 import io.resrv.shared.kernel.AccountId;
 import io.resrv.shared.kernel.BusinessId;
+import jakarta.persistence.PersistenceException;
+import java.sql.Timestamp;
 import java.time.Instant;
-import org.hibernate.exception.ConstraintViolationException;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
 import org.springframework.boot.jdbc.test.autoconfigure.AutoConfigureTestDatabase;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.context.annotation.Import;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.postgresql.PostgreSQLContainer;
@@ -29,6 +31,7 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
 class PlatformBusinessMembershipPersistenceAdapterTest {
 
     private static final Instant NOW = Instant.parse("2026-01-01T00:00:00Z");
+    private static final String HASHED_PASSWORD = "$argon2id$v=19$m=65536,t=3,p=1$platform";
 
     @Container @ServiceConnection
     static final PostgreSQLContainer postgres = new PostgreSQLContainer("postgres:16-alpine");
@@ -37,10 +40,12 @@ class PlatformBusinessMembershipPersistenceAdapterTest {
 
     @Autowired private BusinessMembershipQueryPort queryPort;
 
+    @Autowired private JdbcTemplate jdbcTemplate;
+
     @Test
     void saveAndFindActiveByAccountIdAndBusinessId() {
-        final var accountId = AccountId.create();
-        final var businessId = BusinessId.create();
+        final var accountId = insertAccountDirectly("member@example.com");
+        final var businessId = insertBusinessDirectly("membership-business");
         final var membership = BusinessMembership.owner(accountId, businessId, NOW);
 
         commandPort.save(membership);
@@ -56,20 +61,65 @@ class PlatformBusinessMembershipPersistenceAdapterTest {
 
     @Test
     void missingMembership_returnsEmpty() {
+        final var accountId = insertAccountDirectly("missing-member@example.com");
+        final var businessId = insertBusinessDirectly("missing-membership-business");
+
         assertFalse(
-                queryPort
-                        .findActiveByAccountIdAndBusinessId(AccountId.create(), BusinessId.create())
-                        .isPresent());
+                queryPort.findActiveByAccountIdAndBusinessId(accountId, businessId).isPresent());
     }
 
     @Test
     void duplicateAccountAndBusiness_bubblesPersistenceException() {
-        final var accountId = AccountId.create();
-        final var businessId = BusinessId.create();
+        final var accountId = insertAccountDirectly("duplicate-member@example.com");
+        final var businessId = insertBusinessDirectly("duplicate-membership-business");
         commandPort.save(BusinessMembership.owner(accountId, businessId, NOW));
 
         assertThrows(
-                ConstraintViolationException.class,
+                PersistenceException.class,
                 () -> commandPort.save(BusinessMembership.owner(accountId, businessId, NOW)));
+    }
+
+    @Test
+    void orphanMembership_isRejectedByDatabaseConstraint() {
+        assertThrows(
+                PersistenceException.class,
+                () ->
+                        commandPort.save(
+                                BusinessMembership.owner(
+                                        AccountId.create(), BusinessId.create(), NOW)));
+    }
+
+    private AccountId insertAccountDirectly(final String email) {
+        final var id = AccountId.create();
+        jdbcTemplate.update(
+                """
+                INSERT INTO platform.account
+                    (id, email, name, hashed_password, status, created_at)
+                VALUES (?, ?, ?, ?, ?, ?)
+                """,
+                id.value(),
+                email,
+                "Member",
+                HASHED_PASSWORD,
+                "ACTIVE",
+                Timestamp.from(NOW));
+        return id;
+    }
+
+    private BusinessId insertBusinessDirectly(final String slug) {
+        final var id = BusinessId.create();
+        jdbcTemplate.update(
+                """
+                INSERT INTO platform.business
+                    (id, name, slug, timezone, status, created_at)
+                VALUES (?, ?, ?, ?, ?, ?)
+                """,
+                id.value(),
+                "Studio",
+                slug,
+                "Asia/Seoul",
+                "ACTIVE",
+                Timestamp.from(NOW));
+        return id;
     }
 }
