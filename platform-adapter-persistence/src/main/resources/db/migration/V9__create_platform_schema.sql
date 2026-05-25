@@ -36,6 +36,10 @@ CREATE TABLE platform.business_membership (
     active BOOLEAN NOT NULL,
     created_at TIMESTAMPTZ NOT NULL,
     CONSTRAINT uq_platform_business_membership_account_business UNIQUE (account_id, business_id),
+    CONSTRAINT fk_platform_business_membership_account
+        FOREIGN KEY (account_id) REFERENCES platform.account(id),
+    CONSTRAINT fk_platform_business_membership_business
+        FOREIGN KEY (business_id) REFERENCES platform.business(id),
     CONSTRAINT ck_platform_business_membership_role CHECK (role IN ('OWNER', 'STAFF'))
 );
 

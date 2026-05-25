@@ -1,5 +1,6 @@
 package io.resrv.platform.adapter.out.persistence.account;
 
+import io.resrv.platform.adapter.out.persistence.PersistenceConstraintViolation;
 import io.resrv.platform.application.account.out.AccountCommandPort;
 import io.resrv.platform.application.account.out.AccountQueryPort;
 import io.resrv.platform.domain.account.Account;
@@ -15,6 +16,8 @@ import org.springframework.stereotype.Repository;
 @Repository
 class AccountPersistenceAdapter implements AccountCommandPort, AccountQueryPort {
 
+    private static final String UNIQUE_EMAIL = "uq_platform_account_email";
+
     private final AccountJpaRepository accountJpaRepository;
     private final EntityManager entityManager;
 
@@ -29,8 +32,11 @@ class AccountPersistenceAdapter implements AccountCommandPort, AccountQueryPort 
         try {
             accountJpaRepository.save(AccountJpaEntity.fromDomain(account));
             entityManager.flush();
-        } catch (final DataIntegrityViolationException | PersistenceException _) {
-            throw new AccountEmailAlreadyExistsException(account.email());
+        } catch (final DataIntegrityViolationException | PersistenceException exception) {
+            if (PersistenceConstraintViolation.isCausedBy(exception, UNIQUE_EMAIL)) {
+                throw new AccountEmailAlreadyExistsException(account.email());
+            }
+            throw exception;
         }
     }
 

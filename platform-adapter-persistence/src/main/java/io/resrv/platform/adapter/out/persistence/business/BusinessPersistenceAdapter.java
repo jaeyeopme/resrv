@@ -1,5 +1,6 @@
 package io.resrv.platform.adapter.out.persistence.business;
 
+import io.resrv.platform.adapter.out.persistence.PersistenceConstraintViolation;
 import io.resrv.platform.application.business.out.BusinessCommandPort;
 import io.resrv.platform.application.business.out.BusinessQueryPort;
 import io.resrv.platform.domain.business.Business;
@@ -15,6 +16,8 @@ import org.springframework.stereotype.Repository;
 @Repository
 class BusinessPersistenceAdapter implements BusinessCommandPort, BusinessQueryPort {
 
+    private static final String UNIQUE_SLUG = "uq_platform_business_slug";
+
     private final BusinessJpaRepository businessJpaRepository;
     private final EntityManager entityManager;
 
@@ -29,8 +32,11 @@ class BusinessPersistenceAdapter implements BusinessCommandPort, BusinessQueryPo
         try {
             businessJpaRepository.save(BusinessJpaEntity.fromDomain(business));
             entityManager.flush();
-        } catch (final DataIntegrityViolationException | PersistenceException _) {
-            throw new BusinessSlugAlreadyExistsException(business.slug());
+        } catch (final DataIntegrityViolationException | PersistenceException exception) {
+            if (PersistenceConstraintViolation.isCausedBy(exception, UNIQUE_SLUG)) {
+                throw new BusinessSlugAlreadyExistsException(business.slug());
+            }
+            throw exception;
         }
     }
 
