@@ -7,15 +7,12 @@ plugins {
 }
 
 tasks.named<org.springframework.boot.gradle.tasks.bundling.BootJar>("bootJar") {
-    enabled = false
+    archiveBaseName.set("resrv-platform-api")
 }
 
-tasks.named<Jar>("jar") {
-    enabled = true
-}
-
+// Run from the repository root so Spring Boot Docker Compose can discover ./compose.yml.
 tasks.named<org.springframework.boot.gradle.tasks.run.BootRun>("bootRun") {
-    enabled = false
+    workingDir = rootProject.projectDir
 }
 
 dependencies {
