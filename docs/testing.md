@@ -41,6 +41,8 @@ JaCoCo line coverage minimums are configured in the root `build.gradle.kts`.
 | `timeslot` | 80% |
 
 `check` depends on `jacocoTestCoverageVerification` for modules that apply JaCoCo.
+The bounded-context modules also keep package-level gates for application, web adapter, and
+persistence adapter packages so aggregate module coverage cannot hide a drop in one layer.
 
 ## Architecture Rules
 
