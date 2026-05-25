@@ -9,6 +9,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import io.resrv.shared.kernel.AccountId;
 import java.time.Instant;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 class AccountTest {
 
@@ -33,6 +35,13 @@ class AccountTest {
         final var email = new AccountEmail("  OWNER@Example.COM  ");
 
         assertEquals("owner@example.com", email.value());
+    }
+
+    @Test
+    void plusTaggedEmailValueNormalized() {
+        final var email = new AccountEmail("  USER+tag@Example.COM  ");
+
+        assertEquals("user+tag@example.com", email.value());
     }
 
     @Test
@@ -91,6 +100,22 @@ class AccountTest {
 
         assertEquals("Account email must be valid", nullException.getMessage());
         assertEquals("Account email must be valid", malformedException.getMessage());
+    }
+
+    @ParameterizedTest
+    @ValueSource(
+            strings = {
+                "a,b@example.com",
+                "owner@example..com",
+                "owner@-example.com",
+                ".owner@example.com",
+                "owner.@example.com"
+            })
+    void unsafeEmailShapesRejected(final String value) {
+        final var exception =
+                assertThrows(IllegalArgumentException.class, () -> new AccountEmail(value));
+
+        assertEquals("Account email must be valid", exception.getMessage());
     }
 
     @Test
