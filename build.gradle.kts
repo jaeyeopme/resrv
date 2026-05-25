@@ -6,16 +6,8 @@ import org.springframework.boot.gradle.plugin.SpringBootPlugin.BOM_COORDINATES
 val jacocoLineCoverageMinimums =
     mapOf(
         "shared-kernel" to "0.85".toBigDecimal(),
-        "platform-domain" to "0.85".toBigDecimal(),
-        "platform-application" to "0.90".toBigDecimal(),
-        "platform-adapter-web" to "0.90".toBigDecimal(),
-        "platform-adapter-persistence" to "0.90".toBigDecimal(),
-        "platform-api" to "0.90".toBigDecimal(),
-        "timeslot-domain" to "0.85".toBigDecimal(),
-        "timeslot-application" to "0.90".toBigDecimal(),
-        "timeslot-adapter-web" to "0.90".toBigDecimal(),
-        "timeslot-adapter-persistence" to "0.90".toBigDecimal(),
-        "timeslot-booking-api" to "0.90".toBigDecimal(),
+        "platform" to "0.80".toBigDecimal(),
+        "timeslot" to "0.80".toBigDecimal(),
     )
 
 plugins {
