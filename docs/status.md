@@ -1,88 +1,45 @@
 # Current Status and Future Work
 
-This page is a public status summary, not a planning log. It foregrounds implemented evidence first, then records polish opportunities and intentionally deferred hardening.
+## Current Milestone
 
-## Current milestone
+The tenant-local API has been replaced by a platform + timeslot booking split.
 
-The Phase 1 reservation MVP is implemented enough for external readers to judge core backend quality from API behavior, architecture boundaries, tests, and database constraints.
+Implemented deployables:
 
-## Implemented foundation
+- `platform-api`
+- `timeslot-booking-api`
 
-- 5-subproject hexagonal architecture
-- PostgreSQL/Flyway schema migrations
-- Spring Security JWT resource server
-- PostgreSQL-backed JWT revocation blacklist
-- Tenant onboarding
-- Tenant admin login/logout/me
-- Customer registration/login
-- Resource management
-- Availability rules and exceptions
-- Reservation hold/confirm/list/cancel flow
-- Admin reservation audit and bounded operator reservation search
-- Springdoc OpenAPI/Swagger UI
-- ProblemDetail error responses
-- Testcontainers-backed integration-test structure
+## Implemented Foundation
 
-## Implemented reservation evidence
+- Platform `Account` registration/login
+- `Business` creation
+- `BusinessMembership` owner/staff access model
+- Timeslot booking settings
+- Reservable resources
+- Weekly schedules and date overrides
+- Virtual slot generation with opaque `slotId`
+- Reservation hold, confirm, release, cancel, check-in, and no-show flows
+- PostgreSQL advisory transaction lock for hold hot path
+- Active blocker query for confirmed reservations and unexpired holds
+- Reservation state derived from timestamp facts
+- Spring Security JWT resource server per deployable
+- Testcontainers-backed API and persistence tests
 
-| Capability | Evidence |
+Customer is now a platform `Account`. Business replaces Tenant in domain and API terminology.
+`BusinessMembership` grants `OWNER` or `STAFF` access to a Business.
+
+Timeslot booking stores resources, schedules, booking settings, slots, and reservations.
+Slots are virtual and selected by opaque `slotId`.
+
+Reservation state is derived from timestamp facts; `HELD` and `EXPIRED` are not persisted statuses.
+Expired hold cleanup worker is not part of correctness.
+
+## Deferred
+
+| Item | Reason |
 |---|---|
-| Customer registration/login | `CustomerWebAdapter`, `CustomerService`, `customer` table |
-| Admin-only Resource management | `ResourceWebAdapter` role guard |
-| Admin-only Availability write | `AvailabilityWebAdapter` role guard |
-| Authenticated slot search | `GET /api/resources/{resourceId}/slots` |
-| Customer reservation hold | `POST /api/reservation-holds` |
-| Customer reservation confirm | `POST /api/reservation-holds/{reservationId}/confirm` |
-| Customer reservation list/cancel | `/api/me/reservations/**` |
-| Admin reservation audit | `GET /api/resources/{resourceId}/reservations` |
-| Admin reservation operator search | `GET /api/reservations?date=YYYY-MM-DD&...` |
-| Admin reservation lifecycle controls | `admin-cancel`, `check-in`, and `no-show` reservation transitions |
-| DB-level no-overbooking | `V7__create_reservation.sql` exclusion constraint |
-| Scale-out token revocation | `V8__create_revoked_token.sql`, `TokenRevocationPersistenceAdapter`, `RevokedTokenCleanup` |
-| End-to-end flow test | `ReservationMvpIntegrationTest` |
-| OpenAPI surface test | `OpenApiIntegrationTest` |
-| CI quality gate | `.github/workflows/ci.yml` runs commitlint and `./gradlew check --no-daemon` |
-| OpenAPI reviewer metadata | Controller annotations for tags, summaries, auth requirements, status codes, and schema fields |
-
-## Product decisions already settled
-
-- Only logged-in customers can create reservations.
-- Guest reservation tokens are not part of the MVP.
-- Resource capacity is 1 in the MVP.
-- Overbooking prevention uses both application checks and a PostgreSQL exclusion constraint.
-- Logout revocation is persisted in PostgreSQL instead of process-local memory.
-- Swagger/OpenAPI remains the public review surface.
-
-## High-signal polish opportunities
-
-These items would improve review ergonomics, but they are not required to understand the current backend evidence.
-
-| Priority | Item | Reason |
-|---|---|---|
-| P1 | Add operation-level OpenAPI request/response examples | Reviewers can reproduce the demo flow from Swagger alone |
-| P1 | Add more reservation domain/application unit tests | State-transition rules become fast to verify without Testcontainers |
-| P2 | Add seed/demo profile | Reduces demo setup time |
-| P2 | Publish read-only hosted demo policy | Provides a safer external review path than a mutable demo environment |
-
-## Explicitly deferred hardening
-
-The following authentication/operations items are intentionally outside the current milestone. They are recorded so reviewers can distinguish deliberate scope control from accidental omissions.
-
-| ID | Item | Reason |
-|---|---|---|
-| T100 | Login rate limiting | Requires operations policy and storage/infrastructure choice |
-| T101 | Failed-login lockout | Requires user-state model and unlock policy |
-| T102 | Tenant/admin active-state validation filter | Requires state-transition policy and API error contract |
-| T103 | Active hold quota per customer | Prevents one customer from holding many slots at once; secondary to hot-slot concurrency controls |
-| T104 | Reservation hold/status model cleanup | Split persisted reservation lifecycle from derived hold/expiry state; avoid using one `status` column as a catch-all |
-| T105 | JPA enum mapping cleanup | Use `@Enumerated(EnumType.STRING)` with domain enums where appropriate while keeping database check constraints |
-
-## Longer-term realism expansions
-
-- Payment or deposit integration port
-- Email/SMS notification outbox
-- More granular staff permissions
-- Customer profile update/password reset
-- Recurring/package reservations
-- Observability: structured logging, metrics, trace id
-- Read-only hosted demo and public Swagger operating policy
+| Login rate limiting | Operations policy and storage choice needed |
+| Failed-login lockout | Requires user-state and unlock policy |
+| Active hold quota per customer | Abuse hardening, separate from slot correctness |
+| Payments/deposits | Product integration outside current backend boundary |
+| Notification outbox | Operational expansion |
