@@ -67,4 +67,75 @@ class ReservationPersistenceAdapterTest {
         assertEquals(1, blockers.size());
         assertEquals(activeHold.id(), blockers.getFirst().id());
     }
+
+    @Test
+    void businessDateWindowQueryFiltersAndSortsReservations() {
+        final var businessId = BusinessId.create();
+        final var otherBusinessId = BusinessId.create();
+        final var resourceId = ResourceId.create();
+        final var otherResourceId = ResourceId.create();
+        final var customerId = AccountId.create();
+        final var otherCustomerId = AccountId.create();
+        final var later =
+                Reservation.hold(
+                                businessId,
+                                resourceId,
+                                customerId,
+                                Instant.parse("2026-05-25T03:00:00Z"),
+                                Instant.parse("2026-05-25T03:30:00Z"),
+                                NOW.plusSeconds(60),
+                                NOW)
+                        .confirm(NOW);
+        final var earlier =
+                Reservation.hold(
+                                businessId,
+                                resourceId,
+                                customerId,
+                                Instant.parse("2026-05-25T01:00:00Z"),
+                                Instant.parse("2026-05-25T01:30:00Z"),
+                                NOW.plusSeconds(60),
+                                NOW)
+                        .confirm(NOW);
+        commandPort.save(later);
+        commandPort.save(earlier);
+        commandPort.save(
+                Reservation.hold(
+                        businessId,
+                        otherResourceId,
+                        customerId,
+                        Instant.parse("2026-05-25T02:00:00Z"),
+                        Instant.parse("2026-05-25T02:30:00Z"),
+                        NOW.plusSeconds(60),
+                        NOW));
+        commandPort.save(
+                Reservation.hold(
+                        businessId,
+                        resourceId,
+                        otherCustomerId,
+                        Instant.parse("2026-05-25T02:00:00Z"),
+                        Instant.parse("2026-05-25T02:30:00Z"),
+                        NOW.plusSeconds(60),
+                        NOW));
+        commandPort.save(
+                Reservation.hold(
+                        otherBusinessId,
+                        resourceId,
+                        customerId,
+                        Instant.parse("2026-05-25T01:00:00Z"),
+                        Instant.parse("2026-05-25T01:30:00Z"),
+                        NOW.plusSeconds(60),
+                        NOW));
+
+        final var results =
+                queryPort.findByBusinessDateWindow(
+                        businessId,
+                        Instant.parse("2026-05-25T00:00:00Z"),
+                        Instant.parse("2026-05-26T00:00:00Z"),
+                        resourceId,
+                        customerId);
+
+        assertEquals(2, results.size());
+        assertEquals(earlier.id(), results.get(0).id());
+        assertEquals(later.id(), results.get(1).id());
+    }
 }

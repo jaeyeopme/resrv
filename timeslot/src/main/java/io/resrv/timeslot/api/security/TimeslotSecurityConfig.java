@@ -36,8 +36,7 @@ class TimeslotSecurityConfig {
 
     @Bean
     @Order(0)
-    SecurityFilterChain timeslotDocumentationSecurityFilterChain(final HttpSecurity http)
-            throws Exception {
+    SecurityFilterChain timeslotDocumentationSecurityFilterChain(final HttpSecurity http) {
         return http.securityMatcher(
                         "/swagger-ui.html",
                         "/swagger-ui/**",
@@ -52,7 +51,7 @@ class TimeslotSecurityConfig {
     @Bean
     @Order(1)
     SecurityFilterChain timeslotApiSecurityFilterChain(
-            final HttpSecurity http, final JwtDecoder jwtDecoder) throws Exception {
+            final HttpSecurity http, final JwtDecoder jwtDecoder) {
         return http.securityMatcher("/api/**")
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(
@@ -87,7 +86,7 @@ class TimeslotSecurityConfig {
                 new JwtTimestampValidator(),
                 new JwtIssuerValidator(properties.issuer()),
                 audienceValidator(properties),
-                accountIdentifierValidator());
+                requiredClaimsValidator());
     }
 
     private static JwtClaimValidator<List<String>> audienceValidator(
@@ -96,21 +95,34 @@ class TimeslotSecurityConfig {
                 "aud", audience -> audience != null && audience.contains(properties.audience()));
     }
 
-    private static OAuth2TokenValidator<Jwt> accountIdentifierValidator() {
+    private static OAuth2TokenValidator<Jwt> requiredClaimsValidator() {
         return jwt -> {
-            final var subject = parseUuid(jwt.getSubject());
-            final var accountId = parseUuid(jwt.getClaimAsString("accountId"));
-            if (subject == null && accountId == null) {
-                return OAuth2TokenValidatorResult.failure(
-                        new OAuth2Error(
-                                "invalid_token", "sub or accountId claim must be a UUID", null));
+            final var jwtId = jwt.getId();
+            if (isBlank(jwtId)) {
+                return tokenFailure("jti claim must not be blank");
             }
+
+            final var accountId = jwt.getClaimAsString("accountId");
+            final var parsedAccountId = parseUuid(accountId);
+            if (parsedAccountId == null) {
+                return tokenFailure("accountId claim must be a UUID");
+            }
+
+            final var subject = jwt.getSubject();
+            final var parsedSubject = parseUuid(subject);
+            if (parsedSubject == null) {
+                return tokenFailure("sub claim must be a UUID");
+            }
+            if (!subject.equals(accountId)) {
+                return tokenFailure("sub claim must match accountId claim");
+            }
+
             return OAuth2TokenValidatorResult.success();
         };
     }
 
     private static UUID parseUuid(final String value) {
-        if (value == null || value.isBlank()) {
+        if (isBlank(value)) {
             return null;
         }
         try {
@@ -119,6 +131,15 @@ class TimeslotSecurityConfig {
         } catch (final IllegalArgumentException exception) {
             return null;
         }
+    }
+
+    private static boolean isBlank(final String value) {
+        return value == null || value.isBlank();
+    }
+
+    private static OAuth2TokenValidatorResult tokenFailure(final String description) {
+        return OAuth2TokenValidatorResult.failure(
+                new OAuth2Error("invalid_token", description, null));
     }
 
     @ConfigurationProperties(prefix = "resrv.jwt")

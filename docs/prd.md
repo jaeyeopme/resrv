@@ -77,9 +77,11 @@ reservations.
 
 ### Business Operations
 
-1. Business owner or staff cancels a held or confirmed reservation.
-2. Business owner or staff checks in a confirmed reservation after start time.
-3. Business owner or staff marks no-show after end time.
+1. Business owner or staff lists reservations for a business-local date.
+2. Business owner or staff filters the list by resource, customer account, or derived state.
+3. Business owner or staff cancels a held or confirmed reservation.
+4. Business owner or staff checks in a confirmed reservation after start time.
+5. Business owner or staff marks no-show after end time.
 
 ## Acceptance Criteria
 
@@ -92,11 +94,10 @@ reservations.
 - Expired holds must stop blocking without a status mutation.
 - Customer reservation transitions must require reservation ownership.
 - Business reservation transitions must require active owner/staff membership.
+- Business reservation list/search must require active owner/staff membership.
 
 ## Open Product Questions
 
 - Whether staff membership management belongs in the next platform milestone.
 - Whether customers need profile data beyond `Account`.
-- Whether business-facing reservation search/list endpoints are required before merge.
 - Whether local review should run one combined API or separate platform/timeslot runtimes.
-

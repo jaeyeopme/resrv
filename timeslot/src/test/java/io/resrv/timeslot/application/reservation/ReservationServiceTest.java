@@ -2,6 +2,7 @@ package io.resrv.timeslot.application.reservation;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -19,6 +20,7 @@ import io.resrv.timeslot.application.reservation.in.CancelReservationCommand;
 import io.resrv.timeslot.application.reservation.in.CheckInReservationCommand;
 import io.resrv.timeslot.application.reservation.in.ConfirmReservationCommand;
 import io.resrv.timeslot.application.reservation.in.HoldReservationCommand;
+import io.resrv.timeslot.application.reservation.in.ListBusinessReservationsQuery;
 import io.resrv.timeslot.application.reservation.in.MarkNoShowReservationCommand;
 import io.resrv.timeslot.application.reservation.in.ReleaseReservationCommand;
 import io.resrv.timeslot.application.reservation.out.ReservationCommandPort;
@@ -89,6 +91,8 @@ final class ReservationServiceTest {
         reservationQueryPort = mock(ReservationQueryPort.class);
         businessAccessPort = mock(BusinessAccessPort.class);
         serviceAt(NOW);
+        when(businessLookupPort.findActiveById(BUSINESS_ID))
+                .thenReturn(Optional.of(activeBusiness()));
     }
 
     @Test
@@ -262,6 +266,8 @@ final class ReservationServiceTest {
 
         assertEquals(ReservationState.BUSINESS_CANCELLED, heldResult.state());
         assertEquals(ReservationState.BUSINESS_CANCELLED, confirmedResult.state());
+        assertEquals(TIMEZONE.value(), heldResult.businessZone());
+        assertEquals(TIMEZONE.value(), confirmedResult.businessZone());
     }
 
     @Test
@@ -285,6 +291,7 @@ final class ReservationServiceTest {
                                 BUSINESS_ID, reservation.id(), STAFF_ACCOUNT_ID));
 
         assertEquals(ReservationState.CHECKED_IN, result.state());
+        assertEquals(TIMEZONE.value(), result.businessZone());
     }
 
     @Test
@@ -308,6 +315,82 @@ final class ReservationServiceTest {
                                 BUSINESS_ID, reservation.id(), STAFF_ACCOUNT_ID));
 
         assertEquals(ReservationState.NO_SHOW, result.state());
+        assertEquals(TIMEZONE.value(), result.businessZone());
+    }
+
+    @Test
+    void listBusinessReservationsRequiresBusinessAccess() {
+        when(businessAccessPort.hasBusinessAccess(STAFF_ACCOUNT_ID, BUSINESS_ID)).thenReturn(false);
+
+        assertThrows(
+                ReservationAccessDeniedException.class,
+                () ->
+                        service.listBusinessReservations(
+                                new ListBusinessReservationsQuery(
+                                        BUSINESS_ID,
+                                        STAFF_ACCOUNT_ID,
+                                        SLOT_DATE,
+                                        null,
+                                        null,
+                                        null)));
+
+        verify(reservationQueryPort, never())
+                .findByBusinessDateWindow(any(), any(), any(), any(), any());
+    }
+
+    @Test
+    void listBusinessReservationsUsesBusinessTimezoneAndFiltersByDerivedState() {
+        when(businessAccessPort.hasBusinessAccess(STAFF_ACCOUNT_ID, BUSINESS_ID)).thenReturn(true);
+        final var expiredHold =
+                Reservation.hold(
+                        BUSINESS_ID,
+                        RESOURCE_ID,
+                        CUSTOMER_ACCOUNT_ID,
+                        SLOT_START_AT.minusSeconds(3600),
+                        SLOT_END_AT.minusSeconds(3600),
+                        NOW.minusSeconds(1),
+                        NOW.minusSeconds(7200));
+        final var confirmed = confirmedReservation();
+        when(reservationQueryPort.findByBusinessDateWindow(
+                        BUSINESS_ID,
+                        Instant.parse("2026-05-24T15:00:00Z"),
+                        Instant.parse("2026-05-25T15:00:00Z"),
+                        RESOURCE_ID,
+                        CUSTOMER_ACCOUNT_ID))
+                .thenReturn(List.of(expiredHold, confirmed));
+
+        final var results =
+                service.listBusinessReservations(
+                        new ListBusinessReservationsQuery(
+                                BUSINESS_ID,
+                                STAFF_ACCOUNT_ID,
+                                SLOT_DATE,
+                                RESOURCE_ID,
+                                CUSTOMER_ACCOUNT_ID,
+                                ReservationState.CONFIRMED));
+
+        assertEquals(1, results.size());
+        assertEquals(ReservationState.CONFIRMED, results.getFirst().state());
+        assertEquals(TIMEZONE.value(), results.getFirst().businessZone());
+    }
+
+    @Test
+    void listBusinessReservationsQueryRejectsNullRequiredFields() {
+        assertThrows(
+                NullPointerException.class,
+                () ->
+                        new ListBusinessReservationsQuery(
+                                null, STAFF_ACCOUNT_ID, SLOT_DATE, null, null, null));
+        assertThrows(
+                NullPointerException.class,
+                () ->
+                        new ListBusinessReservationsQuery(
+                                BUSINESS_ID, null, SLOT_DATE, null, null, null));
+        assertThrows(
+                NullPointerException.class,
+                () ->
+                        new ListBusinessReservationsQuery(
+                                BUSINESS_ID, STAFF_ACCOUNT_ID, null, null, null, null));
     }
 
     private void serviceAt(final Instant now) {
@@ -342,14 +425,13 @@ final class ReservationServiceTest {
     }
 
     private void givenBookingContext(final ResourceBookingOverrides overrides) {
-        when(businessLookupPort.findActiveById(BUSINESS_ID))
-                .thenReturn(
-                        Optional.of(
-                                new BusinessLookupPort.BusinessView(
-                                        BUSINESS_ID, "Salon A", "salon-a", TIMEZONE)));
         when(settingsQueryPort.findByBusinessId(BUSINESS_ID)).thenReturn(Optional.of(settings()));
         when(resourceQueryPort.findByBusinessIdAndId(BUSINESS_ID, RESOURCE_ID))
                 .thenReturn(Optional.of(resource(overrides)));
+    }
+
+    private static BusinessLookupPort.BusinessView activeBusiness() {
+        return new BusinessLookupPort.BusinessView(BUSINESS_ID, "Salon A", "salon-a", TIMEZONE);
     }
 
     private static HoldReservationCommand validHoldCommand() {

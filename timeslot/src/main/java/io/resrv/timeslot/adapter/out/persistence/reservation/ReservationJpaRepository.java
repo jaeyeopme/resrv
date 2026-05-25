@@ -29,6 +29,24 @@ interface ReservationJpaRepository extends JpaRepository<ReservationJpaEntity, U
     List<ReservationJpaEntity> findActiveBlockers(
             UUID businessId, UUID resourceId, Instant startAt, Instant endAt, Instant now);
 
+    @Query(
+            """
+            SELECT reservation FROM ReservationJpaEntity reservation
+            WHERE reservation.businessId = :businessId
+              AND reservation.startAt >= :startInclusive
+              AND reservation.startAt < :endExclusive
+              AND (:resourceId IS NULL OR reservation.resourceId = :resourceId)
+              AND (:customerAccountId IS NULL
+                OR reservation.customerAccountId = :customerAccountId)
+            ORDER BY reservation.startAt ASC, reservation.createdAt ASC
+            """)
+    List<ReservationJpaEntity> findByBusinessDateWindow(
+            UUID businessId,
+            Instant startInclusive,
+            Instant endExclusive,
+            UUID resourceId,
+            UUID customerAccountId);
+
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query(
             """
