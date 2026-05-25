@@ -100,3 +100,54 @@ CREATE TABLE timeslot.resource_date_schedule_override_window (
     CONSTRAINT ck_timeslot_date_window_range CHECK (start_time < end_time),
     CONSTRAINT uq_timeslot_date_window_order UNIQUE (override_id, sort_order)
 );
+
+CREATE TABLE timeslot.reservation (
+    id UUID PRIMARY KEY,
+    business_id UUID NOT NULL,
+    resource_id UUID NOT NULL,
+    customer_account_id UUID NOT NULL,
+    start_at TIMESTAMPTZ NOT NULL,
+    end_at TIMESTAMPTZ NOT NULL,
+    hold_expires_at TIMESTAMPTZ NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL,
+    updated_at TIMESTAMPTZ NOT NULL,
+    confirmed_at TIMESTAMPTZ,
+    released_at TIMESTAMPTZ,
+    cancelled_at TIMESTAMPTZ,
+    cancelled_by VARCHAR(32),
+    checked_in_at TIMESTAMPTZ,
+    no_show_at TIMESTAMPTZ,
+    CONSTRAINT ck_timeslot_reservation_time_range CHECK (start_at < end_at),
+    CONSTRAINT ck_timeslot_reservation_cancel_actor CHECK (
+        (cancelled_at IS NULL AND cancelled_by IS NULL)
+        OR (cancelled_at IS NOT NULL AND cancelled_by IN ('CUSTOMER', 'BUSINESS'))
+    ),
+    CONSTRAINT ck_timeslot_reservation_release_terminal CHECK (
+        released_at IS NULL
+        OR (
+            confirmed_at IS NULL
+            AND cancelled_at IS NULL
+            AND checked_in_at IS NULL
+            AND no_show_at IS NULL
+        )
+    ),
+    CONSTRAINT ck_timeslot_reservation_confirmed_terminal CHECK (
+        (checked_in_at IS NULL OR confirmed_at IS NOT NULL)
+        AND (no_show_at IS NULL OR confirmed_at IS NOT NULL)
+    ),
+    CONSTRAINT ck_timeslot_reservation_single_terminal CHECK (
+        (CASE WHEN cancelled_at IS NULL THEN 0 ELSE 1 END)
+        + (CASE WHEN checked_in_at IS NULL THEN 0 ELSE 1 END)
+        + (CASE WHEN no_show_at IS NULL THEN 0 ELSE 1 END)
+        <= 1
+    )
+);
+
+CREATE INDEX idx_timeslot_reservation_customer
+    ON timeslot.reservation(business_id, customer_account_id, start_at);
+
+CREATE INDEX idx_timeslot_reservation_resource_window
+    ON timeslot.reservation(business_id, resource_id, start_at, end_at);
+
+CREATE INDEX idx_timeslot_reservation_active_blocker
+    ON timeslot.reservation(business_id, resource_id, start_at, end_at, hold_expires_at);
