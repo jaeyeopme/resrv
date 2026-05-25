@@ -59,8 +59,8 @@ When changing API behavior:
   outbound adapter packages.
 - Test `JdbcTemplate` use is allowed for fixtures and database assertions.
 - If production code needs native SQL/JDBC, document why JPA is not the right fit.
-- Timeslot must not read platform tables directly. Use explicit platform application lookup/access
-  contracts from the timeslot outbound platform adapter.
+- Timeslot must not read platform tables directly. Use explicit `platform.contract` types from the
+  timeslot outbound platform adapter.
 
 ## Phase 2 — Do Not Implement
 

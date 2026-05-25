@@ -30,9 +30,9 @@ Expose timeslot endpoints for:
 - Business reservation list/search by business-local date with optional resource, customer account,
   and state filters.
 
-Add a `PlatformBusinessLookupAdapter` outbound adapter that implements timeslot ports by calling an
-explicit platform application lookup/access contract. Timeslot does not read platform tables or
-columns directly.
+Add a `PlatformBusinessLookupAdapter` outbound adapter that implements timeslot ports by calling
+explicit `platform.contract` lookup/access types. Timeslot does not read platform tables or columns
+directly.
 
 Timeslot security accepts account-scoped JWTs and resolves business access server-side.
 
@@ -52,7 +52,7 @@ names.
 
 - Timeslot owns its HTTP surface.
 - Cross-context reads go through narrow ports.
-- Timeslot may depend only on the explicit platform application lookup/access contract, not
-  platform domain, repositories, entities, or persistence schema.
+- Timeslot may depend only on explicit `platform.contract` types, not platform application
+  services, domain, repositories, entities, or persistence schema.
 - Timeslot runtime packaging remains pending because `bootJar` and `bootRun` are currently
   disabled.

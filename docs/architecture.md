@@ -40,7 +40,8 @@ Rules:
 - API packages assemble web, persistence, security, and configuration.
 - Timeslot code must not depend on platform domain, adapters, API runtime, repositories, entities,
   or persistence schema. Its outbound platform adapter may depend only on explicit platform
-  application lookup/access contracts.
+  `platform.contract` types; adapter configuration may import the platform services that implement
+  those contracts.
 - Direct database access primitives are limited to outbound adapters.
 
 ## Persistence Access Policy

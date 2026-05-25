@@ -63,8 +63,8 @@ Timeslot public read endpoints:
 Business write operations require active `BusinessMembership` with role `OWNER` or `STAFF`.
 
 Timeslot checks membership through `BusinessAccessPort`, implemented by an outbound adapter that
-calls an explicit platform application access contract. Timeslot application code does not depend
-directly on platform domain, repositories, entities, or persistence schema.
+calls an explicit `platform.contract` access check. Timeslot application code does not depend
+directly on platform application services, domain, repositories, entities, or persistence schema.
 
 ## Reservation Authorization
 

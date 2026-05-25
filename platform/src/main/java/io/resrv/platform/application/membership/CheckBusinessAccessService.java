@@ -1,7 +1,7 @@
 package io.resrv.platform.application.membership;
 
-import io.resrv.platform.application.membership.in.CheckBusinessAccessUseCase;
 import io.resrv.platform.application.membership.out.BusinessMembershipQueryPort;
+import io.resrv.platform.contract.membership.BusinessAccessCheck;
 import io.resrv.platform.domain.membership.BusinessRole;
 import io.resrv.shared.kernel.AccountId;
 import io.resrv.shared.kernel.BusinessId;
@@ -10,7 +10,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @Transactional(readOnly = true)
-public class CheckBusinessAccessService implements CheckBusinessAccessUseCase {
+public class CheckBusinessAccessService implements BusinessAccessCheck {
 
     private final BusinessMembershipQueryPort membershipQueryPort;
 
