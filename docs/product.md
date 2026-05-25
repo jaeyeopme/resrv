@@ -80,3 +80,4 @@ The current MVP provides this end-to-end flow:
 | Guest reservations | Identity-free reservations increase cancellation/check-in/abuse risk |
 | Multi-resource capacity | Capacity 1 plus no-overbooking is proven first |
 | Login rate limiting / lockout | Requires operations policy and storage choices; Phase 2 hardening |
+| Active hold quota per customer | Useful abuse guard, but secondary to proving hot-slot concurrency and no-overbooking |
