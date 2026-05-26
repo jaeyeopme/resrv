@@ -17,10 +17,10 @@
 
 **Purpose**: Add shared dependencies and configuration surface needed by all stories.
 
-- [ ] T001 Add Spring Mail dependency alias in `gradle/libs.versions.toml`
-- [ ] T002 Add Spring Mail implementation dependency to `platform/build.gradle.kts`
-- [ ] T003 [P] Document local SMTP configuration placeholders in `docs/operations.md`
-- [ ] T004 [P] Add email and reset configuration property notes to `docs/security.md`
+- [X] T001 Add Spring Mail dependency alias in `gradle/libs.versions.toml`
+- [X] T002 Add Spring Mail implementation dependency to `platform/build.gradle.kts`
+- [X] T003 [P] Document local SMTP configuration placeholders in `docs/operations.md`
+- [X] T004 [P] Add email and reset configuration property notes to `docs/security.md`
 
 ---
 
@@ -30,21 +30,21 @@
 
 **CRITICAL**: No user story implementation should begin until this phase is complete.
 
-- [ ] T005 Create Flyway migration `platform/src/main/resources/db/migration/V11__account_security_hardening.sql` for sign-in attempt, sign-in protection, and password reset challenge tables
-- [ ] T006 [P] Add sign-in attempt outcome enum in `platform/src/main/java/io/resrv/platform/domain/account/SignInAttemptOutcome.java`
-- [ ] T007 [P] Add account sign-in protection domain type in `platform/src/main/java/io/resrv/platform/domain/account/AccountSignInProtection.java`
-- [ ] T008 [P] Add password reset challenge domain type in `platform/src/main/java/io/resrv/platform/domain/account/PasswordResetChallenge.java`
-- [ ] T009 [P] Add password reset token value object in `platform/src/main/java/io/resrv/platform/domain/account/PasswordResetToken.java`
-- [ ] T010 [P] Add sign-in security ports in `platform/src/main/java/io/resrv/platform/application/auth/out/SignInAttemptCommandPort.java`, `platform/src/main/java/io/resrv/platform/application/auth/out/SignInProtectionCommandPort.java`, and `platform/src/main/java/io/resrv/platform/application/auth/out/SignInProtectionQueryPort.java`
-- [ ] T011 [P] Add email delivery port in `platform/src/main/java/io/resrv/platform/application/auth/out/PasswordResetEmailPort.java`
-- [ ] T012 [P] Add reset token generator/hasher ports in `platform/src/main/java/io/resrv/platform/application/security/out/PasswordResetTokenGeneratorPort.java` and `platform/src/main/java/io/resrv/platform/application/security/out/PasswordResetTokenHashingPort.java`
-- [ ] T013 [P] Add account active lookup contract in `platform/src/main/java/io/resrv/platform/contract/account/ActiveAccountCheck.java`
-- [ ] T014 Update `platform/src/main/java/io/resrv/platform/contract/PlatformLookupContractConfiguration.java` to export active account checking
-- [ ] T015 Add failing persistence tests for auth security schema and adapters in `platform/src/test/java/io/resrv/platform/adapter/out/persistence/account/AccountSecurityPersistenceAdapterTest.java`
-- [ ] T016 Add JPA entities and repositories for auth security state in `platform/src/main/java/io/resrv/platform/adapter/out/persistence/account/SignInAttemptJpaEntity.java`, `platform/src/main/java/io/resrv/platform/adapter/out/persistence/account/SignInAttemptJpaRepository.java`, `platform/src/main/java/io/resrv/platform/adapter/out/persistence/account/AccountSignInProtectionJpaEntity.java`, `platform/src/main/java/io/resrv/platform/adapter/out/persistence/account/AccountSignInProtectionJpaRepository.java`, `platform/src/main/java/io/resrv/platform/adapter/out/persistence/account/PasswordResetChallengeJpaEntity.java`, and `platform/src/main/java/io/resrv/platform/adapter/out/persistence/account/PasswordResetChallengeJpaRepository.java`
-- [ ] T017 Add persistence adapter for sign-in protection and reset challenges in `platform/src/main/java/io/resrv/platform/adapter/out/persistence/account/AccountSecurityPersistenceAdapter.java`
-- [ ] T018 Add reusable auth security exceptions in `platform/src/main/java/io/resrv/platform/application/auth/PasswordResetRequiredException.java` and `platform/src/main/java/io/resrv/platform/application/auth/PasswordResetTokenInvalidException.java`
-- [ ] T019 Update platform problem responses for auth security exceptions in `platform/src/main/java/io/resrv/platform/adapter/in/web/error/PlatformExceptionHandler.java`
+- [X] T005 Create Flyway migration `platform/src/main/resources/db/migration/V11__account_security_hardening.sql` for sign-in attempt, sign-in protection, and password reset challenge tables
+- [X] T006 [P] Add sign-in attempt outcome enum in `platform/src/main/java/io/resrv/platform/domain/account/SignInAttemptOutcome.java`
+- [X] T007 [P] Add account sign-in protection domain type in `platform/src/main/java/io/resrv/platform/domain/account/AccountSignInProtection.java`
+- [X] T008 [P] Add password reset challenge domain type in `platform/src/main/java/io/resrv/platform/domain/account/PasswordResetChallenge.java`
+- [X] T009 [P] Add password reset token value object in `platform/src/main/java/io/resrv/platform/domain/account/PasswordResetToken.java`
+- [X] T010 [P] Add sign-in security ports in `platform/src/main/java/io/resrv/platform/application/auth/out/SignInAttemptCommandPort.java`, `platform/src/main/java/io/resrv/platform/application/auth/out/SignInProtectionCommandPort.java`, and `platform/src/main/java/io/resrv/platform/application/auth/out/SignInProtectionQueryPort.java`
+- [X] T011 [P] Add email delivery port in `platform/src/main/java/io/resrv/platform/application/auth/out/PasswordResetEmailPort.java`
+- [X] T012 [P] Add reset token generator/hasher ports in `platform/src/main/java/io/resrv/platform/application/security/out/PasswordResetTokenGeneratorPort.java` and `platform/src/main/java/io/resrv/platform/application/security/out/PasswordResetTokenHashingPort.java`
+- [X] T013 [P] Add account active lookup contract in `platform/src/main/java/io/resrv/platform/contract/account/ActiveAccountCheck.java`
+- [X] T014 Update `platform/src/main/java/io/resrv/platform/contract/PlatformLookupContractConfiguration.java` to export active account checking
+- [X] T015 Add failing persistence tests for auth security schema and adapters in `platform/src/test/java/io/resrv/platform/adapter/out/persistence/account/AccountSecurityPersistenceAdapterTest.java`
+- [X] T016 Add JPA entities and repositories for auth security state in `platform/src/main/java/io/resrv/platform/adapter/out/persistence/account/SignInAttemptJpaEntity.java`, `platform/src/main/java/io/resrv/platform/adapter/out/persistence/account/SignInAttemptJpaRepository.java`, `platform/src/main/java/io/resrv/platform/adapter/out/persistence/account/AccountSignInProtectionJpaEntity.java`, `platform/src/main/java/io/resrv/platform/adapter/out/persistence/account/AccountSignInProtectionJpaRepository.java`, `platform/src/main/java/io/resrv/platform/adapter/out/persistence/account/PasswordResetChallengeJpaEntity.java`, and `platform/src/main/java/io/resrv/platform/adapter/out/persistence/account/PasswordResetChallengeJpaRepository.java`
+- [X] T017 Add persistence adapter for sign-in protection and reset challenges in `platform/src/main/java/io/resrv/platform/adapter/out/persistence/account/AccountSecurityPersistenceAdapter.java`
+- [X] T018 Add reusable auth security exceptions in `platform/src/main/java/io/resrv/platform/application/auth/PasswordResetRequiredException.java` and `platform/src/main/java/io/resrv/platform/application/auth/PasswordResetTokenInvalidException.java`
+- [X] T019 Update platform problem responses for auth security exceptions in `platform/src/main/java/io/resrv/platform/adapter/in/web/error/PlatformExceptionHandler.java`
 
 **Checkpoint**: Foundation compiles, migration is covered, and story work can begin.
 
@@ -58,18 +58,18 @@
 
 ### Tests for User Story 1
 
-- [ ] T020 [P] [US1] Add login failure counting service tests in `platform/src/test/java/io/resrv/platform/application/auth/LoginServiceTest.java`
-- [ ] T021 [P] [US1] Add non-enumerating login API integration tests in `platform/src/test/java/io/resrv/platform/api/PlatformApiIntegrationTest.java`
-- [ ] T022 [US1] Add email delivery fake assertions in `platform/src/test/java/io/resrv/platform/api/PlatformApiIntegrationTest.java`
+- [X] T020 [P] [US1] Add login failure counting service tests in `platform/src/test/java/io/resrv/platform/application/auth/LoginServiceTest.java`
+- [X] T021 [P] [US1] Add non-enumerating login API integration tests in `platform/src/test/java/io/resrv/platform/api/PlatformApiIntegrationTest.java`
+- [X] T022 [US1] Add email delivery fake assertions in `platform/src/test/java/io/resrv/platform/api/PlatformApiIntegrationTest.java`
 
 ### Implementation for User Story 1
 
-- [ ] T023 [P] [US1] Add SMTP password reset email adapter in `platform/src/main/java/io/resrv/platform/adapter/out/email/SmtpPasswordResetEmailAdapter.java`
-- [ ] T024 [P] [US1] Add test fake password reset email adapter in `platform/src/test/java/io/resrv/platform/api/FakePasswordResetEmailAdapter.java`
-- [ ] T025 [P] [US1] Add reset token generator and digest adapter in `platform/src/main/java/io/resrv/platform/api/security/PasswordResetTokenAdapter.java`
-- [ ] T026 [US1] Update `platform/src/main/java/io/resrv/platform/application/auth/LoginService.java` to record failed attempts, create reset challenge on the fifth failure, and send reset email
-- [ ] T027 [US1] Update `platform/src/main/java/io/resrv/platform/adapter/in/web/auth/LoginWebAdapter.java` with Springdoc annotations and non-sensitive recovery-required response documentation
-- [ ] T028 [US1] Update `platform/src/main/java/io/resrv/platform/api/security/PlatformSecurityConfig.java` to expose email/reset configuration beans needed by login protection
+- [X] T023 [P] [US1] Add SMTP password reset email adapter in `platform/src/main/java/io/resrv/platform/adapter/out/email/SmtpPasswordResetEmailAdapter.java`
+- [X] T024 [P] [US1] Add test fake password reset email adapter in `platform/src/test/java/io/resrv/platform/api/FakePasswordResetEmailAdapter.java`
+- [X] T025 [P] [US1] Add reset token generator and digest adapter in `platform/src/main/java/io/resrv/platform/api/security/PasswordResetTokenAdapter.java`
+- [X] T026 [US1] Update `platform/src/main/java/io/resrv/platform/application/auth/LoginService.java` to record failed attempts, create reset challenge on the fifth failure, and send reset email
+- [X] T027 [US1] Update `platform/src/main/java/io/resrv/platform/adapter/in/web/auth/LoginWebAdapter.java` with Springdoc annotations and non-sensitive recovery-required response documentation
+- [X] T028 [US1] Update `platform/src/main/java/io/resrv/platform/api/security/PlatformSecurityConfig.java` to expose email/reset configuration beans needed by login protection
 
 **Checkpoint**: User Story 1 is independently testable with `./gradlew :platform:test`.
 
@@ -83,19 +83,19 @@
 
 ### Tests for User Story 2
 
-- [ ] T029 [P] [US2] Add password reset application tests in `platform/src/test/java/io/resrv/platform/application/auth/PasswordResetServiceTest.java`
-- [ ] T030 [P] [US2] Add password reset API integration tests in `platform/src/test/java/io/resrv/platform/api/PlatformApiIntegrationTest.java`
-- [ ] T031 [P] [US2] Add unrelated-account isolation tests in `platform/src/test/java/io/resrv/platform/application/auth/LoginServiceTest.java`
+- [X] T029 [P] [US2] Add password reset application tests in `platform/src/test/java/io/resrv/platform/application/auth/PasswordResetServiceTest.java`
+- [X] T030 [P] [US2] Add password reset API integration tests in `platform/src/test/java/io/resrv/platform/api/PlatformApiIntegrationTest.java`
+- [X] T031 [P] [US2] Add unrelated-account isolation tests in `platform/src/test/java/io/resrv/platform/application/auth/LoginServiceTest.java`
 
 ### Implementation for User Story 2
 
-- [ ] T032 [P] [US2] Add reset password use case types in `platform/src/main/java/io/resrv/platform/application/auth/in/ResetPasswordCommand.java`, `platform/src/main/java/io/resrv/platform/application/auth/in/ResetPasswordResult.java`, and `platform/src/main/java/io/resrv/platform/application/auth/in/ResetPasswordUseCase.java`
-- [ ] T033 [US2] Implement password reset service in `platform/src/main/java/io/resrv/platform/application/auth/PasswordResetService.java`
-- [ ] T034 [US2] Add password reset web endpoint in `platform/src/main/java/io/resrv/platform/adapter/in/web/auth/PasswordResetWebAdapter.java`
-- [ ] T035 [US2] Update `platform/src/main/java/io/resrv/platform/application/auth/LoginService.java` to reject sign-in while reset is required
-- [ ] T036 [US2] Add account password command port in `platform/src/main/java/io/resrv/platform/application/account/out/AccountPasswordCommandPort.java` and implement password hash persistence in `platform/src/main/java/io/resrv/platform/adapter/out/persistence/account/AccountPersistenceAdapter.java`
-- [ ] T037 [US2] Add Springdoc request/response annotations for reset behavior in `platform/src/main/java/io/resrv/platform/adapter/in/web/auth/PasswordResetWebAdapter.java`
-- [ ] T038 [US2] Permit the password reset endpoint in `platform/src/main/java/io/resrv/platform/api/security/PlatformSecurityConfig.java`
+- [X] T032 [P] [US2] Add reset password use case types in `platform/src/main/java/io/resrv/platform/application/auth/in/ResetPasswordCommand.java`, `platform/src/main/java/io/resrv/platform/application/auth/in/ResetPasswordResult.java`, and `platform/src/main/java/io/resrv/platform/application/auth/in/ResetPasswordUseCase.java`
+- [X] T033 [US2] Implement password reset service in `platform/src/main/java/io/resrv/platform/application/auth/PasswordResetService.java`
+- [X] T034 [US2] Add password reset web endpoint in `platform/src/main/java/io/resrv/platform/adapter/in/web/auth/PasswordResetWebAdapter.java`
+- [X] T035 [US2] Update `platform/src/main/java/io/resrv/platform/application/auth/LoginService.java` to reject sign-in while reset is required
+- [X] T036 [US2] Add account password command port in `platform/src/main/java/io/resrv/platform/application/account/out/AccountPasswordCommandPort.java` and implement password hash persistence in `platform/src/main/java/io/resrv/platform/adapter/out/persistence/account/AccountPersistenceAdapter.java`
+- [X] T037 [US2] Add Springdoc request/response annotations for reset behavior in `platform/src/main/java/io/resrv/platform/adapter/in/web/auth/PasswordResetWebAdapter.java`
+- [X] T038 [US2] Permit the password reset endpoint in `platform/src/main/java/io/resrv/platform/api/security/PlatformSecurityConfig.java`
 
 **Checkpoint**: User Stories 1 and 2 work independently with `./gradlew :platform:test`.
 
@@ -109,21 +109,21 @@
 
 ### Tests for User Story 3
 
-- [ ] T039 [P] [US3] Add active account platform API integration tests, including non-sensitive active-account denial facts, in `platform/src/test/java/io/resrv/platform/api/PlatformApiIntegrationTest.java`
-- [ ] T040 [P] [US3] Add active account contract tests in `platform/src/test/java/io/resrv/platform/application/account/ActiveAccountCheckServiceTest.java`
-- [ ] T041 [P] [US3] Add active business/member timeslot integration tests, including non-sensitive active business/member denial facts, in `timeslot/src/test/java/io/resrv/timeslot/api/TimeslotBookingApiIntegrationTest.java`
-- [ ] T042 [P] [US3] Add public discovery inactive business/resource tests in `timeslot/src/test/java/io/resrv/timeslot/application/slot/VirtualSlotServiceTest.java`
+- [X] T039 [P] [US3] Add active account platform API integration tests, including non-sensitive active-account denial facts, in `platform/src/test/java/io/resrv/platform/api/PlatformApiIntegrationTest.java`
+- [X] T040 [P] [US3] Add active account contract tests in `platform/src/test/java/io/resrv/platform/application/account/ActiveAccountCheckServiceTest.java`
+- [X] T041 [P] [US3] Add active business/member timeslot integration tests, including non-sensitive active business/member denial facts, in `timeslot/src/test/java/io/resrv/timeslot/api/TimeslotBookingApiIntegrationTest.java`
+- [X] T042 [P] [US3] Add public discovery inactive business/resource tests in `timeslot/src/test/java/io/resrv/timeslot/application/slot/VirtualSlotServiceTest.java`
 
 ### Implementation for User Story 3
 
-- [ ] T043 [P] [US3] Implement active account check service in `platform/src/main/java/io/resrv/platform/application/account/ActiveAccountCheckService.java`
-- [ ] T044 [US3] Update `platform/src/main/java/io/resrv/platform/api/security/PlatformSecurityConfig.java` to enforce active account checks on protected authenticated requests and record non-sensitive active-account denial facts
-- [ ] T045 [US3] Update `platform/src/main/java/io/resrv/platform/application/membership/CheckBusinessAccessService.java` to require active account, active business, and active owner/staff membership and record non-sensitive active business/member denial facts
-- [ ] T046 [US3] Document boolean denial and denial-fact semantics for inactive account, inactive business, and inactive membership in `platform/src/main/java/io/resrv/platform/contract/membership/BusinessAccessCheck.java`
-- [ ] T047 [US3] Update `timeslot/src/main/java/io/resrv/timeslot/adapter/out/platform/PlatformBusinessLookupAdapter.java` to preserve contract-only platform access
-- [ ] T048 [US3] Update `timeslot/src/main/java/io/resrv/timeslot/application/resource/ResourceService.java` to exclude resources when the business is inactive
-- [ ] T049 [US3] Update `timeslot/src/main/java/io/resrv/timeslot/application/slot/VirtualSlotService.java` so inactive businesses/resources return no bookable slots through public discovery
-- [ ] T050 [US3] Update `timeslot/src/main/java/io/resrv/timeslot/adapter/in/web/resource/ResourceWebAdapter.java` and `timeslot/src/main/java/io/resrv/timeslot/adapter/in/web/slot/SlotWebAdapter.java` Springdoc annotations for public discovery behavior
+- [X] T043 [P] [US3] Implement active account check service in `platform/src/main/java/io/resrv/platform/application/account/ActiveAccountCheckService.java`
+- [X] T044 [US3] Update `platform/src/main/java/io/resrv/platform/api/security/PlatformSecurityConfig.java` to enforce active account checks on protected authenticated requests and record non-sensitive active-account denial facts
+- [X] T045 [US3] Update `platform/src/main/java/io/resrv/platform/application/membership/CheckBusinessAccessService.java` to require active account, active business, and active owner/staff membership and record non-sensitive active business/member denial facts
+- [X] T046 [US3] Document boolean denial and denial-fact semantics for inactive account, inactive business, and inactive membership in `platform/src/main/java/io/resrv/platform/contract/membership/BusinessAccessCheck.java`
+- [X] T047 [US3] Update `timeslot/src/main/java/io/resrv/timeslot/adapter/out/platform/PlatformBusinessLookupAdapter.java` to preserve contract-only platform access
+- [X] T048 [US3] Update `timeslot/src/main/java/io/resrv/timeslot/application/resource/ResourceService.java` to exclude resources when the business is inactive
+- [X] T049 [US3] Update `timeslot/src/main/java/io/resrv/timeslot/application/slot/VirtualSlotService.java` so inactive businesses/resources return no bookable slots through public discovery
+- [X] T050 [US3] Update `timeslot/src/main/java/io/resrv/timeslot/adapter/in/web/resource/ResourceWebAdapter.java` and `timeslot/src/main/java/io/resrv/timeslot/adapter/in/web/slot/SlotWebAdapter.java` Springdoc annotations for public discovery behavior
 
 **Checkpoint**: All user stories are independently functional with `./gradlew :platform:test :timeslot:test`.
 
@@ -133,15 +133,15 @@
 
 **Purpose**: Contract visibility, docs consistency, and full verification.
 
-- [ ] T051 [P] Update deferred hardening notes in `docs/security.md`
-- [ ] T052 [P] Update known gaps and focused checks in `docs/testing.md`
-- [ ] T053 [P] Update SMTP and password reset environment notes in `docs/operations.md`
-- [ ] T054 [P] Add or update ADR if password reset/email delivery introduces a durable architecture decision in `docs/adr/`
-- [ ] T055 Verify generated OpenAPI behavior and public documentation endpoints (`/v3/api-docs`, `/v3/api-docs.yaml`, `/swagger-ui.html`) manually or through integration assertions in `platform/src/test/java/io/resrv/platform/api/PlatformApiIntegrationTest.java`
-- [ ] T056 Run quickstart acceptance checks from `specs/007-account-security-hardening/quickstart.md`
-- [ ] T057 Run `./gradlew spotlessApply` from `/Users/jaeyeop/Workspace/resrv`
-- [ ] T058 Run `./gradlew rewriteDryRun` from `/Users/jaeyeop/Workspace/resrv`
-- [ ] T059 Run `./gradlew check` from `/Users/jaeyeop/Workspace/resrv`
+- [X] T051 [P] Update deferred hardening notes in `docs/security.md`
+- [X] T052 [P] Update known gaps and focused checks in `docs/testing.md`
+- [X] T053 [P] Update SMTP and password reset environment notes in `docs/operations.md`
+- [X] T054 [P] Add or update ADR if password reset/email delivery introduces a durable architecture decision in `docs/adr/`
+- [X] T055 Verify generated OpenAPI behavior and public documentation endpoints (`/v3/api-docs`, `/v3/api-docs.yaml`, `/swagger-ui.html`) manually or through integration assertions in `platform/src/test/java/io/resrv/platform/api/PlatformApiIntegrationTest.java`
+- [X] T056 Run quickstart acceptance checks from `specs/007-account-security-hardening/quickstart.md`
+- [X] T057 Run `./gradlew spotlessApply` from `/Users/jaeyeop/Workspace/resrv`
+- [X] T058 Run `./gradlew rewriteDryRun` from `/Users/jaeyeop/Workspace/resrv`
+- [X] T059 Run `./gradlew check` from `/Users/jaeyeop/Workspace/resrv`
 
 ---
 

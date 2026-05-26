@@ -5,6 +5,8 @@ import io.resrv.shared.kernel.ResourceId;
 import io.resrv.timeslot.application.slot.in.ListSlotsQuery;
 import io.resrv.timeslot.application.slot.in.ListSlotsUseCase;
 import io.resrv.timeslot.application.slot.in.SlotResult;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.util.List;
@@ -26,6 +28,14 @@ class SlotWebAdapter {
     }
 
     @GetMapping
+    @Operation(
+            summary = "List public bookable slots",
+            responses = {
+                @ApiResponse(
+                        responseCode = "200",
+                        description =
+                                "Bookable slots for active business/resource state, or an empty list when not bookable")
+            })
     List<SlotResponse> list(
             @PathVariable final UUID businessId,
             @PathVariable final UUID resourceId,

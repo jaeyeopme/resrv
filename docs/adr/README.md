@@ -26,3 +26,4 @@ that introduced or hardened the decision so future readers can inspect the imple
 | [0015](0015-replace-tenant-booking-api.md) | Accepted | Replace old tenant-local API with platform and timeslot redesign |
 | [0016](0016-public-generated-openapi.md) | Accepted | Generated Swagger/OpenAPI docs remain publicly readable |
 | [0017](0017-collapse-to-bounded-context-modules.md) | Accepted | Collapse layer modules into bounded-context Gradle modules |
+| [0018](0018-account-security-hardening.md) | Accepted | Account security hardening with password reset recovery and active-state checks |

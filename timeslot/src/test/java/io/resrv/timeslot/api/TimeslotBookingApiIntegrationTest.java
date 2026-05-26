@@ -100,6 +100,53 @@ final class TimeslotBookingApiIntegrationTest {
     }
 
     @Test
+    void inactiveBusinessIsDeniedForProtectedBusinessAction() throws Exception {
+        jdbcTemplate.update(
+                "UPDATE platform.business SET status = 'INACTIVE' WHERE id = ?", BUSINESS_ID);
+
+        mockMvc.perform(
+                        put("/api/businesses/{businessId}/booking-settings", BUSINESS_ID)
+                                .header(
+                                        HttpHeaders.AUTHORIZATION,
+                                        "Bearer " + signedToken(ACCOUNT_ID))
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(
+                                        """
+                                        {
+                                          "slotDurationMinutes": 30,
+                                          "holdTtlMinutes": 10,
+                                          "cancellationWindowMinutes": 60,
+                                          "maxAdvanceBookingDays": 30
+                                        }
+                                        """))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void inactiveMembershipIsDeniedForProtectedBusinessAction() throws Exception {
+        jdbcTemplate.update(
+                "UPDATE platform.business_membership SET active = false WHERE account_id = ?",
+                ACCOUNT_ID);
+
+        mockMvc.perform(
+                        put("/api/businesses/{businessId}/booking-settings", BUSINESS_ID)
+                                .header(
+                                        HttpHeaders.AUTHORIZATION,
+                                        "Bearer " + signedToken(ACCOUNT_ID))
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(
+                                        """
+                                        {
+                                          "slotDurationMinutes": 30,
+                                          "holdTtlMinutes": 10,
+                                          "cancellationWindowMinutes": 60,
+                                          "maxAdvanceBookingDays": 30
+                                        }
+                                        """))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
     void ownerCanConfigureResourceHoldAndConfirmReservation() throws Exception {
         final var token = signedToken(ACCOUNT_ID);
 
@@ -361,10 +408,6 @@ final class TimeslotBookingApiIntegrationTest {
                 UUID.randomUUID().toString());
     }
 
-    private static Instant validTokenExpiresAt() {
-        return Instant.now().plusSeconds(86_400);
-    }
-
     private static String signedToken(
             final String issuer,
             final String audience,
@@ -389,6 +432,10 @@ final class TimeslotBookingApiIntegrationTest {
         final var signedJwt = new SignedJWT(new JWSHeader(JWSAlgorithm.HS256), claims.build());
         signedJwt.sign(new MACSigner(JWT_SECRET));
         return signedJwt.serialize();
+    }
+
+    private static Instant validTokenExpiresAt() {
+        return Instant.now().plusSeconds(86_400);
     }
 
     @TestConfiguration

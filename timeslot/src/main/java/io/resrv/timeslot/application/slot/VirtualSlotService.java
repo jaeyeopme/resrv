@@ -1,8 +1,6 @@
 package io.resrv.timeslot.application.slot;
 
-import io.resrv.timeslot.application.business.BusinessNotAvailableException;
 import io.resrv.timeslot.application.business.out.BusinessLookupPort;
-import io.resrv.timeslot.application.resource.ResourceNotAvailableException;
 import io.resrv.timeslot.application.resource.out.ResourceQueryPort;
 import io.resrv.timeslot.application.schedule.out.ResourceScheduleQueryPort;
 import io.resrv.timeslot.application.settings.BookingSettingsRequiredException;
@@ -45,10 +43,10 @@ public class VirtualSlotService implements ListSlotsUseCase {
     @Override
     public List<SlotResult> listSlots(final ListSlotsQuery query) {
         Objects.requireNonNull(query, "Query must not be null");
-        final var business =
-                businessLookupPort
-                        .findActiveById(query.businessId())
-                        .orElseThrow(() -> new BusinessNotAvailableException(query.businessId()));
+        final var business = businessLookupPort.findActiveById(query.businessId()).orElse(null);
+        if (business == null) {
+            return List.of();
+        }
         final var settings =
                 settingsQueryPort
                         .findByBusinessId(query.businessId())
@@ -58,10 +56,10 @@ public class VirtualSlotService implements ListSlotsUseCase {
                 resourceQueryPort
                         .findByBusinessIdAndId(query.businessId(), query.resourceId())
                         .filter(value -> value.status() == ResourceStatus.ACTIVE)
-                        .orElseThrow(
-                                () ->
-                                        new ResourceNotAvailableException(
-                                                query.businessId(), query.resourceId()));
+                        .orElse(null);
+        if (resource == null) {
+            return List.of();
+        }
         final var policy = resource.bookingOverrides().resolve(settings);
 
         final var today = LocalDate.now(clock.withZone(business.timezone().value()));

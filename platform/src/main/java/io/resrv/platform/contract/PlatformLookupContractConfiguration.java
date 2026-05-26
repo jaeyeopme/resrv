@@ -1,5 +1,6 @@
 package io.resrv.platform.contract;
 
+import io.resrv.platform.application.account.ActiveAccountCheckService;
 import io.resrv.platform.application.business.LookupActiveBusinessService;
 import io.resrv.platform.application.membership.CheckBusinessAccessService;
 import org.springframework.boot.persistence.autoconfigure.EntityScan;
@@ -12,5 +13,9 @@ import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 @ComponentScan("io.resrv.platform.adapter.out.persistence")
 @EnableJpaRepositories(basePackages = "io.resrv.platform.adapter.out.persistence")
 @EntityScan(basePackages = "io.resrv.platform.adapter.out.persistence")
-@Import({LookupActiveBusinessService.class, CheckBusinessAccessService.class})
+@Import({
+    ActiveAccountCheckService.class,
+    LookupActiveBusinessService.class,
+    CheckBusinessAccessService.class
+})
 public class PlatformLookupContractConfiguration {}

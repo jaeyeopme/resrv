@@ -74,6 +74,24 @@ Until that decision is made, timeslot API behavior is verified through integrati
 | `resrv.jwt.audience` | `RESRV_JWT_AUDIENCE` | Expected token audience |
 | `resrv.jwt.expiration` | `RESRV_JWT_EXPIRATION` | Token lifetime in seconds |
 
+## Password Reset Email Configuration
+
+Password reset delivery uses Spring Mail. Configure the standard `spring.mail.*` properties for the
+SMTP provider used by the environment.
+
+| Property | Environment variable | Meaning |
+|---|---|---|
+| `spring.mail.host` | `SPRING_MAIL_HOST` | SMTP host |
+| `spring.mail.port` | `SPRING_MAIL_PORT` | SMTP port |
+| `spring.mail.username` | `SPRING_MAIL_USERNAME` | SMTP username when required |
+| `spring.mail.password` | `SPRING_MAIL_PASSWORD` | SMTP password when required |
+| `spring.mail.properties.mail.smtp.auth` | `SPRING_MAIL_PROPERTIES_MAIL_SMTP_AUTH` | Whether SMTP auth is enabled |
+| `spring.mail.properties.mail.smtp.starttls.enable` | `SPRING_MAIL_PROPERTIES_MAIL_SMTP_STARTTLS_ENABLE` | Whether STARTTLS is enabled |
+| `resrv.security.password-reset.public-base-url` | `RESRV_SECURITY_PASSWORD_RESET_PUBLIC_BASE_URL` | Public base URL used when building password reset links |
+| `resrv.security.password-reset.token-ttl` | `RESRV_SECURITY_PASSWORD_RESET_TOKEN_TTL` | Password reset link lifetime, expressed as a duration |
+
+Tests should replace SMTP with a fake adapter and must not contact an external email provider.
+
 ## Migrations
 
 Flyway migrations are stored in bounded-context modules:

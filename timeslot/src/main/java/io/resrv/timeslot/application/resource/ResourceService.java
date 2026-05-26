@@ -1,5 +1,7 @@
 package io.resrv.timeslot.application.resource;
 
+import io.resrv.shared.kernel.BusinessId;
+import io.resrv.timeslot.application.business.out.BusinessLookupPort;
 import io.resrv.timeslot.application.resource.in.CreateResourceCommand;
 import io.resrv.timeslot.application.resource.in.CreateResourceUseCase;
 import io.resrv.timeslot.application.resource.in.ListResourcesUseCase;
@@ -26,16 +28,19 @@ import org.springframework.transaction.annotation.Transactional;
 public class ResourceService implements CreateResourceUseCase, ListResourcesUseCase {
 
     private final BusinessBookingSettingsQueryPort settingsQueryPort;
+    private final BusinessLookupPort businessLookupPort;
     private final ResourceCommandPort commandPort;
     private final ResourceQueryPort queryPort;
     private final Clock clock;
 
     public ResourceService(
             final BusinessBookingSettingsQueryPort settingsQueryPort,
+            final BusinessLookupPort businessLookupPort,
             final ResourceCommandPort commandPort,
             final ResourceQueryPort queryPort,
             final Clock clock) {
         this.settingsQueryPort = settingsQueryPort;
+        this.businessLookupPort = businessLookupPort;
         this.commandPort = commandPort;
         this.queryPort = queryPort;
         this.clock = clock;
@@ -75,8 +80,11 @@ public class ResourceService implements CreateResourceUseCase, ListResourcesUseC
 
     @Override
     @Transactional(readOnly = true)
-    public List<ResourceResult> listActive(final io.resrv.shared.kernel.BusinessId businessId) {
+    public List<ResourceResult> listActive(final BusinessId businessId) {
         Objects.requireNonNull(businessId, "Business id must not be null");
+        if (businessLookupPort.findActiveById(businessId).isEmpty()) {
+            return List.of();
+        }
         return queryPort.findActiveByBusinessId(businessId).stream()
                 .map(ResourceResult::from)
                 .toList();
