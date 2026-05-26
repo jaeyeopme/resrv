@@ -38,6 +38,30 @@ JWTs must not contain:
 Passwords are hashed with Spring Security's Argon2 password encoder. Login uses a dummy hash path
 for invalid inputs or missing accounts to reduce obvious timing differences.
 
+## Repeated Failed Sign-In Recovery
+
+After 5 failed password sign-in attempts for the same account, the platform requires password reset
+through the registered email address. The fifth failure sends a password reset email immediately.
+Password sign-in remains blocked for that account until reset succeeds, even if a reset link expires
+and must be reissued.
+
+Security behavior:
+
+- Sign-in responses remain non-enumerating for unknown accounts, bad passwords, and reset-required
+  accounts.
+- Raw passwords and raw reset tokens are never stored or logged.
+- Account-scoped sign-in protection does not change business, resource, slot, or reservation
+  availability for other accounts.
+- Caller/IP rate limiting and timed account lockout remain deferred hardening items.
+
+Configuration:
+
+| Property | Meaning |
+|---|---|
+| `spring.mail.*` | SMTP provider settings used by the password reset email adapter |
+| `resrv.security.password-reset.public-base-url` | Public base URL used to build password reset links |
+| `resrv.security.password-reset.token-ttl` | Password reset link lifetime |
+
 ## Public Endpoints
 
 Generated documentation endpoints are public:
@@ -92,7 +116,7 @@ foreign keys from timeslot to platform.
 These are intentionally not implemented in the current phase:
 
 - Login rate limiting.
-- Failed-login lockout.
+- Timed failed-login lockout.
 - Active hold quota per customer.
 - Token revocation or logout blacklist for the redesigned account token.
 - Full membership administration policy.

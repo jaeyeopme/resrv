@@ -3,6 +3,7 @@
 | Term | Definition |
 |---|---|
 | Account | Platform identity used by owners, staff, and customers |
+| Account-scoped JWT | Token that identifies only the platform account and carries no business role or authority |
 | Business | Organization that owns booking configuration, resources, schedules, and reservations |
 | BusinessMembership | Relationship granting an account `OWNER` or `STAFF` access to a business |
 | Owner | Account with `OWNER` membership for a business |
@@ -17,6 +18,10 @@
 | Slot | Virtual bookable time range generated from settings and schedule |
 | Slot ID | Opaque encoded value binding business, resource, start time, and end time |
 | Reservation | Booking record with timestamp facts for lifecycle transitions |
+| Sign-in attempt | Security-relevant password sign-in attempt recorded without raw credentials |
+| Sign-in protection | Account-scoped state that requires password reset after repeated failed password attempts |
+| Password reset challenge | Single-use recovery challenge delivered by email and stored only by token digest |
+| Active access decision | Request-time decision based on current account, business, membership, role, or ownership state |
 | Hold | Temporary reservation before confirmation |
 | Active blocker | Confirmed reservation or unexpired hold that blocks overlapping capacity |
 | Released | Held reservation released by the customer before confirmation |
@@ -30,4 +35,3 @@
 | ADR | Architecture Decision Record explaining why a durable technical decision exists |
 | PRD | Product Requirements Document |
 | TRD | Technical Requirements and Design document |
-

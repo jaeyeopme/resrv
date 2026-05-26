@@ -25,13 +25,15 @@ reservations.
 - Generate bookable slots from schedules and settings instead of persisting slot rows.
 - Prevent active overbooking for the same business, resource, and time range.
 - Keep expired holds from blocking capacity without requiring a cleanup worker.
+- Require account recovery through password reset after repeated failed password sign-ins.
+- Stop protected actions when account, business, or membership state becomes inactive.
 - Expose generated Swagger/OpenAPI docs for review.
 - Keep architecture decisions explicit in ADRs before merging the redesign.
 
 ## Non-Goals
 
 - Payments, deposits, invoices, and refunds.
-- Email, SMS, push notifications, or reminder delivery.
+- SMS, push notifications, or reminder delivery.
 - Staff invitation and membership administration UI.
 - Full customer profile management separate from platform `Account`.
 - Distributed microservice deployment.
@@ -50,6 +52,8 @@ reservations.
 | Schedule | Weekly windows plus optional date-specific override windows |
 | Slot | Virtual bookable time range encoded as an opaque `slotId` |
 | Reservation | Timestamp-fact record for hold, confirm, release, cancel, check-in, and no-show |
+| Sign-in protection | Account-scoped state requiring password reset after repeated failed password sign-ins |
+| Password reset challenge | Single-use email recovery link that clears sign-in protection when completed |
 
 ## Core Flows
 
@@ -83,11 +87,25 @@ reservations.
 4. Business owner or staff checks in a confirmed reservation after start time.
 5. Business owner or staff marks no-show after end time.
 
+### Account Recovery
+
+1. Password sign-in failures remain non-enumerating.
+2. The fifth failed password sign-in attempt for an existing account sends a password reset email.
+3. Password sign-in for that account stays blocked until reset succeeds.
+4. Password reset consumes the emailed token, updates the password hash, and clears sign-in
+   protection.
+5. Account-level sign-in protection does not affect other accounts or public booking availability.
+
 ## Acceptance Criteria
 
 - Account login issues a JWT with account identity only.
+- Five failed password sign-in attempts for the same account require password reset through email.
+- Password reset tokens must not be stored or logged as raw secrets.
+- Protected authenticated actions must reject inactive accounts at request time.
 - Business authorization is resolved server-side from active `BusinessMembership`.
 - Timeslot booking must not trust client-supplied business role claims.
+- Business-scoped owner/staff actions must require active account, active business, and active
+  owner/staff membership.
 - Slot IDs must bind to business, resource, start time, and end time.
 - Hold creation must reject stale, malformed, wrong-business, wrong-resource, or unavailable slots.
 - Active blockers must include unexpired holds, confirmed reservations, and checked-in reservations.
@@ -95,9 +113,13 @@ reservations.
 - Customer reservation transitions must require reservation ownership.
 - Business reservation transitions must require active owner/staff membership.
 - Business reservation list/search must require active owner/staff membership.
+- Public booking discovery must remain reachable while excluding inactive businesses and inactive
+  resources from bookable results.
 
 ## Open Product Questions
 
 - Whether staff membership management belongs in the next platform milestone.
 - Whether customers need profile data beyond `Account`.
 - Whether local review should run one combined API or separate platform/timeslot runtimes.
+- Whether password reset needs a first-party web screen in this repository or an external client
+  route.

@@ -149,4 +149,5 @@ Rules:
 
 <!-- SPECKIT START -->
 When working from a Spec Kit plan, read the active plan before implementation.
+Active plan: `specs/007-account-security-hardening/plan.md`
 <!-- SPECKIT END -->

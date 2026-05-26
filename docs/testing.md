@@ -62,6 +62,15 @@ ArchUnit verifies:
 Reservation list/search tests verify business membership authorization, business-local date
 windows, optional resource/customer/state filters, and deterministic start-time ordering.
 
+Account security hardening tests verify:
+
+- Five failed password sign-in attempts create account-scoped password reset protection.
+- Password reset email delivery uses a fake adapter in API integration tests.
+- Password sign-in stays blocked until reset succeeds.
+- Inactive accounts are denied at request time even with otherwise valid JWTs.
+- Inactive businesses or memberships deny protected business actions.
+- Public generated documentation and public booking discovery remain reachable.
+
 ## Testcontainers
 
 Integration and persistence tests use PostgreSQL through Testcontainers. Test properties configure:

@@ -18,6 +18,8 @@ Primary ADRs:
 - [ADR-0012](adr/0012-reservation-persistence-and-locking.md): hold correctness.
 - [ADR-0014](adr/0014-timeslot-booking-api-boundary.md): timeslot API boundary.
 - [ADR-0015](adr/0015-replace-tenant-booking-api.md): replacement of the old tenant API.
+- [ADR-0018](adr/0018-account-security-hardening.md): password reset recovery and active-state
+  checks.
 
 ## Runtime And Build
 
@@ -51,6 +53,7 @@ Platform API owns account and business lifecycle:
 
 - Register account.
 - Login.
+- Complete password reset from an emailed reset token.
 - Create business and owner membership.
 
 Timeslot API owns booking lifecycle:
@@ -80,6 +83,16 @@ JWTs are account-scoped:
 JWTs do not carry `businessId` or business role claims. Business access is resolved through active
 membership data.
 
+Repeated failed password sign-ins are tracked as platform account security state. On the fifth
+failed password attempt for an existing account, platform creates a password reset challenge, sends a
+password reset email, and blocks password sign-in until reset succeeds. Reset tokens are stored only
+as digests.
+
+Protected platform requests pass through an active-account check after JWT authentication.
+Business-scoped owner/staff authorization requires active account, active business, and active
+membership through `BusinessAccessCheck`. Timeslot obtains those decisions through explicit
+`platform.contract` types and must not read platform tables directly.
+
 ## Persistence Design
 
 Platform schema:
@@ -87,6 +100,9 @@ Platform schema:
 - `platform.account`
 - `platform.business`
 - `platform.business_membership`
+- `platform.sign_in_attempt`
+- `platform.account_sign_in_protection`
+- `platform.password_reset_challenge`
 
 Timeslot schema:
 
@@ -168,8 +184,18 @@ RESRV_JWT_EXPIRATION
 Database configuration can come from Spring Boot Docker Compose support in local development or
 standard Spring datasource properties in other environments.
 
+Password reset email configuration uses Spring Mail plus feature properties:
+
+```text
+spring.mail.*
+resrv.security.password-reset.public-base-url
+resrv.security.password-reset.token-ttl
+```
+
 ## Open Technical Decisions
 
 - Decide whether `timeslot` should produce a bootable artifact now.
 - Decide whether platform and timeslot should run as separate local processes or a combined review
   runtime while the product remains monorepo-only.
+- Decide whether password reset link handling is owned by this repository or by a separate client.
+- Decide the production SMTP provider, sender identity, and delivery failure policy.
