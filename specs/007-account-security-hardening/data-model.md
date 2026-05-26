@@ -11,7 +11,7 @@ Existing platform identity.
 - `status`
 
 **New behavior**
-- Password sign-in is rejected when the account has an active email verification challenge.
+- Password sign-in is rejected when the account has an active password reset challenge.
 - Password reset completion replaces `hashedPassword` and clears failed-attempt blocking state.
 - `status != ACTIVE` denies protected authenticated actions at request time.
 
@@ -75,7 +75,7 @@ Single-use recovery challenge delivered through email after repeated failed pass
 - `ACTIVE` -> `REPLACED`: a new reset link is issued.
 
 **Rules**
-- The verification requirement remains until password reset succeeds, even if a link expires.
+- The password reset requirement remains until password reset succeeds, even if a link expires.
 - Expired links may be reissued.
 - Only the latest active challenge should be accepted for reset.
 
