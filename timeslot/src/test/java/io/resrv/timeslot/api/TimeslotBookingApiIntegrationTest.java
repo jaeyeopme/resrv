@@ -255,7 +255,7 @@ final class TimeslotBookingApiIntegrationTest {
                         JWT_ISSUER,
                         JWT_AUDIENCE,
                         TOKEN_NOW,
-                        TOKEN_NOW.plusSeconds(3600),
+                        validTokenExpiresAt(),
                         accountId,
                         accountId,
                         null));
@@ -269,7 +269,7 @@ final class TimeslotBookingApiIntegrationTest {
                         JWT_ISSUER,
                         "wrong-audience",
                         TOKEN_NOW,
-                        TOKEN_NOW.plusSeconds(3600),
+                        validTokenExpiresAt(),
                         accountId,
                         accountId,
                         UUID.randomUUID().toString()));
@@ -283,7 +283,7 @@ final class TimeslotBookingApiIntegrationTest {
                         "wrong-issuer",
                         JWT_AUDIENCE,
                         TOKEN_NOW,
-                        TOKEN_NOW.plusSeconds(3600),
+                        validTokenExpiresAt(),
                         accountId,
                         accountId,
                         UUID.randomUUID().toString()));
@@ -310,7 +310,7 @@ final class TimeslotBookingApiIntegrationTest {
                         JWT_ISSUER,
                         JWT_AUDIENCE,
                         TOKEN_NOW,
-                        TOKEN_NOW.plusSeconds(3600),
+                        validTokenExpiresAt(),
                         ACCOUNT_ID.toString(),
                         "not-a-uuid",
                         UUID.randomUUID().toString()));
@@ -323,7 +323,7 @@ final class TimeslotBookingApiIntegrationTest {
                         JWT_ISSUER,
                         JWT_AUDIENCE,
                         TOKEN_NOW,
-                        TOKEN_NOW.plusSeconds(3600),
+                        validTokenExpiresAt(),
                         "not-a-uuid",
                         ACCOUNT_ID.toString(),
                         UUID.randomUUID().toString()));
@@ -336,7 +336,7 @@ final class TimeslotBookingApiIntegrationTest {
                         JWT_ISSUER,
                         JWT_AUDIENCE,
                         TOKEN_NOW,
-                        TOKEN_NOW.plusSeconds(3600),
+                        validTokenExpiresAt(),
                         ACCOUNT_ID.toString(),
                         OTHER_ACCOUNT_ID.toString(),
                         UUID.randomUUID().toString()));
@@ -355,10 +355,14 @@ final class TimeslotBookingApiIntegrationTest {
                 JWT_ISSUER,
                 JWT_AUDIENCE,
                 TOKEN_NOW,
-                TOKEN_NOW.plusSeconds(86_400),
+                validTokenExpiresAt(),
                 accountId.toString(),
                 accountId.toString(),
                 UUID.randomUUID().toString());
+    }
+
+    private static Instant validTokenExpiresAt() {
+        return Instant.now().plusSeconds(86_400);
     }
 
     private static String signedToken(
