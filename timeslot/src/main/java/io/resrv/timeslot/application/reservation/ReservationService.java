@@ -35,6 +35,7 @@ import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.Objects;
 import org.springframework.stereotype.Service;
@@ -215,7 +216,7 @@ public class ReservationService {
                 .orElseThrow(() -> new ReservationNotFoundException(businessId, reservationId));
     }
 
-    private java.time.ZoneId businessZone(final BusinessId businessId) {
+    private ZoneId businessZone(final BusinessId businessId) {
         return businessLookupPort
                 .findActiveById(businessId)
                 .orElseThrow(() -> new BusinessNotAvailableException(businessId))

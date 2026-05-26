@@ -7,6 +7,8 @@ import io.resrv.timeslot.application.resource.in.CreateResourceCommand;
 import io.resrv.timeslot.application.resource.in.CreateResourceUseCase;
 import io.resrv.timeslot.application.resource.in.ListResourcesUseCase;
 import io.resrv.timeslot.application.resource.in.ResourceResult;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
@@ -61,6 +63,14 @@ class ResourceWebAdapter {
     }
 
     @GetMapping
+    @Operation(
+            summary = "List public bookable resources",
+            responses = {
+                @ApiResponse(
+                        responseCode = "200",
+                        description =
+                                "Active resources for an active business, or an empty list when not bookable")
+            })
     List<ResourceResponse> list(@PathVariable final UUID businessId) {
         return listResourcesUseCase.listActive(BusinessId.of(businessId)).stream()
                 .map(ResourceResponse::from)

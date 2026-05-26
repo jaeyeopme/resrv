@@ -9,9 +9,7 @@ import static org.mockito.Mockito.when;
 import io.resrv.shared.kernel.BusinessId;
 import io.resrv.shared.kernel.ResourceId;
 import io.resrv.shared.kernel.Timezone;
-import io.resrv.timeslot.application.business.BusinessNotAvailableException;
 import io.resrv.timeslot.application.business.out.BusinessLookupPort;
-import io.resrv.timeslot.application.resource.ResourceNotAvailableException;
 import io.resrv.timeslot.application.resource.out.ResourceQueryPort;
 import io.resrv.timeslot.application.schedule.out.ResourceScheduleQueryPort;
 import io.resrv.timeslot.application.settings.out.BusinessBookingSettingsQueryPort;
@@ -139,18 +137,17 @@ final class VirtualSlotServiceTest {
     }
 
     @Test
-    void inactiveBusinessFailsBeforeOtherPorts() {
+    void inactiveBusinessReturnsNoSlotsBeforeOtherPorts() {
         when(businessLookupPort.findActiveById(BUSINESS_ID)).thenReturn(Optional.empty());
 
-        assertThrows(
-                BusinessNotAvailableException.class,
-                () -> service.listSlots(new ListSlotsQuery(BUSINESS_ID, RESOURCE_ID, DATE)));
+        final var slots = service.listSlots(new ListSlotsQuery(BUSINESS_ID, RESOURCE_ID, DATE));
 
+        assertEquals(List.of(), slots);
         verifyNoInteractions(settingsQueryPort, resourceQueryPort, scheduleQueryPort);
     }
 
     @Test
-    void inactiveResourceIsNotAvailable() {
+    void inactiveResourceReturnsNoSlots() {
         givenBusinessSettingsAndResource(
                 Resource.reconstitute(
                         RESOURCE_ID,
@@ -163,10 +160,9 @@ final class VirtualSlotServiceTest {
                         NOW,
                         NOW));
 
-        assertThrows(
-                ResourceNotAvailableException.class,
-                () -> service.listSlots(new ListSlotsQuery(BUSINESS_ID, RESOURCE_ID, DATE)));
+        final var slots = service.listSlots(new ListSlotsQuery(BUSINESS_ID, RESOURCE_ID, DATE));
 
+        assertEquals(List.of(), slots);
         verifyNoInteractions(scheduleQueryPort);
     }
 

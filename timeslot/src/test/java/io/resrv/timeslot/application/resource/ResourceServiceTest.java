@@ -11,6 +11,9 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import io.resrv.shared.kernel.BusinessId;
+import io.resrv.shared.kernel.ResourceId;
+import io.resrv.shared.kernel.Timezone;
+import io.resrv.timeslot.application.business.out.BusinessLookupPort;
 import io.resrv.timeslot.application.resource.in.CreateResourceCommand;
 import io.resrv.timeslot.application.resource.out.ResourceCommandPort;
 import io.resrv.timeslot.application.resource.out.ResourceQueryPort;
@@ -29,6 +32,7 @@ import io.resrv.timeslot.domain.settings.SlotDuration;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
+import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -41,6 +45,7 @@ class ResourceServiceTest {
     private static final BusinessId BUSINESS_ID = BusinessId.create();
 
     private BusinessBookingSettingsQueryPort settingsQueryPort;
+    private BusinessLookupPort businessLookupPort;
     private ResourceCommandPort commandPort;
     private ResourceQueryPort queryPort;
     private ResourceService service;
@@ -48,11 +53,13 @@ class ResourceServiceTest {
     @BeforeEach
     void setUp() {
         settingsQueryPort = mock(BusinessBookingSettingsQueryPort.class);
+        businessLookupPort = mock(BusinessLookupPort.class);
         commandPort = mock(ResourceCommandPort.class);
         queryPort = mock(ResourceQueryPort.class);
         service =
                 new ResourceService(
                         settingsQueryPort,
+                        businessLookupPort,
                         commandPort,
                         queryPort,
                         Clock.fixed(NOW, ZoneOffset.UTC));
@@ -191,6 +198,34 @@ class ResourceServiceTest {
     }
 
     @Test
+    void listActiveReturnsEmptyWhenBusinessIsInactive() {
+        when(businessLookupPort.findActiveById(BUSINESS_ID)).thenReturn(Optional.empty());
+
+        assertEquals(List.of(), service.listActive(BUSINESS_ID));
+
+        verifyNoInteractions(queryPort);
+    }
+
+    @Test
+    void listActiveReturnsActiveResourcesWhenBusinessIsActive() {
+        when(businessLookupPort.findActiveById(BUSINESS_ID))
+                .thenReturn(
+                        Optional.of(
+                                new BusinessLookupPort.BusinessView(
+                                        BUSINESS_ID,
+                                        "Salon A",
+                                        "salon-a",
+                                        Timezone.of("Asia/Seoul"))));
+        when(queryPort.findActiveByBusinessId(BUSINESS_ID))
+                .thenReturn(List.of(resource(ResourceBookingOverrides.none())));
+
+        final var resources = service.listActive(BUSINESS_ID);
+
+        assertEquals(1, resources.size());
+        assertEquals("Room A", resources.getFirst().name());
+    }
+
+    @Test
     void invalidNameFailsBeforePorts() {
         final var exception =
                 assertThrows(
@@ -311,7 +346,20 @@ class ResourceServiceTest {
                 NOW);
     }
 
+    private static Resource resource(final ResourceBookingOverrides overrides) {
+        return Resource.reconstitute(
+                ResourceId.create(),
+                BUSINESS_ID,
+                new ResourceName("Room A"),
+                new ResourceSlug("room-a"),
+                null,
+                ResourceStatus.ACTIVE,
+                overrides,
+                NOW,
+                NOW);
+    }
+
     private void verifyNoPorts() {
-        verifyNoInteractions(settingsQueryPort, queryPort, commandPort);
+        verifyNoInteractions(settingsQueryPort, businessLookupPort, queryPort, commandPort);
     }
 }

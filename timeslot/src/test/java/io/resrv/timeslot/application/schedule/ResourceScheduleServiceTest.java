@@ -21,6 +21,7 @@ import io.resrv.timeslot.domain.resource.Resource;
 import io.resrv.timeslot.domain.resource.ResourceBookingOverrides;
 import io.resrv.timeslot.domain.resource.ResourceName;
 import io.resrv.timeslot.domain.resource.ResourceSlug;
+import io.resrv.timeslot.domain.resource.ResourceStatus;
 import io.resrv.timeslot.domain.schedule.DateResourceScheduleOverride;
 import io.resrv.timeslot.domain.schedule.ScheduleWindow;
 import io.resrv.timeslot.domain.schedule.WeeklyResourceSchedule;
@@ -237,7 +238,7 @@ class ResourceScheduleServiceTest {
                 new ResourceName("Room A"),
                 new ResourceSlug("room-a"),
                 null,
-                io.resrv.timeslot.domain.resource.ResourceStatus.ACTIVE,
+                ResourceStatus.ACTIVE,
                 ResourceBookingOverrides.none(),
                 CREATED_AT,
                 CREATED_AT);
