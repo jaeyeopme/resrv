@@ -13,6 +13,11 @@ main correctness goal is to answer:
 
 ## Current State
 
+`v0.1.0-review-baseline` marks a review-ready modular monolith API baseline. It
+is not production-complete: payments, staff administration, password reset UI,
+separate service runtime, deployment infrastructure, and notification workflows
+are intentionally out of scope.
+
 The active redesign uses three Gradle modules:
 
 | Module | Role |
