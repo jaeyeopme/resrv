@@ -1,5 +1,7 @@
 # resrv
 
+[![CI](https://github.com/jaeyeopme/resrv/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/jaeyeopme/resrv/actions/workflows/ci.yml)
+
 `resrv` is a Java 25 + Spring Boot 4 backend for a multi-tenant B2B reservation
 platform.
 
@@ -46,6 +48,8 @@ Supporting docs:
 - [Testing](docs/testing.md)
 - [Operations](docs/operations.md)
 - [Glossary](docs/glossary.md)
+
+Future feature candidates are captured as Spec Kit specs under `specs/`.
 
 ## Tech Stack
 
