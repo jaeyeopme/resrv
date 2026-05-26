@@ -57,9 +57,20 @@ Platform uses:
 - `Account` for identity.
 - `Business` for organization ownership.
 - `BusinessMembership` for `OWNER` and `STAFF` access.
+- Sign-in protection and password reset challenges for account recovery.
 
 Account-scoped JWTs identify the caller. Business access is resolved server-side from membership
 data.
+
+## Account Security
+
+Platform owns repeated password failure tracking, password reset challenge persistence, reset token
+digesting, password hash update, and SMTP-compatible reset email delivery. Password reset delivery is
+an outbound adapter behind an application port.
+
+Active-state checks stay server-side. Platform protected requests reject inactive accounts after JWT
+authentication. Business-scoped owner/staff decisions require active account, active business, and
+active membership. Timeslot consumes those decisions only through `platform.contract` types.
 
 ## Timeslot Context
 
@@ -74,6 +85,9 @@ Timeslot uses:
 
 Slots are not persisted. `SlotGenerator` creates them from business timezone, effective booking
 policy, and schedule windows.
+
+Public booking discovery remains reachable for anonymous callers, but inactive businesses or
+resources produce no bookable resource or slot results.
 
 ## Reservation Correctness
 
