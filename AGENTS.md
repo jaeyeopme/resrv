@@ -141,6 +141,21 @@ Rules:
 - Do not use `Confidence:` or `Scope-risk:` in normal commit messages.
 - Never include file lists, AI attribution, or work-log narration in commit messages.
 
+## Pull Request Descriptions
+
+Use `.github/pull_request_template.md` for PR bodies.
+
+PR descriptions should explain reviewer-relevant context:
+
+- `Summary`: what changed at the product or system level.
+- `Motivation`: why the change exists, including ADR or Spec Kit references when useful.
+- `Changes`: the concrete behavioral, schema, config, or documentation changes.
+- `Verification`: commands run and meaningful manual probes.
+- `Risk And Follow-Up`: migration risk, compatibility concerns, known gaps, or next branches.
+
+Keep PR bodies detailed enough for client review, but do not turn them into a chronological work log.
+Do not include AI attribution, generated-by footers, model names, or AI co-author trailers.
+
 ## Durable Learnings
 
 > One-liner rules added after PR corrections. Format: `- <rule>`
