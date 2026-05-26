@@ -36,5 +36,5 @@ or resources produce no bookable public discovery results.
 - Login failure security facts are committed even when authentication fails.
 - Email delivery is replaceable: production uses SMTP-compatible Spring Mail, tests use a fake
   adapter.
-- Caller/IP rate limiting, timed account lockout, and token revocation remain separate deferred
-  hardening work.
+- Password failure hardening uses reset-required recovery as the account-level control.
+- Token revocation remains separate deferred hardening work.

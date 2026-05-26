@@ -38,7 +38,6 @@ reservations.
 - Full customer profile management separate from platform `Account`.
 - Distributed microservice deployment.
 - External calendar sync.
-- Login rate limiting and failed-login lockout in the current phase.
 
 ## Product Concepts
 

@@ -52,7 +52,7 @@ Security behavior:
 - Raw passwords and raw reset tokens are never stored or logged.
 - Account-scoped sign-in protection does not change business, resource, slot, or reservation
   availability for other accounts.
-- Caller/IP rate limiting and timed account lockout remain deferred hardening items.
+- Password failure hardening uses reset-required recovery as the account-level control.
 
 Configuration:
 
@@ -76,6 +76,7 @@ Platform public endpoints:
 
 - `POST /api/accounts`
 - `POST /api/auth/login`
+- `POST /api/auth/password-reset`
 
 Timeslot public read endpoints:
 
@@ -115,8 +116,6 @@ foreign keys from timeslot to platform.
 
 These are intentionally not implemented in the current phase:
 
-- Login rate limiting.
-- Timed failed-login lockout.
 - Active hold quota per customer.
 - Token revocation or logout blacklist for the redesigned account token.
 - Full membership administration policy.

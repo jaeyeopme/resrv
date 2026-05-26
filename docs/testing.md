@@ -85,5 +85,4 @@ JWT tests use a fixed local test secret and test issuer/audience values.
 ## Known Gaps
 
 - `timeslot` local boot packaging is pending.
-- Login rate limiting and failed-login lockout are deferred.
 - Token revocation for redesigned account JWTs is deferred.

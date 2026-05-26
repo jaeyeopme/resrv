@@ -107,16 +107,6 @@ When changing API behavior:
 - Timeslot must not read platform tables directly. Use explicit `platform.contract` types from the
   timeslot outbound platform adapter.
 
-## Deferred Phase 2 Work
-
-Deferred by design. Do not add code for these unless explicitly asked:
-
-| ID | Feature |
-|---|---|
-| T100 | Rate limiting on login |
-| T101 | Login lock (`failed_attempts`, `locked_until`) |
-| T102 | Request-time active-state validation filter beyond current login/membership checks |
-
 ## Commit Messages
 
 Match the repository's existing Conventional Commit subject style before committing.
