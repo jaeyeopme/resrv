@@ -40,9 +40,9 @@
 - [ ] T012 [P] Add reset token generator/hasher ports in `platform/src/main/java/io/resrv/platform/application/security/out/PasswordResetTokenGeneratorPort.java` and `platform/src/main/java/io/resrv/platform/application/security/out/PasswordResetTokenHashingPort.java`
 - [ ] T013 [P] Add account active lookup contract in `platform/src/main/java/io/resrv/platform/contract/account/ActiveAccountCheck.java`
 - [ ] T014 Update `platform/src/main/java/io/resrv/platform/contract/PlatformLookupContractConfiguration.java` to export active account checking
-- [ ] T015 Add JPA entities and repositories for auth security state in `platform/src/main/java/io/resrv/platform/adapter/out/persistence/account/SignInAttemptJpaEntity.java`, `platform/src/main/java/io/resrv/platform/adapter/out/persistence/account/SignInAttemptJpaRepository.java`, `platform/src/main/java/io/resrv/platform/adapter/out/persistence/account/AccountSignInProtectionJpaEntity.java`, `platform/src/main/java/io/resrv/platform/adapter/out/persistence/account/AccountSignInProtectionJpaRepository.java`, `platform/src/main/java/io/resrv/platform/adapter/out/persistence/account/PasswordResetChallengeJpaEntity.java`, and `platform/src/main/java/io/resrv/platform/adapter/out/persistence/account/PasswordResetChallengeJpaRepository.java`
-- [ ] T016 Add persistence adapter for sign-in protection and reset challenges in `platform/src/main/java/io/resrv/platform/adapter/out/persistence/account/AccountSecurityPersistenceAdapter.java`
-- [ ] T017 Add persistence tests for auth security schema and adapters in `platform/src/test/java/io/resrv/platform/adapter/out/persistence/account/AccountSecurityPersistenceAdapterTest.java`
+- [ ] T015 Add failing persistence tests for auth security schema and adapters in `platform/src/test/java/io/resrv/platform/adapter/out/persistence/account/AccountSecurityPersistenceAdapterTest.java`
+- [ ] T016 Add JPA entities and repositories for auth security state in `platform/src/main/java/io/resrv/platform/adapter/out/persistence/account/SignInAttemptJpaEntity.java`, `platform/src/main/java/io/resrv/platform/adapter/out/persistence/account/SignInAttemptJpaRepository.java`, `platform/src/main/java/io/resrv/platform/adapter/out/persistence/account/AccountSignInProtectionJpaEntity.java`, `platform/src/main/java/io/resrv/platform/adapter/out/persistence/account/AccountSignInProtectionJpaRepository.java`, `platform/src/main/java/io/resrv/platform/adapter/out/persistence/account/PasswordResetChallengeJpaEntity.java`, and `platform/src/main/java/io/resrv/platform/adapter/out/persistence/account/PasswordResetChallengeJpaRepository.java`
+- [ ] T017 Add persistence adapter for sign-in protection and reset challenges in `platform/src/main/java/io/resrv/platform/adapter/out/persistence/account/AccountSecurityPersistenceAdapter.java`
 - [ ] T018 Add reusable auth security exceptions in `platform/src/main/java/io/resrv/platform/application/auth/PasswordResetRequiredException.java` and `platform/src/main/java/io/resrv/platform/application/auth/PasswordResetTokenInvalidException.java`
 - [ ] T019 Update platform problem responses for auth security exceptions in `platform/src/main/java/io/resrv/platform/adapter/in/web/error/PlatformExceptionHandler.java`
 
@@ -50,7 +50,7 @@
 
 ---
 
-## Phase 3: User Story 1 - Slow Repeated Failed Sign-In Attempts (Priority: P1) MVP
+## Phase 3: User Story 1 - Require Recovery After Repeated Failed Sign-In Attempts (Priority: P1) MVP
 
 **Goal**: Five failed password attempts for an existing account trigger a reset email without revealing account existence.
 
@@ -75,7 +75,7 @@
 
 ---
 
-## Phase 4: User Story 2 - Require Email Verification After Suspicious Failures (Priority: P2)
+## Phase 4: User Story 2 - Require Password Reset After Suspicious Failures (Priority: P2)
 
 **Goal**: Accounts requiring password reset cannot sign in with any password until password reset succeeds; unrelated accounts remain unaffected.
 
@@ -109,17 +109,17 @@
 
 ### Tests for User Story 3
 
-- [ ] T039 [P] [US3] Add active account platform API integration tests in `platform/src/test/java/io/resrv/platform/api/PlatformApiIntegrationTest.java`
+- [ ] T039 [P] [US3] Add active account platform API integration tests, including non-sensitive active-account denial facts, in `platform/src/test/java/io/resrv/platform/api/PlatformApiIntegrationTest.java`
 - [ ] T040 [P] [US3] Add active account contract tests in `platform/src/test/java/io/resrv/platform/application/account/ActiveAccountCheckServiceTest.java`
-- [ ] T041 [P] [US3] Add active business/member timeslot integration tests in `timeslot/src/test/java/io/resrv/timeslot/api/TimeslotBookingApiIntegrationTest.java`
+- [ ] T041 [P] [US3] Add active business/member timeslot integration tests, including non-sensitive active business/member denial facts, in `timeslot/src/test/java/io/resrv/timeslot/api/TimeslotBookingApiIntegrationTest.java`
 - [ ] T042 [P] [US3] Add public discovery inactive business/resource tests in `timeslot/src/test/java/io/resrv/timeslot/application/slot/VirtualSlotServiceTest.java`
 
 ### Implementation for User Story 3
 
 - [ ] T043 [P] [US3] Implement active account check service in `platform/src/main/java/io/resrv/platform/application/account/ActiveAccountCheckService.java`
-- [ ] T044 [US3] Update `platform/src/main/java/io/resrv/platform/api/security/PlatformSecurityConfig.java` to enforce active account checks on protected authenticated requests
-- [ ] T045 [US3] Update `platform/src/main/java/io/resrv/platform/application/membership/CheckBusinessAccessService.java` to require active account, active business, and active owner/staff membership
-- [ ] T046 [US3] Document boolean denial semantics for inactive account, inactive business, and inactive membership in `platform/src/main/java/io/resrv/platform/contract/membership/BusinessAccessCheck.java`
+- [ ] T044 [US3] Update `platform/src/main/java/io/resrv/platform/api/security/PlatformSecurityConfig.java` to enforce active account checks on protected authenticated requests and record non-sensitive active-account denial facts
+- [ ] T045 [US3] Update `platform/src/main/java/io/resrv/platform/application/membership/CheckBusinessAccessService.java` to require active account, active business, and active owner/staff membership and record non-sensitive active business/member denial facts
+- [ ] T046 [US3] Document boolean denial and denial-fact semantics for inactive account, inactive business, and inactive membership in `platform/src/main/java/io/resrv/platform/contract/membership/BusinessAccessCheck.java`
 - [ ] T047 [US3] Update `timeslot/src/main/java/io/resrv/timeslot/adapter/out/platform/PlatformBusinessLookupAdapter.java` to preserve contract-only platform access
 - [ ] T048 [US3] Update `timeslot/src/main/java/io/resrv/timeslot/application/resource/ResourceService.java` to exclude resources when the business is inactive
 - [ ] T049 [US3] Update `timeslot/src/main/java/io/resrv/timeslot/application/slot/VirtualSlotService.java` so inactive businesses/resources return no bookable slots through public discovery
@@ -137,7 +137,7 @@
 - [ ] T052 [P] Update known gaps and focused checks in `docs/testing.md`
 - [ ] T053 [P] Update SMTP and password reset environment notes in `docs/operations.md`
 - [ ] T054 [P] Add or update ADR if password reset/email delivery introduces a durable architecture decision in `docs/adr/`
-- [ ] T055 Verify generated OpenAPI behavior manually or through integration assertions in `platform/src/test/java/io/resrv/platform/api/PlatformApiIntegrationTest.java`
+- [ ] T055 Verify generated OpenAPI behavior and public documentation endpoints (`/v3/api-docs`, `/v3/api-docs.yaml`, `/swagger-ui.html`) manually or through integration assertions in `platform/src/test/java/io/resrv/platform/api/PlatformApiIntegrationTest.java`
 - [ ] T056 Run quickstart acceptance checks from `specs/007-account-security-hardening/quickstart.md`
 - [ ] T057 Run `./gradlew spotlessApply` from `/Users/jaeyeop/Workspace/resrv`
 - [ ] T058 Run `./gradlew rewriteDryRun` from `/Users/jaeyeop/Workspace/resrv`
@@ -165,7 +165,7 @@
 ### Parallel Opportunities
 
 - T003 and T004 can run in parallel after T001/T002 decisions are known.
-- T006-T013 can run in parallel after T005 schema shape is agreed.
+- T006-T013 can run in parallel after T005 schema shape is agreed; T014 follows T013.
 - T020-T021 can run in parallel before US1 implementation; T022 shares `PlatformApiIntegrationTest.java` and should follow T021.
 - T023-T025 can run in parallel before T026.
 - T029-T031 can run in parallel before US2 implementation.

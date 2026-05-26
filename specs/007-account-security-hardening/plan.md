@@ -19,7 +19,7 @@ inactive businesses/resources from bookable results.
 **Testing**: JUnit 5, Spring Boot tests, Testcontainers PostgreSQL, Spring Security test, ArchUnit, JaCoCo
 **Target Platform**: Server-side JVM API
 **Project Type**: Multi-module web service API
-**Performance Goals**: Sign-in protection checks complete within the normal sign-in request path; public booking discovery must not add account-security lookups for anonymous callers
+**Performance Goals**: Sign-in protection uses bounded account-scoped lookups in the existing sign-in request path; public booking discovery must not add account-security lookups for anonymous callers
 **Constraints**: Preserve account-scoped tokens with no business role claims; keep timeslot from reading platform tables directly; do not add a handwritten endpoint catalog
 **Scale/Scope**: One production-readiness feature spanning platform auth/security and timeslot public discovery behavior
 

@@ -17,9 +17,9 @@
 
 ## User Scenarios & Testing *(mandatory)*
 
-### User Story 1 - Slow Repeated Failed Sign-In Attempts (Priority: P1)
+### User Story 1 - Require Recovery After Repeated Failed Sign-In Attempts (Priority: P1)
 
-As a platform operator, I need repeated failed sign-in attempts to be slowed and eventually blocked so that password guessing does not remain cheap or invisible.
+As a platform operator, I need repeated failed sign-in attempts to require password reset through email so that password guessing does not remain cheap or invisible.
 
 **Why this priority**: Sign-in is the public write surface with the highest abuse risk. Hardening it improves production readiness without changing the product model.
 
@@ -69,7 +69,7 @@ As a business owner or operator, I need protected actions to recheck active acco
 - Failed attempts for unknown accounts must not reveal whether the account exists.
 - A successful sign-in after temporary failures must clear only the appropriate failed-attempt state for that account and caller context.
 - Password reset challenge must not permanently strand legitimate users; password reset links may expire and be reissued while the reset requirement remains until reset succeeds.
-- Excessive attempts must receive a stable, non-sensitive retry-later outcome instead of stack traces or inconsistent errors.
+- Excessive attempts must receive a stable, non-sensitive recovery-required outcome instead of stack traces or inconsistent errors.
 - Active-state rechecks must not block generated documentation or public read-only booking discovery endpoints.
 - Public read-only booking discovery endpoints must remain reachable, but inactive businesses or resources must not appear as bookable results.
 - Account-level sign-in protection must not change business, resource, slot, or reservation availability for other accounts.
@@ -86,7 +86,7 @@ As a business owner or operator, I need protected actions to recheck active acco
 - **FR-005**: System MUST keep the password reset requirement active until password reset succeeds.
 - **FR-006**: System MUST reject password sign-in for an account that requires password reset until password reset succeeds.
 - **FR-007**: System MUST clear failed-attempt blocking state after successful sign-in when password reset is not required, or after required password reset succeeds.
-- **FR-008**: System MUST make retry-later outcomes understandable to legitimate clients without exposing sensitive security details.
+- **FR-008**: System MUST make recovery-required outcomes understandable to legitimate clients without exposing sensitive security details.
 - **FR-009**: System MUST evaluate active account status before allowing protected authenticated actions.
 - **FR-010**: System MUST evaluate active business status before allowing protected business-scoped write or operations actions.
 - **FR-011**: System MUST evaluate active business membership and sufficient role access before allowing protected owner/staff business actions.
@@ -123,3 +123,4 @@ As a business owner or operator, I need protected actions to recheck active acco
 - Individual password reset links may expire and be reissued, but the password reset requirement itself remains until password reset succeeds.
 - Password reset email delivery is included in this feature; a full administration UI remains separate.
 - Public read-only booking discovery remains intentionally public unless a later product decision changes that policy.
+- Caller/IP rate limiting and timed account lockout remain deferred; this feature handles repeated failures through account-scoped password reset recovery.
