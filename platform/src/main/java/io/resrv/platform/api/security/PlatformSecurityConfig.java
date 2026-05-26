@@ -5,6 +5,7 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.Size;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.util.List;
 import java.util.UUID;
 import javax.crypto.spec.SecretKeySpec;
@@ -29,11 +30,15 @@ import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.oauth2.jwt.JwtIssuerValidator;
 import org.springframework.security.oauth2.jwt.JwtTimestampValidator;
 import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
+import org.springframework.security.oauth2.server.resource.web.authentication.BearerTokenAuthenticationFilter;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.validation.annotation.Validated;
 
 @Configuration(proxyBeanMethods = false)
-@EnableConfigurationProperties(PlatformSecurityConfig.JwtProperties.class)
+@EnableConfigurationProperties({
+    PlatformSecurityConfig.JwtProperties.class,
+    PlatformSecurityConfig.PasswordResetProperties.class
+})
 class PlatformSecurityConfig {
 
     @Bean
@@ -54,17 +59,24 @@ class PlatformSecurityConfig {
     @Bean
     @Order(1)
     SecurityFilterChain platformApiSecurityFilterChain(
-            final HttpSecurity http, final JwtDecoder jwtDecoder) throws Exception {
+            final HttpSecurity http,
+            final JwtDecoder jwtDecoder,
+            final ActiveAccountFilter activeAccountFilter)
+            throws Exception {
         return http.securityMatcher("/api/**")
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(
                         auth ->
                                 auth.requestMatchers(
-                                                HttpMethod.POST, "/api/accounts", "/api/auth/login")
+                                                HttpMethod.POST,
+                                                "/api/accounts",
+                                                "/api/auth/login",
+                                                "/api/auth/password-reset")
                                         .permitAll()
                                         .anyRequest()
                                         .authenticated())
                 .oauth2ResourceServer(oauth2 -> oauth2.jwt(jwt -> jwt.decoder(jwtDecoder)))
+                .addFilterAfter(activeAccountFilter, BearerTokenAuthenticationFilter.class)
                 .build();
     }
 
@@ -161,6 +173,22 @@ class PlatformSecurityConfig {
         @AssertTrue(message = "JWT secret key must be at least 32 bytes")
         public boolean isSecretKeyAtLeast32Bytes() {
             return secretKey != null && secretKey.getBytes(StandardCharsets.UTF_8).length >= 32;
+        }
+    }
+
+    @ConfigurationProperties(prefix = "resrv.security.password-reset")
+    record PasswordResetProperties(String publicBaseUrl, Duration tokenTtl) {
+
+        private static final String DEFAULT_PUBLIC_BASE_URL = "http://localhost:8080";
+        private static final Duration DEFAULT_TOKEN_TTL = Duration.ofMinutes(30);
+
+        PasswordResetProperties {
+            if (publicBaseUrl == null || publicBaseUrl.isBlank()) {
+                publicBaseUrl = DEFAULT_PUBLIC_BASE_URL;
+            }
+            if (tokenTtl == null || tokenTtl.isNegative() || tokenTtl.isZero()) {
+                tokenTtl = DEFAULT_TOKEN_TTL;
+            }
         }
     }
 }

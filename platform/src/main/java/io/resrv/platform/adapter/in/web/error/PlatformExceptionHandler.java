@@ -1,6 +1,8 @@
 package io.resrv.platform.adapter.in.web.error;
 
 import io.resrv.platform.application.auth.AuthenticationFailedException;
+import io.resrv.platform.application.auth.PasswordResetRequiredException;
+import io.resrv.platform.application.auth.PasswordResetTokenInvalidException;
 import io.resrv.platform.domain.account.AccountEmailAlreadyExistsException;
 import io.resrv.platform.domain.business.BusinessSlugAlreadyExistsException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -49,6 +51,18 @@ class PlatformExceptionHandler {
     ProblemDetail handleAuthenticationFailed(
             final AuthenticationFailedException exception, final HttpServletRequest request) {
         return problem(HttpStatus.UNAUTHORIZED, exception.getMessage(), request);
+    }
+
+    @ExceptionHandler(PasswordResetRequiredException.class)
+    ProblemDetail handlePasswordResetRequired(
+            final PasswordResetRequiredException exception, final HttpServletRequest request) {
+        return problem(HttpStatus.UNAUTHORIZED, exception.getMessage(), request);
+    }
+
+    @ExceptionHandler(PasswordResetTokenInvalidException.class)
+    ProblemDetail handlePasswordResetTokenInvalid(
+            final PasswordResetTokenInvalidException exception, final HttpServletRequest request) {
+        return problem(HttpStatus.BAD_REQUEST, exception.getMessage(), request);
     }
 
     @ExceptionHandler(IllegalArgumentException.class)
