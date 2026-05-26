@@ -77,7 +77,7 @@
 
 ## Phase 4: User Story 2 - Require Email Verification After Suspicious Failures (Priority: P2)
 
-**Goal**: Accounts requiring verification cannot sign in with any password until password reset succeeds; unrelated accounts remain unaffected.
+**Goal**: Accounts requiring password reset cannot sign in with any password until password reset succeeds; unrelated accounts remain unaffected.
 
 **Independent Test**: Trigger 5 failed attempts for one account, verify sign-in remains blocked, reset password through the email link, and verify sign-in succeeds only with the new password.
 

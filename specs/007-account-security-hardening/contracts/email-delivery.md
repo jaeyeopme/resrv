@@ -32,7 +32,7 @@ adapter that records deliveries without contacting an external provider.
 - Email is sent when the fifth failed password attempt occurs.
 - The reset link opens the password reset flow.
 - The account remains unable to sign in with any password until reset succeeds.
-- If the link expires, a replacement link may be issued while the verification requirement remains.
+- If the link expires, a replacement link may be issued while the password reset requirement remains.
 
 ## Security Requirements
 

@@ -3,7 +3,7 @@
 ## Decision: Model repeated password failures as account-scoped sign-in protection
 
 **Rationale**: The clarified requirement is account-scoped: 5 failed password sign-in attempts
-require email verification and password reset. Storing this in platform keeps account security
+require password reset through email. Storing this in platform keeps account security
 separate from business/resource/slot availability and avoids accidental operational outages when
 one owner account is protected.
 

@@ -11,7 +11,7 @@ New failure behavior:
 - Invalid or unknown credentials remain non-enumerating.
 - The fifth failed password sign-in attempt for an existing account triggers email delivery to the
   registered email address.
-- Accounts requiring email verification cannot sign in with any password until password reset
+- Accounts requiring password reset cannot sign in with any password until password reset
   succeeds.
 - Responses must not reveal whether the submitted email belongs to an account.
 

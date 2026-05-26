@@ -11,7 +11,7 @@
 
 - Q: What should happen after repeated failed password sign-in attempts reach the account-level protection threshold? → A: Require a password reset challenge after the threshold, including email delivery in this feature.
 - Q: How many failed password sign-in attempts should trigger the password reset challenge, and should the requirement expire automatically? → A: Require password reset after 5 failed attempts; the requirement remains until password reset succeeds.
-- Q: When should verification email be sent after repeated failures, and what should the link do? → A: Send the email immediately after the fifth failed attempt; the link opens password reset, and sign-in stays blocked until reset succeeds.
+- Q: When should the password reset email be sent after repeated failures, and what should the link do? → A: Send the email immediately after the fifth failed attempt; the link opens password reset, and sign-in stays blocked until reset succeeds.
 - Q: Should one owner's sign-in protection state affect public booking availability or other members' access? → A: No; sign-in protection is account-scoped and must not change business, resource, slot, reservation availability, or other members' access.
 - Q: How should public discovery behave for inactive businesses or resources? → A: Public endpoints remain reachable, but inactive businesses or resources are not exposed as bookable results.
 
@@ -28,7 +28,7 @@ As a platform operator, I need repeated failed sign-in attempts to be slowed and
 **Acceptance Scenarios**:
 
 1. **Given** an existing account with no recent failed sign-in attempts, **When** the user enters an incorrect password, **Then** the attempt is rejected without revealing whether the account exists.
-2. **Given** an account has 5 failed password sign-in attempts, **When** the fifth failure occurs, **Then** the system immediately sends a verification email to the registered email address.
+2. **Given** an account has 5 failed password sign-in attempts, **When** the fifth failure occurs, **Then** the system immediately sends a password reset email to the registered email address.
 3. **Given** the user signs in successfully before a password reset challenge is required, **When** the same account signs in again with correct credentials, **Then** the account can proceed normally.
 
 ---
@@ -44,7 +44,7 @@ As an account owner, I need password reset through my registered email after sus
 **Acceptance Scenarios**:
 
 1. **Given** an account reaches 5 failed password sign-in attempts, **When** the account tries to sign in with the correct password before completing password reset from the email link, **Then** the sign-in is rejected and the user is guided to reset the password through email.
-2. **Given** an account opens the verification email link, **When** the account owner completes password reset, **Then** sign-in succeeds with the new password and failure counters no longer block access.
+2. **Given** an account opens the password reset email link, **When** the account owner completes password reset, **Then** sign-in succeeds with the new password and failure counters no longer block access.
 3. **Given** an account requires password reset, **When** another account signs in from the same caller context, **Then** that unrelated account is evaluated independently.
 4. **Given** an owner account requires password reset, **When** customers or other active members use booking flows for the same business, **Then** their access and booking availability are evaluated independently from the protected owner account.
 
@@ -81,8 +81,8 @@ As a business owner or operator, I need protected actions to recheck active acco
 
 - **FR-001**: System MUST require password reset through email after 5 failed password sign-in attempts for the same account.
 - **FR-002**: System MUST continue using non-enumerating sign-in responses so failed attempts do not disclose whether an account exists.
-- **FR-003**: System MUST immediately send a verification email to the account's registered email address when the fifth failed password sign-in attempt occurs.
-- **FR-004**: System MUST direct the verification email link to a password reset flow.
+- **FR-003**: System MUST immediately send a password reset email to the account's registered email address when the fifth failed password sign-in attempt occurs.
+- **FR-004**: System MUST direct the password reset email link to a password reset flow.
 - **FR-005**: System MUST keep the password reset requirement active until password reset succeeds.
 - **FR-006**: System MUST reject password sign-in for an account that requires password reset until password reset succeeds.
 - **FR-007**: System MUST clear failed-attempt blocking state after successful sign-in when password reset is not required, or after required password reset succeeds.
