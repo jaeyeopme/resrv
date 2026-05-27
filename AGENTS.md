@@ -97,6 +97,13 @@ When changing API behavior:
 - Mention only high-level API groups in narrative docs unless a concrete endpoint example is needed
   to explain a decision.
 
+## Authorization Responses
+
+- IDOR-sensitive object lookups must not reveal whether a probed object id exists when the caller
+  lacks authority to access it.
+- For those lookups, missing objects and existing objects outside caller authority must return the
+  same not-found style public response; keep any cause distinction internal and non-sensitive.
+
 ## Persistence Access
 
 - Production code defaults to Spring Data JPA for owned persistence.
@@ -154,5 +161,5 @@ Do not include AI attribution, generated-by footers, model names, or AI co-autho
 
 <!-- SPECKIT START -->
 When working from a Spec Kit plan, read the active plan before implementation.
-Active plan: `specs/010-business-resource-lifecycle-management/plan.md`
+Active plan: `specs/011-customer-reservation-history/plan.md`
 <!-- SPECKIT END -->
