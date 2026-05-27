@@ -154,5 +154,5 @@ Do not include AI attribution, generated-by footers, model names, or AI co-autho
 
 <!-- SPECKIT START -->
 When working from a Spec Kit plan, read the active plan before implementation.
-Active plan: `specs/007-account-security-hardening/plan.md`
+Active plan: `specs/010-business-resource-lifecycle-management/plan.md`
 <!-- SPECKIT END -->
