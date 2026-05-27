@@ -62,6 +62,12 @@ ArchUnit verifies:
 Reservation list/search tests verify business membership authorization, business-local date
 windows, optional resource/customer/state filters, and deterministic start-time ordering.
 
+Business resource lifecycle tests verify full replacement semantics for booking settings, resource
+details, booking overrides, weekly schedules, and date overrides. They also cover explicit
+activate/deactivate actions, public discovery exclusion for inactive resources, future-only policy
+effects for holds and cancellation cutoffs, and reservation fact preservation after lifecycle
+changes.
+
 Account security hardening tests verify:
 
 - Five failed password sign-in attempts create account-scoped password reset protection.

@@ -14,6 +14,7 @@ import io.resrv.timeslot.domain.resource.Resource;
 import io.resrv.timeslot.domain.resource.ResourceBookingOverrides;
 import io.resrv.timeslot.domain.resource.ResourceName;
 import io.resrv.timeslot.domain.resource.ResourceSlug;
+import io.resrv.timeslot.domain.resource.ResourceStatus;
 import io.resrv.timeslot.domain.schedule.DateResourceScheduleOverride;
 import io.resrv.timeslot.domain.schedule.ScheduleWindow;
 import io.resrv.timeslot.domain.schedule.WeeklyResourceSchedule;
@@ -185,5 +186,42 @@ class TimeslotPersistenceAdapterTest {
         scheduleCommandPort.deleteDateOverride(businessId, resource.id(), date);
 
         assertTrue(scheduleQueryPort.findDateOverride(businessId, resource.id(), date).isEmpty());
+    }
+
+    @Test
+    void replacesResourceDetailsAndActiveQueriesExcludeInactiveResources() {
+        final var businessId = BusinessId.create();
+        final var resource =
+                Resource.create(
+                        businessId,
+                        new ResourceName("Room C"),
+                        new ResourceSlug("room-c"),
+                        "Original",
+                        ResourceBookingOverrides.none(),
+                        NOW);
+        resourceCommandPort.save(resource);
+
+        final var replaced =
+                resource.replaceDetails(
+                        new ResourceName("Room C Updated"),
+                        new ResourceSlug("room-c-updated"),
+                        "Updated",
+                        new ResourceBookingOverrides(
+                                new SlotDuration(45), new HoldTtl(5), new CancellationWindow(180)),
+                        NOW.plusSeconds(60));
+        resourceCommandPort.save(replaced);
+
+        final var found =
+                resourceQueryPort.findByBusinessIdAndId(businessId, resource.id()).orElseThrow();
+        assertEquals(resource.id(), found.id());
+        assertEquals("Room C Updated", found.name().value());
+        assertEquals("room-c-updated", found.slug().value());
+        assertEquals(45, found.bookingOverrides().slotDuration().minutes());
+        assertEquals(ResourceStatus.ACTIVE, found.status());
+        assertEquals(1, resourceQueryPort.findActiveByBusinessId(businessId).size());
+
+        resourceCommandPort.save(found.deactivate(NOW.plusSeconds(120)));
+
+        assertTrue(resourceQueryPort.findActiveByBusinessId(businessId).isEmpty());
     }
 }

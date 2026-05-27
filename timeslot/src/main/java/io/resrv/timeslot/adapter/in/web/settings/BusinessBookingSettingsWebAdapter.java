@@ -6,9 +6,12 @@ import io.resrv.timeslot.application.auth.out.BusinessAccessPort;
 import io.resrv.timeslot.application.settings.in.BusinessBookingSettingsResult;
 import io.resrv.timeslot.application.settings.in.UpsertBusinessBookingSettingsCommand;
 import io.resrv.timeslot.application.settings.in.UpsertBusinessBookingSettingsUseCase;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotNull;
 import java.util.UUID;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -32,6 +35,14 @@ class BusinessBookingSettingsWebAdapter {
     }
 
     @PutMapping
+    @Operation(
+            summary = "Replace business booking settings",
+            responses = {
+                @ApiResponse(responseCode = "200", description = "Booking settings replaced"),
+                @ApiResponse(responseCode = "400", description = "Validation failure"),
+                @ApiResponse(responseCode = "401", description = "Unauthorized"),
+                @ApiResponse(responseCode = "403", description = "Forbidden")
+            })
     SettingsResponse upsert(
             @PathVariable final UUID businessId,
             final JwtAuthenticationToken authentication,
@@ -48,10 +59,10 @@ class BusinessBookingSettingsWebAdapter {
     }
 
     record SettingsRequest(
-            @Min(5) @Max(480) int slotDurationMinutes,
-            @Min(1) @Max(30) int holdTtlMinutes,
-            @Min(0) @Max(10080) int cancellationWindowMinutes,
-            @Min(1) @Max(365) int maxAdvanceBookingDays) {}
+            @NotNull @Min(5) @Max(480) Integer slotDurationMinutes,
+            @NotNull @Min(1) @Max(30) Integer holdTtlMinutes,
+            @NotNull @Min(0) @Max(10080) Integer cancellationWindowMinutes,
+            @NotNull @Min(1) @Max(365) Integer maxAdvanceBookingDays) {}
 
     record SettingsResponse(
             UUID businessId,

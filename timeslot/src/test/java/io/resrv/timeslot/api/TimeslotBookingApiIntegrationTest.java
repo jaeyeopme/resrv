@@ -21,6 +21,7 @@ import java.time.ZoneOffset;
 import java.util.Date;
 import java.util.List;
 import java.util.UUID;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -33,6 +34,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.ResultActions;
 
 @SpringBootTest(
         properties = {
@@ -295,6 +297,286 @@ final class TimeslotBookingApiIntegrationTest {
     }
 
     @Test
+    void bookingSettingsReplacementRequiresAllFieldsAndAppliesToFuturePolicy() throws Exception {
+        final var token = signedToken(ACCOUNT_ID);
+        putSettings(token, 30, 10, 60, 30);
+
+        mockMvc.perform(
+                        put("/api/businesses/{businessId}/booking-settings", BUSINESS_ID)
+                                .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(
+                                        """
+                                        {
+                                          "slotDurationMinutes": 15,
+                                          "holdTtlMinutes": 5,
+                                          "cancellationWindowMinutes": 240
+                                        }
+                                        """))
+                .andExpect(status().isBadRequest());
+
+        assertSettings(30, 10, 60, 30);
+
+        final var resourceId = createResource(token, "Room A", "room-a");
+        replaceWeeklySchedule(token, resourceId, "MONDAY", "10:00:00", "11:00:00");
+
+        putSettings(token, 15, 5, 240, 30);
+
+        final var slotsJson =
+                mockMvc.perform(
+                                get(
+                                                "/api/businesses/{businessId}/resources/{resourceId}/slots",
+                                                BUSINESS_ID,
+                                                resourceId)
+                                        .param("date", "2026-05-25"))
+                        .andExpect(status().isOk())
+                        .andExpect(jsonPath("$[0].startAt").value("2026-05-25T10:00:00+09:00"))
+                        .andExpect(jsonPath("$[1].startAt").value("2026-05-25T10:15:00+09:00"))
+                        .andReturn()
+                        .getResponse()
+                        .getContentAsString();
+        final String slotId = JsonPath.read(slotsJson, "$[0].slotId");
+
+        final var holdJson =
+                holdReservation(token, resourceId, slotId)
+                        .andExpect(status().isOk())
+                        .andExpect(jsonPath("$.holdExpiresAt").value("2026-05-25T09:05:00+09:00"))
+                        .andReturn()
+                        .getResponse()
+                        .getContentAsString();
+        final String reservationId = JsonPath.read(holdJson, "$.id");
+
+        mockMvc.perform(
+                        post(
+                                        "/api/businesses/{businessId}/reservations/{reservationId}/confirm",
+                                        BUSINESS_ID,
+                                        reservationId)
+                                .header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(
+                        post(
+                                        "/api/businesses/{businessId}/reservations/{reservationId}/cancel",
+                                        BUSINESS_ID,
+                                        reservationId)
+                                .header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
+                .andExpect(status().isUnprocessableEntity());
+    }
+
+    @Test
+    void resourceLifecycleReplacementAndActivationKeepReservationsStable() throws Exception {
+        final var token = signedToken(ACCOUNT_ID);
+        putSettings(token, 30, 10, 60, 30);
+        final var resourceId = createResource(token, "Room A", "room-a");
+        replaceWeeklySchedule(token, resourceId, "MONDAY", "10:00:00", "11:00:00");
+        final var slotId = firstSlotId(resourceId, "2026-05-25");
+        final var holdJson =
+                holdReservation(token, resourceId, slotId)
+                        .andExpect(status().isOk())
+                        .andReturn()
+                        .getResponse()
+                        .getContentAsString();
+        final String reservationId = JsonPath.read(holdJson, "$.id");
+
+        mockMvc.perform(
+                        put(
+                                        "/api/businesses/{businessId}/resources/{resourceId}",
+                                        BUSINESS_ID,
+                                        resourceId)
+                                .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(
+                                        """
+                                        {
+                                          "name": "Room A Updated",
+                                          "slug": "room-a-updated",
+                                          "description": "Updated",
+                                          "slotDurationMinutes": 45,
+                                          "holdTtlMinutes": 5,
+                                          "cancellationWindowMinutes": 120
+                                        }
+                                        """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(resourceId))
+                .andExpect(jsonPath("$.status").value("ACTIVE"))
+                .andExpect(jsonPath("$.slotDurationMinutes").value(45));
+
+        mockMvc.perform(
+                        post(
+                                        "/api/businesses/{businessId}/resources/{resourceId}/deactivate",
+                                        BUSINESS_ID,
+                                        resourceId)
+                                .header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("INACTIVE"));
+
+        mockMvc.perform(get("/api/businesses/{businessId}/resources", BUSINESS_ID))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$").isEmpty());
+        mockMvc.perform(
+                        get(
+                                        "/api/businesses/{businessId}/resources/{resourceId}/slots",
+                                        BUSINESS_ID,
+                                        resourceId)
+                                .param("date", "2026-05-25"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$").isEmpty());
+        mockMvc.perform(
+                        get("/api/businesses/{businessId}/reservations", BUSINESS_ID)
+                                .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+                                .param("date", "2026-05-25")
+                                .param("resourceId", resourceId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].id").value(reservationId))
+                .andExpect(jsonPath("$[0].state").value("HELD"));
+
+        mockMvc.perform(
+                        post(
+                                        "/api/businesses/{businessId}/resources/{resourceId}/activate",
+                                        BUSINESS_ID,
+                                        resourceId)
+                                .header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("ACTIVE"));
+    }
+
+    @Test
+    void resourceLifecycleRequiresBusinessAccessAndRejectsDuplicateSlug() throws Exception {
+        final var token = signedToken(ACCOUNT_ID);
+        putSettings(token, 30, 10, 60, 30);
+        final var resourceA = createResource(token, "Room A", "room-a");
+        createResource(token, "Room B", "room-b");
+
+        mockMvc.perform(
+                        put(
+                                        "/api/businesses/{businessId}/resources/{resourceId}",
+                                        BUSINESS_ID,
+                                        resourceA)
+                                .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(
+                                        """
+                                        {
+                                          "name": "Room A",
+                                          "slug": "room-b",
+                                          "description": null
+                                        }
+                                        """))
+                .andExpect(status().isConflict());
+
+        final var otherToken = signedToken(OTHER_ACCOUNT_ID);
+        mockMvc.perform(
+                        put(
+                                        "/api/businesses/{businessId}/resources/{resourceId}",
+                                        BUSINESS_ID,
+                                        resourceA)
+                                .header(HttpHeaders.AUTHORIZATION, "Bearer " + otherToken)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(
+                                        """
+                                        {
+                                          "name": "Room A",
+                                          "slug": "room-a",
+                                          "description": null
+                                        }
+                                        """))
+                .andExpect(status().isForbidden());
+        mockMvc.perform(
+                        post(
+                                        "/api/businesses/{businessId}/resources/{resourceId}/deactivate",
+                                        BUSINESS_ID,
+                                        resourceA)
+                                .header(HttpHeaders.AUTHORIZATION, "Bearer " + otherToken))
+                .andExpect(status().isForbidden());
+        mockMvc.perform(
+                        post(
+                                        "/api/businesses/{businessId}/resources/{resourceId}/activate",
+                                        BUSINESS_ID,
+                                        resourceA)
+                                .header(HttpHeaders.AUTHORIZATION, "Bearer " + otherToken))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void scheduleReplacementSupportsClosedOverridesAndInactiveResources() throws Exception {
+        final var token = signedToken(ACCOUNT_ID);
+        putSettings(token, 30, 10, 60, 30);
+        final var resourceId = createResource(token, "Room A", "room-a");
+        replaceWeeklySchedule(token, resourceId, "MONDAY", "10:00:00", "11:00:00");
+
+        mockMvc.perform(
+                        get(
+                                        "/api/businesses/{businessId}/resources/{resourceId}/slots",
+                                        BUSINESS_ID,
+                                        resourceId)
+                                .param("date", "2026-05-25"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].startAt").value("2026-05-25T10:00:00+09:00"));
+
+        mockMvc.perform(
+                        put(
+                                        "/api/businesses/{businessId}/resources/{resourceId}"
+                                                + "/date-schedule-overrides/{date}",
+                                        BUSINESS_ID,
+                                        resourceId,
+                                        "2026-05-25")
+                                .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content("{\"windows\": []}"))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(
+                        get(
+                                        "/api/businesses/{businessId}/resources/{resourceId}/slots",
+                                        BUSINESS_ID,
+                                        resourceId)
+                                .param("date", "2026-05-25"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$").isEmpty());
+
+        mockMvc.perform(
+                        post(
+                                        "/api/businesses/{businessId}/resources/{resourceId}/deactivate",
+                                        BUSINESS_ID,
+                                        resourceId)
+                                .header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
+                .andExpect(status().isOk());
+        replaceWeeklySchedule(token, resourceId, "MONDAY", "12:00:00", "13:00:00");
+        mockMvc.perform(
+                        get(
+                                        "/api/businesses/{businessId}/resources/{resourceId}/slots",
+                                        BUSINESS_ID,
+                                        resourceId)
+                                .param("date", "2026-05-25"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$").isEmpty());
+    }
+
+    @Test
+    void generatedOpenApiIncludesLifecycleOperations() throws Exception {
+        final var resourcePath = "/api/businesses/{businessId}/resources/{resourceId}";
+        mockMvc.perform(get("/v3/api-docs"))
+                .andExpect(status().isOk())
+                .andExpect(
+                        jsonPath("$.paths['/api/businesses/{businessId}/booking-settings'].put")
+                                .exists())
+                .andExpect(
+                        jsonPath("$.paths['/api/businesses/{businessId}/resources'].post").exists())
+                .andExpect(jsonPath("$.paths['" + resourcePath + "'].put").exists())
+                .andExpect(jsonPath("$.paths['" + resourcePath + "/activate'].post").exists())
+                .andExpect(jsonPath("$.paths['" + resourcePath + "/deactivate'].post").exists())
+                .andExpect(
+                        jsonPath("$.paths['" + resourcePath + "/weekly-schedules/{dayOfWeek}'].put")
+                                .exists())
+                .andExpect(
+                        jsonPath(
+                                        "$.paths['"
+                                                + resourcePath
+                                                + "/date-schedule-overrides/{date}'].put")
+                                .exists());
+    }
+
+    @Test
     void tokenWithoutJtiIsRejectedBeforeController() throws Exception {
         final var accountId = ACCOUNT_ID.toString();
         assertReservationsTokenRejected(
@@ -395,6 +677,139 @@ final class TimeslotBookingApiIntegrationTest {
                                 .header(HttpHeaders.AUTHORIZATION, "Bearer " + accessToken)
                                 .param("date", "2026-05-25"))
                 .andExpect(status().isUnauthorized());
+    }
+
+    private void putSettings(
+            final String token,
+            final int slotDurationMinutes,
+            final int holdTtlMinutes,
+            final int cancellationWindowMinutes,
+            final int maxAdvanceBookingDays)
+            throws Exception {
+        mockMvc.perform(
+                        put("/api/businesses/{businessId}/booking-settings", BUSINESS_ID)
+                                .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(
+                                        """
+                                        {
+                                          "slotDurationMinutes": %d,
+                                          "holdTtlMinutes": %d,
+                                          "cancellationWindowMinutes": %d,
+                                          "maxAdvanceBookingDays": %d
+                                        }
+                                        """
+                                                .formatted(
+                                                        slotDurationMinutes,
+                                                        holdTtlMinutes,
+                                                        cancellationWindowMinutes,
+                                                        maxAdvanceBookingDays)))
+                .andExpect(status().isOk());
+    }
+
+    private void assertSettings(
+            final int slotDurationMinutes,
+            final int holdTtlMinutes,
+            final int cancellationWindowMinutes,
+            final int maxAdvanceBookingDays) {
+        final var settings =
+                jdbcTemplate.queryForMap(
+                        "SELECT slot_duration_minutes, hold_ttl_minutes, "
+                                + "cancellation_window_minutes, max_advance_booking_days "
+                                + "FROM timeslot.business_booking_settings WHERE business_id = ?",
+                        BUSINESS_ID);
+        Assertions.assertEquals(slotDurationMinutes, settings.get("slot_duration_minutes"));
+        Assertions.assertEquals(holdTtlMinutes, settings.get("hold_ttl_minutes"));
+        Assertions.assertEquals(
+                cancellationWindowMinutes, settings.get("cancellation_window_minutes"));
+        Assertions.assertEquals(maxAdvanceBookingDays, settings.get("max_advance_booking_days"));
+    }
+
+    private String createResource(final String token, final String name, final String slug)
+            throws Exception {
+        final var resourceJson =
+                mockMvc.perform(
+                                post("/api/businesses/{businessId}/resources", BUSINESS_ID)
+                                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+                                        .contentType(MediaType.APPLICATION_JSON)
+                                        .content(
+                                                """
+                                                {
+                                                  "name": "%s",
+                                                  "slug": "%s",
+                                                  "description": "Window side"
+                                                }
+                                                """
+                                                        .formatted(name, slug)))
+                        .andExpect(status().isCreated())
+                        .andExpect(jsonPath("$.id", notNullValue()))
+                        .andReturn()
+                        .getResponse()
+                        .getContentAsString();
+        return JsonPath.read(resourceJson, "$.id");
+    }
+
+    private void replaceWeeklySchedule(
+            final String token,
+            final String resourceId,
+            final String dayOfWeek,
+            final String startTime,
+            final String endTime)
+            throws Exception {
+        mockMvc.perform(
+                        put(
+                                        "/api/businesses/{businessId}/resources/{resourceId}"
+                                                + "/weekly-schedules/{dayOfWeek}",
+                                        BUSINESS_ID,
+                                        resourceId,
+                                        dayOfWeek)
+                                .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(
+                                        """
+                                        {
+                                          "windows": [
+                                            {
+                                              "startTime": "%s",
+                                              "endTime": "%s"
+                                            }
+                                          ]
+                                        }
+                                        """
+                                                .formatted(startTime, endTime)))
+                .andExpect(status().isOk());
+    }
+
+    private String firstSlotId(final String resourceId, final String date) throws Exception {
+        final var slotsJson =
+                mockMvc.perform(
+                                get(
+                                                "/api/businesses/{businessId}/resources/{resourceId}/slots",
+                                                BUSINESS_ID,
+                                                resourceId)
+                                        .param("date", date))
+                        .andExpect(status().isOk())
+                        .andExpect(jsonPath("$[0].slotId", notNullValue()))
+                        .andReturn()
+                        .getResponse()
+                        .getContentAsString();
+        return JsonPath.read(slotsJson, "$[0].slotId");
+    }
+
+    private ResultActions holdReservation(
+            final String token, final String resourceId, final String slotId) throws Exception {
+        return mockMvc.perform(
+                post("/api/businesses/{businessId}/reservations", BUSINESS_ID)
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(
+                                """
+                                {
+                                  "resourceId": "%s",
+                                  "slotId": "%s"
+                                }
+                                """
+                                        .formatted(resourceId, slotId)));
     }
 
     private static String signedToken(final UUID accountId) throws JOSEException {
