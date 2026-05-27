@@ -13,8 +13,12 @@ import static org.mockito.Mockito.when;
 import io.resrv.shared.kernel.BusinessId;
 import io.resrv.shared.kernel.ResourceId;
 import io.resrv.shared.kernel.Timezone;
+import io.resrv.timeslot.application.business.BusinessNotAvailableException;
 import io.resrv.timeslot.application.business.out.BusinessLookupPort;
+import io.resrv.timeslot.application.resource.in.ActivateResourceCommand;
 import io.resrv.timeslot.application.resource.in.CreateResourceCommand;
+import io.resrv.timeslot.application.resource.in.DeactivateResourceCommand;
+import io.resrv.timeslot.application.resource.in.ReplaceResourceDetailsCommand;
 import io.resrv.timeslot.application.resource.out.ResourceCommandPort;
 import io.resrv.timeslot.application.resource.out.ResourceQueryPort;
 import io.resrv.timeslot.application.settings.BookingSettingsRequiredException;
@@ -37,6 +41,7 @@ import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
+import org.mockito.Mockito;
 
 class ResourceServiceTest {
 
@@ -336,6 +341,143 @@ class ResourceServiceTest {
         assertEquals(LATER, deactivated.updatedAt());
     }
 
+    @Test
+    void replaceDetailsAllowsSameSlugAndPreservesResourceIdentityAndStatus() {
+        final var resource = resource(ResourceBookingOverrides.none());
+        final var slug = new ResourceSlug("room-a");
+        when(businessLookupPort.findActiveById(BUSINESS_ID))
+                .thenReturn(Optional.of(activeBusiness()));
+        when(queryPort.findByBusinessIdAndId(BUSINESS_ID, resource.id()))
+                .thenReturn(Optional.of(resource));
+        when(queryPort.findByBusinessIdAndSlug(BUSINESS_ID, slug))
+                .thenReturn(Optional.of(resource));
+
+        final var result =
+                service.replaceDetails(
+                        new ReplaceResourceDetailsCommand(
+                                BUSINESS_ID,
+                                resource.id(),
+                                " Room A Updated ",
+                                "room-a",
+                                "  Updated  ",
+                                45,
+                                5,
+                                180));
+
+        assertEquals(resource.id().value(), result.id());
+        assertEquals(BUSINESS_ID.value(), result.businessId());
+        assertEquals("Room A Updated", result.name());
+        assertEquals("room-a", result.slug());
+        assertEquals("Updated", result.description());
+        assertEquals(ResourceStatus.ACTIVE, result.status());
+        assertEquals(45, result.slotDurationMinutes());
+
+        final var captor = ArgumentCaptor.forClass(Resource.class);
+        verify(commandPort).save(captor.capture());
+        final var saved = captor.getValue();
+        assertEquals(resource.id(), saved.id());
+        assertEquals(BUSINESS_ID, saved.businessId());
+        assertEquals(ResourceStatus.ACTIVE, saved.status());
+        assertEquals(NOW, saved.createdAt());
+        assertEquals(NOW, saved.updatedAt());
+    }
+
+    @Test
+    void replaceDetailsRejectsSlugUsedByDifferentResource() {
+        final var resource = resource(ResourceBookingOverrides.none());
+        final var duplicate =
+                Resource.create(
+                        BUSINESS_ID,
+                        new ResourceName("Room B"),
+                        new ResourceSlug("room-b"),
+                        null,
+                        ResourceBookingOverrides.none(),
+                        NOW);
+        final var slug = new ResourceSlug("room-b");
+        when(businessLookupPort.findActiveById(BUSINESS_ID))
+                .thenReturn(Optional.of(activeBusiness()));
+        when(queryPort.findByBusinessIdAndId(BUSINESS_ID, resource.id()))
+                .thenReturn(Optional.of(resource));
+        when(queryPort.findByBusinessIdAndSlug(BUSINESS_ID, slug))
+                .thenReturn(Optional.of(duplicate));
+
+        final var exception =
+                assertThrows(
+                        ResourceSlugAlreadyExistsException.class,
+                        () ->
+                                service.replaceDetails(
+                                        new ReplaceResourceDetailsCommand(
+                                                BUSINESS_ID,
+                                                resource.id(),
+                                                "Room A",
+                                                "room-b",
+                                                null,
+                                                null,
+                                                null,
+                                                null)));
+
+        assertEquals(slug, exception.slug());
+        verify(commandPort, never()).save(any());
+    }
+
+    @Test
+    void replaceDetailsRejectsInactiveBusiness() {
+        final var resourceId = ResourceId.create();
+        when(businessLookupPort.findActiveById(BUSINESS_ID)).thenReturn(Optional.empty());
+
+        final var exception =
+                assertThrows(
+                        BusinessNotAvailableException.class,
+                        () ->
+                                service.replaceDetails(
+                                        new ReplaceResourceDetailsCommand(
+                                                BUSINESS_ID,
+                                                resourceId,
+                                                "Room A",
+                                                "room-a",
+                                                null,
+                                                null,
+                                                null,
+                                                null)));
+
+        assertEquals("Business is not available: " + BUSINESS_ID.value(), exception.getMessage());
+        verify(queryPort, never()).findByBusinessIdAndId(any(), any());
+        verify(commandPort, never()).save(any());
+    }
+
+    @Test
+    void activateAndDeactivateChangeOnlyStatusAndUpdatedAt() {
+        final var resource = resource(ResourceBookingOverrides.none());
+        when(businessLookupPort.findActiveById(BUSINESS_ID))
+                .thenReturn(Optional.of(activeBusiness()));
+        when(queryPort.findByBusinessIdAndId(BUSINESS_ID, resource.id()))
+                .thenReturn(Optional.of(resource));
+
+        final var deactivated =
+                service.deactivate(new DeactivateResourceCommand(BUSINESS_ID, resource.id()));
+        final var inactive =
+                Resource.reconstitute(
+                        resource.id(),
+                        BUSINESS_ID,
+                        resource.name(),
+                        resource.slug(),
+                        resource.description(),
+                        ResourceStatus.INACTIVE,
+                        resource.bookingOverrides(),
+                        NOW,
+                        NOW);
+        when(queryPort.findByBusinessIdAndId(BUSINESS_ID, resource.id()))
+                .thenReturn(Optional.of(inactive));
+        final var activated =
+                service.activate(new ActivateResourceCommand(BUSINESS_ID, resource.id()));
+
+        assertEquals(ResourceStatus.INACTIVE, deactivated.status());
+        assertEquals(ResourceStatus.ACTIVE, activated.status());
+        assertEquals(resource.id().value(), deactivated.id());
+        assertEquals(resource.id().value(), activated.id());
+        verify(commandPort, Mockito.times(2)).save(any());
+    }
+
     private static BusinessBookingSettings existingSettings() {
         return BusinessBookingSettings.create(
                 BUSINESS_ID,
@@ -344,6 +486,11 @@ class ResourceServiceTest {
                 new CancellationWindow(120),
                 new MaxAdvanceBookingDays(90),
                 NOW);
+    }
+
+    private static BusinessLookupPort.BusinessView activeBusiness() {
+        return new BusinessLookupPort.BusinessView(
+                BUSINESS_ID, "Owner Studio", "owner-studio", Timezone.of("Asia/Seoul"));
     }
 
     private static Resource resource(final ResourceBookingOverrides overrides) {

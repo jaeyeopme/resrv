@@ -175,6 +175,66 @@ class ResourceTest {
     }
 
     @Test
+    void activateReturnsActiveResourceWithUpdatedTimestampOnly() {
+        final var resource =
+                Resource.reconstitute(
+                        ResourceId.create(),
+                        BusinessId.create(),
+                        new ResourceName("Room A"),
+                        new ResourceSlug("room-a"),
+                        "Window side",
+                        ResourceStatus.INACTIVE,
+                        ResourceBookingOverrides.none(),
+                        NOW,
+                        NOW);
+
+        final var activated = resource.activate(LATER);
+
+        assertEquals(resource.id(), activated.id());
+        assertEquals(resource.businessId(), activated.businessId());
+        assertEquals(resource.name(), activated.name());
+        assertEquals(resource.slug(), activated.slug());
+        assertEquals(resource.description(), activated.description());
+        assertEquals(resource.bookingOverrides(), activated.bookingOverrides());
+        assertEquals(ResourceStatus.ACTIVE, activated.status());
+        assertEquals(NOW, activated.createdAt());
+        assertEquals(LATER, activated.updatedAt());
+    }
+
+    @Test
+    void replaceDetailsKeepsIdentityBusinessAndActiveState() {
+        final var resource =
+                Resource.create(
+                        BusinessId.create(),
+                        new ResourceName("Room A"),
+                        new ResourceSlug("room-a"),
+                        "Window side",
+                        ResourceBookingOverrides.none(),
+                        NOW);
+        final var overrides =
+                new ResourceBookingOverrides(
+                        new SlotDuration(45), new HoldTtl(5), new CancellationWindow(180));
+
+        final var replaced =
+                resource.replaceDetails(
+                        new ResourceName("Room B"),
+                        new ResourceSlug("room-b"),
+                        "  New description  ",
+                        overrides,
+                        LATER);
+
+        assertEquals(resource.id(), replaced.id());
+        assertEquals(resource.businessId(), replaced.businessId());
+        assertEquals(ResourceStatus.ACTIVE, replaced.status());
+        assertEquals("Room B", replaced.name().value());
+        assertEquals("room-b", replaced.slug().value());
+        assertEquals("New description", replaced.description());
+        assertEquals(overrides, replaced.bookingOverrides());
+        assertEquals(NOW, replaced.createdAt());
+        assertEquals(LATER, replaced.updatedAt());
+    }
+
+    @Test
     void invalidNameIsRejected() {
         assertThrows(NullPointerException.class, () -> new ResourceName(null));
         assertThrows(IllegalArgumentException.class, () -> new ResourceName(" "));

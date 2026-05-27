@@ -126,6 +126,38 @@ class ResourceScheduleServiceTest {
     }
 
     @Test
+    void replaceWeeklyAllowsInactiveOwnedResourceForFutureConfiguration() {
+        final var inactive =
+                Resource.reconstitute(
+                        RESOURCE_ID,
+                        BUSINESS_ID,
+                        new ResourceName("Room A"),
+                        new ResourceSlug("room-a"),
+                        null,
+                        ResourceStatus.INACTIVE,
+                        ResourceBookingOverrides.none(),
+                        CREATED_AT,
+                        CREATED_AT);
+        when(resourceQueryPort.findByBusinessIdAndId(BUSINESS_ID, RESOURCE_ID))
+                .thenReturn(Optional.of(inactive));
+        when(queryPort.findWeekly(BUSINESS_ID, RESOURCE_ID, DayOfWeek.MONDAY))
+                .thenReturn(Optional.empty());
+
+        final var result =
+                service.replaceWeekly(
+                        new ReplaceWeeklyScheduleCommand(
+                                BUSINESS_ID,
+                                RESOURCE_ID,
+                                DayOfWeek.MONDAY,
+                                List.of(
+                                        new ScheduleWindow(
+                                                LocalTime.of(9, 0), LocalTime.of(12, 0)))));
+
+        assertEquals(BUSINESS_ID.value(), result.businessId());
+        verify(commandPort).saveWeekly(any());
+    }
+
+    @Test
     void deleteDateOverrideVerifiesResourceAndDeletes() {
         when(resourceQueryPort.findByBusinessIdAndId(BUSINESS_ID, RESOURCE_ID))
                 .thenReturn(Optional.of(resource()));

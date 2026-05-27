@@ -1,10 +1,18 @@
 package io.resrv.timeslot.application.resource;
 
 import io.resrv.shared.kernel.BusinessId;
+import io.resrv.shared.kernel.ResourceId;
+import io.resrv.timeslot.application.business.BusinessNotAvailableException;
 import io.resrv.timeslot.application.business.out.BusinessLookupPort;
+import io.resrv.timeslot.application.resource.in.ActivateResourceCommand;
+import io.resrv.timeslot.application.resource.in.ActivateResourceUseCase;
 import io.resrv.timeslot.application.resource.in.CreateResourceCommand;
 import io.resrv.timeslot.application.resource.in.CreateResourceUseCase;
+import io.resrv.timeslot.application.resource.in.DeactivateResourceCommand;
+import io.resrv.timeslot.application.resource.in.DeactivateResourceUseCase;
 import io.resrv.timeslot.application.resource.in.ListResourcesUseCase;
+import io.resrv.timeslot.application.resource.in.ReplaceResourceDetailsCommand;
+import io.resrv.timeslot.application.resource.in.ReplaceResourceDetailsUseCase;
 import io.resrv.timeslot.application.resource.in.ResourceResult;
 import io.resrv.timeslot.application.resource.out.ResourceCommandPort;
 import io.resrv.timeslot.application.resource.out.ResourceQueryPort;
@@ -25,7 +33,12 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @Transactional
-public class ResourceService implements CreateResourceUseCase, ListResourcesUseCase {
+public class ResourceService
+        implements CreateResourceUseCase,
+                ListResourcesUseCase,
+                ReplaceResourceDetailsUseCase,
+                ActivateResourceUseCase,
+                DeactivateResourceUseCase {
 
     private final BusinessBookingSettingsQueryPort settingsQueryPort;
     private final BusinessLookupPort businessLookupPort;
@@ -53,16 +66,10 @@ public class ResourceService implements CreateResourceUseCase, ListResourcesUseC
         final var slug = new ResourceSlug(command.slug());
         final var description = Resource.normalizeDescription(command.description());
         final var overrides =
-                new ResourceBookingOverrides(
-                        command.slotDurationMinutes() == null
-                                ? null
-                                : new SlotDuration(command.slotDurationMinutes()),
-                        command.holdTtlMinutes() == null
-                                ? null
-                                : new HoldTtl(command.holdTtlMinutes()),
-                        command.cancellationWindowMinutes() == null
-                                ? null
-                                : new CancellationWindow(command.cancellationWindowMinutes()));
+                overrides(
+                        command.slotDurationMinutes(),
+                        command.holdTtlMinutes(),
+                        command.cancellationWindowMinutes());
 
         if (settingsQueryPort.findByBusinessId(command.businessId()).isEmpty()) {
             throw new BookingSettingsRequiredException(command.businessId());
@@ -79,6 +86,45 @@ public class ResourceService implements CreateResourceUseCase, ListResourcesUseC
     }
 
     @Override
+    public ResourceResult replaceDetails(final ReplaceResourceDetailsCommand command) {
+        Objects.requireNonNull(command, "Command must not be null");
+        final var name = new ResourceName(command.name());
+        final var slug = new ResourceSlug(command.slug());
+        final var description = Resource.normalizeDescription(command.description());
+        final var overrides =
+                overrides(
+                        command.slotDurationMinutes(),
+                        command.holdTtlMinutes(),
+                        command.cancellationWindowMinutes());
+
+        final var resource = loadResource(command.businessId(), command.resourceId());
+        ensureSlugAvailable(command.businessId(), command.resourceId(), slug);
+
+        final var updated =
+                resource.replaceDetails(name, slug, description, overrides, clock.instant());
+        commandPort.save(updated);
+        return ResourceResult.from(updated);
+    }
+
+    @Override
+    public ResourceResult activate(final ActivateResourceCommand command) {
+        Objects.requireNonNull(command, "Command must not be null");
+        final var resource = loadResource(command.businessId(), command.resourceId());
+        final var updated = resource.activate(clock.instant());
+        commandPort.save(updated);
+        return ResourceResult.from(updated);
+    }
+
+    @Override
+    public ResourceResult deactivate(final DeactivateResourceCommand command) {
+        Objects.requireNonNull(command, "Command must not be null");
+        final var resource = loadResource(command.businessId(), command.resourceId());
+        final var updated = resource.deactivate(clock.instant());
+        commandPort.save(updated);
+        return ResourceResult.from(updated);
+    }
+
+    @Override
     @Transactional(readOnly = true)
     public List<ResourceResult> listActive(final BusinessId businessId) {
         Objects.requireNonNull(businessId, "Business id must not be null");
@@ -88,5 +134,41 @@ public class ResourceService implements CreateResourceUseCase, ListResourcesUseC
         return queryPort.findActiveByBusinessId(businessId).stream()
                 .map(ResourceResult::from)
                 .toList();
+    }
+
+    private Resource loadResource(final BusinessId businessId, final ResourceId resourceId) {
+        ensureBusinessActive(businessId);
+        return queryPort
+                .findByBusinessIdAndId(businessId, resourceId)
+                .orElseThrow(() -> new ResourceNotAvailableException(businessId, resourceId));
+    }
+
+    private void ensureBusinessActive(final BusinessId businessId) {
+        if (businessLookupPort.findActiveById(businessId).isEmpty()) {
+            throw new BusinessNotAvailableException(businessId);
+        }
+    }
+
+    private void ensureSlugAvailable(
+            final BusinessId businessId, final ResourceId resourceId, final ResourceSlug slug) {
+        queryPort
+                .findByBusinessIdAndSlug(businessId, slug)
+                .filter(existing -> !existing.id().equals(resourceId))
+                .ifPresent(
+                        ignored -> {
+                            throw new ResourceSlugAlreadyExistsException(businessId, slug);
+                        });
+    }
+
+    private static ResourceBookingOverrides overrides(
+            final Integer slotDurationMinutes,
+            final Integer holdTtlMinutes,
+            final Integer cancellationWindowMinutes) {
+        return new ResourceBookingOverrides(
+                slotDurationMinutes == null ? null : new SlotDuration(slotDurationMinutes),
+                holdTtlMinutes == null ? null : new HoldTtl(holdTtlMinutes),
+                cancellationWindowMinutes == null
+                        ? null
+                        : new CancellationWindow(cancellationWindowMinutes));
     }
 }
