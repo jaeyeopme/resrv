@@ -5,6 +5,10 @@ import io.resrv.shared.kernel.ReservationId;
 
 public final class ReservationNotFoundException extends RuntimeException {
 
+    public ReservationNotFoundException(final ReservationId reservationId) {
+        super("Reservation not found");
+    }
+
     public ReservationNotFoundException(
             final BusinessId businessId, final ReservationId reservationId) {
         super(

@@ -11,6 +11,10 @@ import io.resrv.timeslot.application.lock.out.SlotLockPort;
 import io.resrv.timeslot.application.reservation.in.CancelReservationCommand;
 import io.resrv.timeslot.application.reservation.in.CheckInReservationCommand;
 import io.resrv.timeslot.application.reservation.in.ConfirmReservationCommand;
+import io.resrv.timeslot.application.reservation.in.CustomerReservationDetailQuery;
+import io.resrv.timeslot.application.reservation.in.CustomerReservationListQuery;
+import io.resrv.timeslot.application.reservation.in.CustomerReservationPage;
+import io.resrv.timeslot.application.reservation.in.CustomerReservationResult;
 import io.resrv.timeslot.application.reservation.in.HoldReservationCommand;
 import io.resrv.timeslot.application.reservation.in.ListBusinessReservationsQuery;
 import io.resrv.timeslot.application.reservation.in.MarkNoShowReservationCommand;
@@ -38,12 +42,16 @@ import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.List;
 import java.util.Objects;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @Transactional
 public class ReservationService {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(ReservationService.class);
 
     private final BusinessLookupPort businessLookupPort;
     private final BusinessBookingSettingsQueryPort settingsQueryPort;
@@ -189,6 +197,51 @@ public class ReservationService {
                 .toList();
     }
 
+    @Transactional(readOnly = true)
+    public CustomerReservationPage listCustomerReservations(
+            final CustomerReservationListQuery query) {
+        Objects.requireNonNull(query, "Query must not be null");
+        final var now = clock.instant();
+        final var reservations =
+                reservationQueryPort.findByCustomerAccountId(
+                        query.accountId(),
+                        query.page(),
+                        query.size(),
+                        query.state(),
+                        query.upcoming(),
+                        now);
+        final var items =
+                reservations.items().stream()
+                        .map(reservation -> toCustomerReservationResult(reservation, now))
+                        .toList();
+        return new CustomerReservationPage(
+                items,
+                reservations.page(),
+                reservations.size(),
+                reservations.totalElements(),
+                reservations.totalPages());
+    }
+
+    @Transactional(readOnly = true)
+    public CustomerReservationResult getCustomerReservation(
+            final CustomerReservationDetailQuery query) {
+        Objects.requireNonNull(query, "Query must not be null");
+        final var reservation =
+                reservationQueryPort
+                        .findById(query.reservationId())
+                        .orElseThrow(
+                                () ->
+                                        customerReservationNotFound(
+                                                query.reservationId(),
+                                                CustomerReservationDenialFact
+                                                        .RESERVATION_NOT_FOUND));
+        if (!reservation.customerAccountId().equals(query.accountId())) {
+            throw customerReservationNotFound(
+                    query.reservationId(), CustomerReservationDenialFact.RESERVATION_NOT_OWNED);
+        }
+        return toCustomerReservationResult(reservation, clock.instant());
+    }
+
     private Reservation cancelByCustomer(
             final CancelReservationCommand command,
             final Reservation reservation,
@@ -222,6 +275,51 @@ public class ReservationService {
                 .orElseThrow(() -> new BusinessNotAvailableException(businessId))
                 .timezone()
                 .value();
+    }
+
+    private CustomerReservationResult toCustomerReservationResult(
+            final Reservation reservation, final Instant now) {
+        final var business =
+                businessLookupPort
+                        .findCurrentSummaryById(reservation.businessId())
+                        .orElseThrow(
+                                () -> new BusinessNotAvailableException(reservation.businessId()));
+        final var resource =
+                resourceQueryPort
+                        .findByBusinessIdAndId(reservation.businessId(), reservation.resourceId())
+                        .orElseThrow(
+                                () ->
+                                        new ResourceNotAvailableException(
+                                                reservation.businessId(),
+                                                reservation.resourceId()));
+        return new CustomerReservationResult(
+                reservation.id().value(),
+                new CustomerReservationResult.BusinessSummary(
+                        business.id().value(),
+                        business.name(),
+                        business.slug(),
+                        business.timezone().value().getId()),
+                new CustomerReservationResult.ResourceSummary(
+                        resource.id().value(),
+                        resource.name().value(),
+                        resource.slug().value(),
+                        resource.status() == ResourceStatus.ACTIVE),
+                reservation.startAt(),
+                reservation.endAt(),
+                reservation.stateAt(now),
+                reservation.holdExpiresAt(),
+                reservation.createdAt(),
+                reservation.updatedAt(),
+                business.timezone().value());
+    }
+
+    private ReservationNotFoundException customerReservationNotFound(
+            final ReservationId reservationId, final CustomerReservationDenialFact denialFact) {
+        LOGGER.info(
+                "Customer reservation detail denied: reservationId={}, fact={}",
+                reservationId.value(),
+                denialFact);
+        return new ReservationNotFoundException(reservationId);
     }
 
     private BookingContext loadBookingContext(

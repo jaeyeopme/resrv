@@ -5,9 +5,18 @@ import io.resrv.shared.kernel.Timezone;
 import java.util.Objects;
 import java.util.Optional;
 
+/**
+ * Timeslot port for platform-owned business display and availability data.
+ *
+ * <p>{@link #findActiveById(BusinessId)} is for flows where inactive businesses are unavailable.
+ * {@link #findCurrentSummaryById(BusinessId)} is for historical customer-owned reservation
+ * rendering and may return inactive businesses.
+ */
 public interface BusinessLookupPort {
 
     Optional<BusinessView> findActiveById(BusinessId businessId);
+
+    Optional<BusinessView> findCurrentSummaryById(BusinessId businessId);
 
     record BusinessView(BusinessId id, String name, String slug, Timezone timezone) {
 

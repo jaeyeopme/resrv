@@ -3,14 +3,17 @@ package io.resrv.timeslot.application.reservation;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import io.resrv.shared.kernel.AccountId;
 import io.resrv.shared.kernel.BusinessId;
+import io.resrv.shared.kernel.ReservationId;
 import io.resrv.shared.kernel.ResourceId;
 import io.resrv.shared.kernel.Timezone;
 import io.resrv.timeslot.application.auth.out.BusinessAccessPort;
@@ -19,11 +22,14 @@ import io.resrv.timeslot.application.lock.out.SlotLockPort;
 import io.resrv.timeslot.application.reservation.in.CancelReservationCommand;
 import io.resrv.timeslot.application.reservation.in.CheckInReservationCommand;
 import io.resrv.timeslot.application.reservation.in.ConfirmReservationCommand;
+import io.resrv.timeslot.application.reservation.in.CustomerReservationDetailQuery;
+import io.resrv.timeslot.application.reservation.in.CustomerReservationListQuery;
 import io.resrv.timeslot.application.reservation.in.HoldReservationCommand;
 import io.resrv.timeslot.application.reservation.in.ListBusinessReservationsQuery;
 import io.resrv.timeslot.application.reservation.in.MarkNoShowReservationCommand;
 import io.resrv.timeslot.application.reservation.in.ReleaseReservationCommand;
 import io.resrv.timeslot.application.reservation.out.ReservationCommandPort;
+import io.resrv.timeslot.application.reservation.out.ReservationPage;
 import io.resrv.timeslot.application.reservation.out.ReservationQueryPort;
 import io.resrv.timeslot.application.resource.out.ResourceQueryPort;
 import io.resrv.timeslot.application.schedule.out.ResourceScheduleQueryPort;
@@ -92,6 +98,8 @@ final class ReservationServiceTest {
         businessAccessPort = mock(BusinessAccessPort.class);
         serviceAt(NOW);
         when(businessLookupPort.findActiveById(BUSINESS_ID))
+                .thenReturn(Optional.of(activeBusiness()));
+        when(businessLookupPort.findCurrentSummaryById(BUSINESS_ID))
                 .thenReturn(Optional.of(activeBusiness()));
     }
 
@@ -396,6 +404,72 @@ final class ReservationServiceTest {
                 () ->
                         new ListBusinessReservationsQuery(
                                 BUSINESS_ID, STAFF_ACCOUNT_ID, null, null, null, null));
+    }
+
+    @Test
+    void listCustomerReservationsDoesNotRequireBusinessMembershipAndIncludesInactiveResource() {
+        final var reservation = confirmedReservation();
+        final var inactiveResource = resource(ResourceBookingOverrides.none()).deactivate(NOW);
+        when(resourceQueryPort.findByBusinessIdAndId(BUSINESS_ID, RESOURCE_ID))
+                .thenReturn(Optional.of(inactiveResource));
+        when(reservationQueryPort.findByCustomerAccountId(
+                        eq(CUSTOMER_ACCOUNT_ID), eq(0), eq(20), eq(null), eq(null), eq(NOW)))
+                .thenReturn(new ReservationPage(List.of(reservation), 0, 20, 1, 1));
+
+        final var page =
+                service.listCustomerReservations(
+                        new CustomerReservationListQuery(CUSTOMER_ACCOUNT_ID, 0, 20, null, null));
+
+        assertEquals(1, page.items().size());
+        assertEquals(ReservationState.CONFIRMED, page.items().getFirst().state());
+        assertEquals("Salon A", page.items().getFirst().business().name());
+        assertEquals(false, page.items().getFirst().resource().active());
+        verifyNoInteractions(businessAccessPort);
+    }
+
+    @Test
+    void getCustomerReservationRequiresOwnerOnlyAndDerivesStateAtRequestTime() {
+        final var expiredHold =
+                Reservation.hold(
+                        BUSINESS_ID,
+                        RESOURCE_ID,
+                        CUSTOMER_ACCOUNT_ID,
+                        SLOT_START_AT,
+                        SLOT_END_AT,
+                        NOW.minusSeconds(1),
+                        NOW.minusSeconds(60));
+        when(resourceQueryPort.findByBusinessIdAndId(BUSINESS_ID, RESOURCE_ID))
+                .thenReturn(Optional.of(resource(ResourceBookingOverrides.none())));
+        when(reservationQueryPort.findById(expiredHold.id())).thenReturn(Optional.of(expiredHold));
+
+        final var result =
+                service.getCustomerReservation(
+                        new CustomerReservationDetailQuery(CUSTOMER_ACCOUNT_ID, expiredHold.id()));
+
+        assertEquals(ReservationState.EXPIRED, result.state());
+
+        assertThrows(
+                ReservationNotFoundException.class,
+                () ->
+                        service.getCustomerReservation(
+                                new CustomerReservationDetailQuery(
+                                        STAFF_ACCOUNT_ID, expiredHold.id())));
+    }
+
+    @Test
+    void getCustomerReservationMissingReturnsSharedNotFoundOutcome() {
+        final var missingId = ReservationId.create();
+        when(reservationQueryPort.findById(missingId)).thenReturn(Optional.empty());
+
+        final var exception =
+                assertThrows(
+                        ReservationNotFoundException.class,
+                        () ->
+                                service.getCustomerReservation(
+                                        new CustomerReservationDetailQuery(
+                                                CUSTOMER_ACCOUNT_ID, missingId)));
+
+        assertEquals("Reservation not found", exception.getMessage());
     }
 
     private void serviceAt(final Instant now) {

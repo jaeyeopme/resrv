@@ -5,11 +5,16 @@ import io.resrv.shared.kernel.BusinessId;
 import io.resrv.shared.kernel.ReservationId;
 import io.resrv.shared.kernel.ResourceId;
 import io.resrv.timeslot.application.reservation.out.ReservationCommandPort;
+import io.resrv.timeslot.application.reservation.out.ReservationPage;
 import io.resrv.timeslot.application.reservation.out.ReservationQueryPort;
 import io.resrv.timeslot.domain.reservation.Reservation;
+import io.resrv.timeslot.domain.reservation.ReservationCancellationActor;
+import io.resrv.timeslot.domain.reservation.ReservationState;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Repository;
 
 @Repository
@@ -65,5 +70,45 @@ class ReservationPersistenceAdapter implements ReservationCommandPort, Reservati
         return repository
                 .findByBusinessIdAndIdForUpdate(businessId.value(), reservationId.value())
                 .map(ReservationJpaEntity::toDomain);
+    }
+
+    @Override
+    public ReservationPage findByCustomerAccountId(
+            final AccountId accountId,
+            final int page,
+            final int size,
+            final ReservationState state,
+            final Boolean upcoming,
+            final Instant now) {
+        final var result =
+                repository.findByCustomerAccountId(
+                        accountId.value(),
+                        state == null ? null : state.name(),
+                        upcoming,
+                        now,
+                        ReservationCancellationActor.CUSTOMER,
+                        ReservationCancellationActor.BUSINESS,
+                        customerHistoryPage(page, size));
+        return new ReservationPage(
+                result.getContent().stream().map(ReservationJpaEntity::toDomain).toList(),
+                result.getNumber(),
+                result.getSize(),
+                result.getTotalElements(),
+                result.getTotalPages());
+    }
+
+    @Override
+    public Optional<Reservation> findById(final ReservationId reservationId) {
+        return repository.findById(reservationId.value()).map(ReservationJpaEntity::toDomain);
+    }
+
+    private static PageRequest customerHistoryPage(final int page, final int size) {
+        return PageRequest.of(
+                page,
+                size,
+                Sort.by(
+                        Sort.Order.desc("startAt"),
+                        Sort.Order.desc("createdAt"),
+                        Sort.Order.desc("id")));
     }
 }

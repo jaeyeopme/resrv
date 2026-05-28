@@ -1,6 +1,7 @@
 package io.resrv.timeslot.adapter.out.platform;
 
 import io.resrv.platform.contract.business.ActiveBusinessLookup;
+import io.resrv.platform.contract.business.BusinessSummaryLookup;
 import io.resrv.platform.contract.membership.BusinessAccessCheck;
 import io.resrv.shared.kernel.AccountId;
 import io.resrv.shared.kernel.BusinessId;
@@ -13,12 +14,15 @@ import org.springframework.stereotype.Repository;
 class PlatformBusinessLookupAdapter implements BusinessLookupPort, BusinessAccessPort {
 
     private final ActiveBusinessLookup activeBusinessLookup;
+    private final BusinessSummaryLookup businessSummaryLookup;
     private final BusinessAccessCheck businessAccessCheck;
 
     PlatformBusinessLookupAdapter(
             final ActiveBusinessLookup activeBusinessLookup,
+            final BusinessSummaryLookup businessSummaryLookup,
             final BusinessAccessCheck businessAccessCheck) {
         this.activeBusinessLookup = activeBusinessLookup;
+        this.businessSummaryLookup = businessSummaryLookup;
         this.businessAccessCheck = businessAccessCheck;
     }
 
@@ -26,6 +30,19 @@ class PlatformBusinessLookupAdapter implements BusinessLookupPort, BusinessAcces
     public Optional<BusinessView> findActiveById(final BusinessId businessId) {
         return activeBusinessLookup
                 .findActiveById(businessId)
+                .map(
+                        business ->
+                                new BusinessView(
+                                        business.id(),
+                                        business.name(),
+                                        business.slug(),
+                                        business.timezone()));
+    }
+
+    @Override
+    public Optional<BusinessView> findCurrentSummaryById(final BusinessId businessId) {
+        return businessSummaryLookup
+                .findCurrentSummaryById(businessId)
                 .map(
                         business ->
                                 new BusinessView(
