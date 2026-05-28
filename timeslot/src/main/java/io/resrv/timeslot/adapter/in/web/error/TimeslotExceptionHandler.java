@@ -10,6 +10,7 @@ import io.resrv.timeslot.application.settings.BookingSettingsRequiredException;
 import io.resrv.timeslot.domain.reservation.ReservationHoldExpiredException;
 import io.resrv.timeslot.domain.reservation.ReservationInvalidStateException;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.ConstraintViolationException;
 import java.net.URI;
 import java.time.DateTimeException;
 import java.util.Objects;
@@ -20,6 +21,7 @@ import org.springframework.web.ErrorResponse;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.HandlerMethodValidationException;
 
 @RestControllerAdvice(basePackages = "io.resrv.timeslot.adapter.in.web")
 class TimeslotExceptionHandler {
@@ -40,6 +42,18 @@ class TimeslotExceptionHandler {
                                                 fieldError.getDefaultMessage()))
                         .toList());
         return problemDetail;
+    }
+
+    @ExceptionHandler(HandlerMethodValidationException.class)
+    ProblemDetail handleHandlerMethodValidation(
+            final HandlerMethodValidationException exception, final HttpServletRequest request) {
+        return problem(HttpStatus.BAD_REQUEST, "Validation failed", request);
+    }
+
+    @ExceptionHandler(ConstraintViolationException.class)
+    ProblemDetail handleConstraintViolation(
+            final ConstraintViolationException exception, final HttpServletRequest request) {
+        return problem(HttpStatus.BAD_REQUEST, "Validation failed", request);
     }
 
     @ExceptionHandler(ResourceSlugAlreadyExistsException.class)

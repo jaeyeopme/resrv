@@ -83,6 +83,14 @@ final class TimeslotBookingApiIntegrationTest {
                 Timestamp.from(TOKEN_NOW));
         jdbcTemplate.update(
                 """
+                INSERT INTO platform.account (
+                    id, email, name, hashed_password, status, created_at
+                ) VALUES (?, 'other@example.com', 'Other One', '$2a$10$testhash', 'ACTIVE', ?)
+                """,
+                OTHER_ACCOUNT_ID,
+                Timestamp.from(TOKEN_NOW));
+        jdbcTemplate.update(
+                """
                 INSERT INTO platform.business (
                     id, name, slug, timezone, status, created_at
                 ) VALUES (?, 'Salon A', 'salon-a', 'Asia/Seoul', 'ACTIVE', ?)
@@ -577,6 +585,197 @@ final class TimeslotBookingApiIntegrationTest {
     }
 
     @Test
+    void customerReservationListIsOwnerScopedPagedAndTimezoneRendered() throws Exception {
+        final var resourceId = UUID.fromString("00000000-0000-0000-0000-000000000030");
+        final var laterReservation = UUID.fromString("00000000-0000-0000-0000-000000000041");
+        final var earlierReservation = UUID.fromString("00000000-0000-0000-0000-000000000042");
+        insertResource(resourceId, "Room A", "room-a", "ACTIVE");
+        insertReservation(
+                laterReservation,
+                ACCOUNT_ID,
+                resourceId,
+                "2026-05-25T02:00:00Z",
+                "2026-05-25T02:30:00Z",
+                "2026-05-25T00:01:00Z",
+                "2026-05-25T00:00:00Z",
+                null);
+        insertReservation(
+                earlierReservation,
+                ACCOUNT_ID,
+                resourceId,
+                "2026-05-25T01:00:00Z",
+                "2026-05-25T01:30:00Z",
+                "2026-05-25T00:02:00Z",
+                "2026-05-25T00:00:00Z",
+                "2026-05-25T00:00:00Z");
+        insertReservation(
+                UUID.fromString("00000000-0000-0000-0000-000000000043"),
+                OTHER_ACCOUNT_ID,
+                resourceId,
+                "2026-05-25T03:00:00Z",
+                "2026-05-25T03:30:00Z",
+                "2026-05-25T00:03:00Z",
+                "2026-05-25T00:00:00Z",
+                null);
+
+        mockMvc.perform(
+                        get("/api/me/reservations")
+                                .header(
+                                        HttpHeaders.AUTHORIZATION,
+                                        "Bearer " + signedToken(ACCOUNT_ID)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.page").value(0))
+                .andExpect(jsonPath("$.size").value(20))
+                .andExpect(jsonPath("$.totalElements").value(2))
+                .andExpect(jsonPath("$.items[0].reservationId").value(laterReservation.toString()))
+                .andExpect(jsonPath("$.items[0].business.name").value("Salon A"))
+                .andExpect(jsonPath("$.items[0].resource.name").value("Room A"))
+                .andExpect(jsonPath("$.items[0].startAt").value("2026-05-25T11:00:00+09:00"))
+                .andExpect(jsonPath("$.items[0].state").value("HELD"))
+                .andExpect(
+                        jsonPath("$.items[1].reservationId").value(earlierReservation.toString()));
+
+        mockMvc.perform(
+                        get("/api/me/reservations")
+                                .header(
+                                        HttpHeaders.AUTHORIZATION,
+                                        "Bearer " + signedToken(OTHER_ACCOUNT_ID))
+                                .param("page", "5")
+                                .param("size", "20"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items").isEmpty());
+
+        mockMvc.perform(
+                        get("/api/me/reservations")
+                                .header(
+                                        HttpHeaders.AUTHORIZATION,
+                                        "Bearer " + signedToken(ACCOUNT_ID))
+                                .param("size", "101"))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void customerReservationDetailUsesSameNotFoundForMissingAndNotOwned() throws Exception {
+        final var resourceId = UUID.fromString("00000000-0000-0000-0000-000000000031");
+        final var reservationId = UUID.fromString("00000000-0000-0000-0000-000000000044");
+        final var missingId = UUID.fromString("00000000-0000-0000-0000-000000000045");
+        insertResource(resourceId, "Room B", "room-b", "INACTIVE");
+        insertReservation(
+                reservationId,
+                ACCOUNT_ID,
+                resourceId,
+                "2026-05-25T01:00:00Z",
+                "2026-05-25T01:30:00Z",
+                "2026-05-24T23:00:00Z",
+                "2026-05-24T22:00:00Z",
+                null);
+
+        mockMvc.perform(
+                        get("/api/me/reservations/{reservationId}", reservationId)
+                                .header(
+                                        HttpHeaders.AUTHORIZATION,
+                                        "Bearer " + signedToken(ACCOUNT_ID)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.reservationId").value(reservationId.toString()))
+                .andExpect(jsonPath("$.resource.active").value(false))
+                .andExpect(jsonPath("$.state").value("EXPIRED"))
+                .andExpect(jsonPath("$.holdExpiresAt").value("2026-05-25T08:00:00+09:00"));
+
+        final var notOwned =
+                mockMvc.perform(
+                                get("/api/me/reservations/{reservationId}", reservationId)
+                                        .header(
+                                                HttpHeaders.AUTHORIZATION,
+                                                "Bearer " + signedToken(OTHER_ACCOUNT_ID)))
+                        .andExpect(status().isNotFound())
+                        .andReturn()
+                        .getResponse()
+                        .getContentAsString();
+        final var missing =
+                mockMvc.perform(
+                                get("/api/me/reservations/{reservationId}", missingId)
+                                        .header(
+                                                HttpHeaders.AUTHORIZATION,
+                                                "Bearer " + signedToken(OTHER_ACCOUNT_ID)))
+                        .andExpect(status().isNotFound())
+                        .andReturn()
+                        .getResponse()
+                        .getContentAsString();
+
+        Assertions.assertEquals(
+                (Integer) JsonPath.read(notOwned, "$.status"),
+                (Integer) JsonPath.read(missing, "$.status"));
+        Assertions.assertEquals(
+                (String) JsonPath.read(notOwned, "$.detail"),
+                (String) JsonPath.read(missing, "$.detail"));
+    }
+
+    @Test
+    void customerReservationFiltersApplyBeforePagination() throws Exception {
+        final var resourceId = UUID.fromString("00000000-0000-0000-0000-000000000032");
+        final var expiredId = UUID.fromString("00000000-0000-0000-0000-000000000046");
+        final var confirmedId = UUID.fromString("00000000-0000-0000-0000-000000000047");
+        insertResource(resourceId, "Room C", "room-c", "ACTIVE");
+        insertReservation(
+                expiredId,
+                ACCOUNT_ID,
+                resourceId,
+                "2026-05-25T03:00:00Z",
+                "2026-05-25T03:30:00Z",
+                "2026-05-24T23:00:00Z",
+                "2026-05-24T22:00:00Z",
+                null);
+        insertReservation(
+                confirmedId,
+                ACCOUNT_ID,
+                resourceId,
+                "2026-05-25T01:00:00Z",
+                "2026-05-25T01:30:00Z",
+                "2026-05-25T00:10:00Z",
+                "2026-05-25T00:00:00Z",
+                "2026-05-25T00:00:00Z");
+
+        mockMvc.perform(
+                        get("/api/me/reservations")
+                                .header(
+                                        HttpHeaders.AUTHORIZATION,
+                                        "Bearer " + signedToken(ACCOUNT_ID))
+                                .param("state", "CONFIRMED")
+                                .param("size", "1"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.totalElements").value(1))
+                .andExpect(jsonPath("$.items[0].reservationId").value(confirmedId.toString()));
+
+        mockMvc.perform(
+                        get("/api/me/reservations")
+                                .header(
+                                        HttpHeaders.AUTHORIZATION,
+                                        "Bearer " + signedToken(ACCOUNT_ID))
+                                .param("upcoming", "true")
+                                .param("size", "1"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.totalElements").value(1))
+                .andExpect(jsonPath("$.items[0].reservationId").value(confirmedId.toString()));
+
+        mockMvc.perform(
+                        get("/api/me/reservations")
+                                .header(
+                                        HttpHeaders.AUTHORIZATION,
+                                        "Bearer " + signedToken(ACCOUNT_ID))
+                                .param("state", "BOGUS"))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void generatedOpenApiIncludesCustomerReservationOperations() throws Exception {
+        mockMvc.perform(get("/v3/api-docs"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.paths['/api/me/reservations'].get").exists())
+                .andExpect(
+                        jsonPath("$.paths['/api/me/reservations/{reservationId}'].get").exists());
+    }
+
+    @Test
     void tokenWithoutJtiIsRejectedBeforeController() throws Exception {
         final var accountId = ACCOUNT_ID.toString();
         assertReservationsTokenRejected(
@@ -810,6 +1009,51 @@ final class TimeslotBookingApiIntegrationTest {
                                 }
                                 """
                                         .formatted(resourceId, slotId)));
+    }
+
+    private void insertResource(
+            final UUID resourceId, final String name, final String slug, final String status) {
+        jdbcTemplate.update(
+                """
+                INSERT INTO timeslot.resource (
+                    id, business_id, slug, name, description, status, created_at, updated_at
+                ) VALUES (?, ?, ?, ?, null, ?, ?, ?)
+                """,
+                resourceId,
+                BUSINESS_ID,
+                slug,
+                name,
+                status,
+                Timestamp.from(TOKEN_NOW),
+                Timestamp.from(TOKEN_NOW));
+    }
+
+    private void insertReservation(
+            final UUID reservationId,
+            final UUID accountId,
+            final UUID resourceId,
+            final String startAt,
+            final String endAt,
+            final String holdExpiresAt,
+            final String createdAt,
+            final String confirmedAt) {
+        jdbcTemplate.update(
+                """
+                INSERT INTO timeslot.reservation (
+                    id, business_id, resource_id, customer_account_id, start_at, end_at,
+                    hold_expires_at, created_at, updated_at, confirmed_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                reservationId,
+                BUSINESS_ID,
+                resourceId,
+                accountId,
+                Timestamp.from(Instant.parse(startAt)),
+                Timestamp.from(Instant.parse(endAt)),
+                Timestamp.from(Instant.parse(holdExpiresAt)),
+                Timestamp.from(Instant.parse(createdAt)),
+                Timestamp.from(Instant.parse(createdAt)),
+                confirmedAt == null ? null : Timestamp.from(Instant.parse(confirmedAt)));
     }
 
     private static String signedToken(final UUID accountId) throws JOSEException {

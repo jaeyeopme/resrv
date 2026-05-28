@@ -62,6 +62,11 @@ ArchUnit verifies:
 Reservation list/search tests verify business membership authorization, business-local date
 windows, optional resource/customer/state filters, and deterministic start-time ordering.
 
+Customer reservation history tests verify self-scoped list/detail APIs, owner-only account
+filtering, inactive business/resource summary rendering, bounded page/size validation, stable
+descending ordering, derived state and `upcoming=true` filtering before pagination, and identical
+public `404` responses for missing and not-owned detail lookups.
+
 Business resource lifecycle tests verify full replacement semantics for booking settings, resource
 details, booking overrides, weekly schedules, and date overrides. They also cover explicit
 activate/deactivate actions, public discovery exclusion for inactive resources, future-only policy
