@@ -6,7 +6,9 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import io.resrv.shared.kernel.AccountId;
@@ -19,6 +21,7 @@ import io.resrv.timeslot.application.discovery.in.PublicBusinessDiscoveryQuery;
 import io.resrv.timeslot.application.discovery.in.PublicResourceDiscoveryQuery;
 import io.resrv.timeslot.application.discovery.in.PublicSlotDiscoveryQuery;
 import io.resrv.timeslot.application.reservation.ReservationService;
+import io.resrv.timeslot.application.reservation.SlotUnavailableException;
 import io.resrv.timeslot.application.reservation.in.HoldReservationCommand;
 import io.resrv.timeslot.application.reservation.out.ReservationQueryPort;
 import io.resrv.timeslot.application.resource.out.ResourceQueryPort;
@@ -225,6 +228,66 @@ final class PublicBookingDiscoveryServiceTest {
         assertEquals(BUSINESS_ID, captor.getValue().businessId());
         assertEquals(RESOURCE_ID, captor.getValue().resourceId());
         assertEquals(ACCOUNT_ID, captor.getValue().accountId());
+    }
+
+    @Test
+    void rejectsInactiveResourceBeforeSlugScopedHoldDelegation() {
+        givenBookableBusiness();
+        when(resourceQueryPort.findById(RESOURCE_ID))
+                .thenReturn(Optional.of(inactiveResource(BUSINESS_ID)));
+
+        assertThrows(
+                PublicDiscoveryNotFoundException.class,
+                () ->
+                        service.holdReservation(
+                                new HoldReservationByBusinessSlugCommand(
+                                        "salon-a", RESOURCE_ID, ACCOUNT_ID, "slot")));
+        verifyNoInteractions(reservationService);
+    }
+
+    @Test
+    void rejectsWrongBusinessResourceBeforeSlugScopedHoldDelegation() {
+        givenBookableBusiness();
+        when(resourceQueryPort.findById(RESOURCE_ID))
+                .thenReturn(Optional.of(activeResource(OTHER_BUSINESS_ID)));
+
+        assertThrows(
+                PublicDiscoveryNotFoundException.class,
+                () ->
+                        service.holdReservation(
+                                new HoldReservationByBusinessSlugCommand(
+                                        "salon-a", RESOURCE_ID, ACCOUNT_ID, "slot")));
+        verifyNoInteractions(reservationService);
+    }
+
+    @Test
+    void delegatesSlotIdentityAndAvailabilityRevalidationToReservationService() {
+        givenBookableBusiness();
+        when(resourceQueryPort.findById(RESOURCE_ID)).thenReturn(Optional.of(activeResource()));
+        when(reservationService.hold(any(HoldReservationCommand.class)))
+                .thenThrow(new SlotUnavailableException(RESOURCE_ID, NOW));
+        final var rejectedSlotIds =
+                List.of(
+                        "unavailable-slot",
+                        "malformed-slot",
+                        "stale-slot",
+                        "wrong-business-slot",
+                        "wrong-resource-slot");
+
+        for (final var slotId : rejectedSlotIds) {
+            assertThrows(
+                    SlotUnavailableException.class,
+                    () ->
+                            service.holdReservation(
+                                    new HoldReservationByBusinessSlugCommand(
+                                            "salon-a", RESOURCE_ID, ACCOUNT_ID, slotId)));
+        }
+
+        final var captor = ArgumentCaptor.forClass(HoldReservationCommand.class);
+        verify(reservationService, times(rejectedSlotIds.size())).hold(captor.capture());
+        assertEquals(
+                rejectedSlotIds,
+                captor.getAllValues().stream().map(HoldReservationCommand::slotId).toList());
     }
 
     private void givenBookableBusiness() {
