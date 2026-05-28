@@ -83,6 +83,19 @@ If a baseline uncovers unclear or incorrect behavior, create a new focused
 feature spec for the change rather than mixing behavior change into the
 baseline.
 
+## Spec Status
+
+Use `Baseline` for existing-behavior reference specs that intentionally have no
+implementation tasks. Use `Pending` for candidate feature specs that have no
+`plan.md` or `tasks.md` yet. Use `Implemented` only after a task-backed feature
+has all tasks completed and the implementation has been merged.
+
+## Extension Hooks
+
+Local `.specify/extensions.yml` hook settings are ignored by Git. Disabling the
+analyze hook suppresses `/speckit.analyze` commit prompts only; other Spec Kit
+steps can still show their own enabled hook prompts.
+
 ## Implementation Rules
 
 - Read the active feature's `plan.md` before implementation.
