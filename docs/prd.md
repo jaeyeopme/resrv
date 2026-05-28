@@ -117,8 +117,10 @@ reservations.
 
 ## Open Product Questions
 
-- Whether staff membership management belongs in the next platform milestone.
+- Staff membership management is captured as pending spec `008-staff-membership-management`; it is
+  not planned or implemented yet.
 - Whether customers need profile data beyond `Account`.
-- Whether local review should run one combined API or separate platform/timeslot runtimes.
+- Runtime packaging is captured as pending spec `009-modular-monolith-runtime`; `timeslot` local
+  `bootRun` remains disabled until that decision is planned and implemented.
 - Whether password reset needs a first-party web screen in this repository or an external client
   route.
