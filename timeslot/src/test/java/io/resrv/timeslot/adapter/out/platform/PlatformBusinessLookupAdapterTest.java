@@ -54,6 +54,29 @@ final class PlatformBusinessLookupAdapterTest {
     }
 
     @Test
+    void mapsActivePlatformBusinessBySlugToTimeslotBusinessView() {
+        when(activeBusinessLookup.findActiveBySlug("salon-a"))
+                .thenReturn(
+                        Optional.of(
+                                new ActiveBusinessView(
+                                        BUSINESS_ID, "Salon A", "salon-a", TIMEZONE)));
+
+        final var business = adapter.findActiveBySlug("salon-a").orElseThrow();
+
+        assertEquals(BUSINESS_ID, business.id());
+        assertEquals("Salon A", business.name());
+        assertEquals("salon-a", business.slug());
+        assertEquals(TIMEZONE, business.timezone());
+    }
+
+    @Test
+    void mapsMissingPlatformBusinessSlugToEmpty() {
+        when(activeBusinessLookup.findActiveBySlug("missing")).thenReturn(Optional.empty());
+
+        assertTrue(adapter.findActiveBySlug("missing").isEmpty());
+    }
+
+    @Test
     void mapsCurrentPlatformBusinessSummaryToTimeslotBusinessView() {
         when(businessSummaryLookup.findCurrentSummaryById(BUSINESS_ID))
                 .thenReturn(
@@ -62,6 +85,22 @@ final class PlatformBusinessLookupAdapterTest {
                                         BUSINESS_ID, "Salon A", "salon-a", TIMEZONE)));
 
         final var business = adapter.findCurrentSummaryById(BUSINESS_ID).orElseThrow();
+
+        assertEquals(BUSINESS_ID, business.id());
+        assertEquals("Salon A", business.name());
+        assertEquals("salon-a", business.slug());
+        assertEquals(TIMEZONE, business.timezone());
+    }
+
+    @Test
+    void mapsCurrentPlatformBusinessSummaryBySlugToTimeslotBusinessView() {
+        when(businessSummaryLookup.findCurrentSummaryBySlug("salon-a"))
+                .thenReturn(
+                        Optional.of(
+                                new BusinessSummaryView(
+                                        BUSINESS_ID, "Salon A", "salon-a", TIMEZONE)));
+
+        final var business = adapter.findCurrentSummaryBySlug("salon-a").orElseThrow();
 
         assertEquals(BUSINESS_ID, business.id());
         assertEquals("Salon A", business.name());
