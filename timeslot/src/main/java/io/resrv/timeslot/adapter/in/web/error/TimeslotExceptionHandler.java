@@ -1,6 +1,7 @@
 package io.resrv.timeslot.adapter.in.web.error;
 
 import io.resrv.timeslot.application.business.BusinessNotAvailableException;
+import io.resrv.timeslot.application.discovery.PublicDiscoveryNotFoundException;
 import io.resrv.timeslot.application.reservation.ReservationAccessDeniedException;
 import io.resrv.timeslot.application.reservation.ReservationNotFoundException;
 import io.resrv.timeslot.application.reservation.SlotUnavailableException;
@@ -22,6 +23,7 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.HandlerMethodValidationException;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 @RestControllerAdvice(basePackages = "io.resrv.timeslot.adapter.in.web")
 class TimeslotExceptionHandler {
@@ -72,6 +74,7 @@ class TimeslotExceptionHandler {
 
     @ExceptionHandler({
         BusinessNotAvailableException.class,
+        PublicDiscoveryNotFoundException.class,
         ResourceNotAvailableException.class,
         ReservationNotFoundException.class,
     })
@@ -95,6 +98,12 @@ class TimeslotExceptionHandler {
     ProblemDetail handleBadRequest(
             final RuntimeException exception, final HttpServletRequest request) {
         return problem(HttpStatus.BAD_REQUEST, exception.getMessage(), request);
+    }
+
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    ProblemDetail handleMethodArgumentTypeMismatch(
+            final MethodArgumentTypeMismatchException exception, final HttpServletRequest request) {
+        return problem(HttpStatus.BAD_REQUEST, "Validation failed", request);
     }
 
     @ExceptionHandler(HttpMessageNotReadableException.class)

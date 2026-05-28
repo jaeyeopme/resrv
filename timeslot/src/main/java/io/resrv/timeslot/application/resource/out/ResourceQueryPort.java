@@ -11,6 +11,8 @@ public interface ResourceQueryPort {
 
     Optional<Resource> findByBusinessIdAndSlug(BusinessId businessId, ResourceSlug slug);
 
+    Optional<Resource> findById(ResourceId resourceId);
+
     Optional<Resource> findByBusinessIdAndId(BusinessId businessId, ResourceId resourceId);
 
     List<Resource> findActiveByBusinessId(BusinessId businessId);

@@ -13,4 +13,6 @@ import java.util.Optional;
 public interface BusinessSummaryLookup {
 
     Optional<BusinessSummaryView> findCurrentSummaryById(BusinessId businessId);
+
+    Optional<BusinessSummaryView> findCurrentSummaryBySlug(String slug);
 }

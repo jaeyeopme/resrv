@@ -13,4 +13,6 @@ import java.util.Optional;
 public interface ActiveBusinessLookup {
 
     Optional<ActiveBusinessView> findActiveById(BusinessId businessId);
+
+    Optional<ActiveBusinessView> findActiveBySlug(String slug);
 }

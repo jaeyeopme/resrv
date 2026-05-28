@@ -58,6 +58,9 @@ class TimeslotSecurityConfig {
                         auth ->
                                 auth.requestMatchers(
                                                 HttpMethod.GET,
+                                                "/api/public/businesses/*",
+                                                "/api/public/businesses/*/resources",
+                                                "/api/public/businesses/*/resources/*/slots",
                                                 "/api/businesses/*/resources",
                                                 "/api/businesses/*/resources/*/slots")
                                         .permitAll()

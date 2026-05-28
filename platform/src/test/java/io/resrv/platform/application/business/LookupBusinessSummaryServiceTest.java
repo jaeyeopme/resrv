@@ -61,6 +61,26 @@ final class LookupBusinessSummaryServiceTest {
         assertTrue(service.findCurrentSummaryById(BUSINESS_ID).isEmpty());
     }
 
+    @Test
+    void findsInactiveBusinessSummaryBySlug() {
+        final var slug = new BusinessSlug("salon-a");
+        when(businessQueryPort.findBySlug(slug))
+                .thenReturn(Optional.of(business(BusinessStatus.INACTIVE)));
+
+        final var business = service.findCurrentSummaryBySlug("salon-a").orElseThrow();
+
+        assertEquals(BUSINESS_ID, business.id());
+        assertEquals("salon-a", business.slug());
+    }
+
+    @Test
+    void missingBusinessSummaryBySlugIsEmpty() {
+        final var slug = new BusinessSlug("salon-a");
+        when(businessQueryPort.findBySlug(slug)).thenReturn(Optional.empty());
+
+        assertTrue(service.findCurrentSummaryBySlug("salon-a").isEmpty());
+    }
+
     private static Business business(final BusinessStatus status) {
         return Business.reconstitute(
                 BUSINESS_ID,

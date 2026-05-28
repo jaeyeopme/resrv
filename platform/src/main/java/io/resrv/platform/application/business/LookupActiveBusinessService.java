@@ -4,6 +4,7 @@ import io.resrv.platform.application.business.out.BusinessQueryPort;
 import io.resrv.platform.contract.business.ActiveBusinessLookup;
 import io.resrv.platform.contract.business.ActiveBusinessView;
 import io.resrv.platform.domain.business.Business;
+import io.resrv.platform.domain.business.BusinessSlug;
 import io.resrv.shared.kernel.BusinessId;
 import java.util.Optional;
 import org.springframework.stereotype.Service;
@@ -24,12 +25,22 @@ public class LookupActiveBusinessService implements ActiveBusinessLookup {
         return businessQueryPort
                 .findById(businessId)
                 .filter(Business::active)
-                .map(
-                        business ->
-                                new ActiveBusinessView(
-                                        business.id(),
-                                        business.name().value(),
-                                        business.slug().value(),
-                                        business.timezone()));
+                .map(LookupActiveBusinessService::toView);
+    }
+
+    @Override
+    public Optional<ActiveBusinessView> findActiveBySlug(final String slug) {
+        return businessQueryPort
+                .findBySlug(new BusinessSlug(slug))
+                .filter(Business::active)
+                .map(LookupActiveBusinessService::toView);
+    }
+
+    private static ActiveBusinessView toView(final Business business) {
+        return new ActiveBusinessView(
+                business.id(),
+                business.name().value(),
+                business.slug().value(),
+                business.timezone());
     }
 }

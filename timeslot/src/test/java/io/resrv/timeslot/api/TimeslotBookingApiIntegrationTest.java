@@ -305,6 +305,206 @@ final class TimeslotBookingApiIntegrationTest {
     }
 
     @Test
+    void publicBookingDiscoveryUsesBusinessSlugAndDoesNotExposeBusinessId() throws Exception {
+        final var token = signedToken(ACCOUNT_ID);
+        putSettings(token, 30, 10, 60, 30);
+        final var resourceId = createResource(token, "Room A", "room-a");
+        replaceWeeklySchedule(token, resourceId, "MONDAY", "10:00:00", "11:00:00");
+
+        mockMvc.perform(get("/api/public/businesses/{businessSlug}", "salon-a"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.slug").value("salon-a"))
+                .andExpect(jsonPath("$.name").value("Salon A"))
+                .andExpect(jsonPath("$.timezone").value("Asia/Seoul"))
+                .andExpect(jsonPath("$.id").doesNotExist())
+                .andExpect(jsonPath("$.businessId").doesNotExist());
+
+        mockMvc.perform(get("/api/public/businesses/{businessSlug}/resources", "salon-a"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].resourceId").value(resourceId))
+                .andExpect(jsonPath("$[0].businessSlug").value("salon-a"))
+                .andExpect(jsonPath("$[0].businessId").doesNotExist());
+
+        final var slotsJson =
+                mockMvc.perform(
+                                get(
+                                                "/api/public/businesses/{businessSlug}/resources/{resourceId}/slots",
+                                                "salon-a",
+                                                resourceId)
+                                        .param("date", "2026-05-25"))
+                        .andExpect(status().isOk())
+                        .andExpect(jsonPath("$[0].slotId", notNullValue()))
+                        .andExpect(jsonPath("$[0].available").value(true))
+                        .andReturn()
+                        .getResponse()
+                        .getContentAsString();
+        final String slotId = JsonPath.read(slotsJson, "$[0].slotId");
+
+        mockMvc.perform(
+                        post("/api/public/businesses/{businessSlug}/reservations", "salon-a")
+                                .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(
+                                        """
+                                        {
+                                          "resourceId": "%s",
+                                          "slotId": "%s"
+                                        }
+                                        """
+                                                .formatted(resourceId, slotId)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.state").value("HELD"))
+                .andExpect(jsonPath("$.businessId").doesNotExist())
+                .andExpect(jsonPath("$.customerAccountId").doesNotExist())
+                .andExpect(jsonPath("$.startAt").value("2026-05-25T10:00:00+09:00"));
+
+        mockMvc.perform(
+                        get(
+                                        "/api/public/businesses/{businessSlug}/resources/{resourceId}/slots",
+                                        "salon-a",
+                                        resourceId)
+                                .param("date", "2026-05-25"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].available").value(false));
+    }
+
+    @Test
+    void publicDiscoveryCollapsesNonBookableAndWrongBusinessLookups() throws Exception {
+        final var missing =
+                mockMvc.perform(get("/api/public/businesses/{businessSlug}", "missing-business"))
+                        .andExpect(status().isNotFound())
+                        .andReturn()
+                        .getResponse()
+                        .getContentAsString();
+
+        jdbcTemplate.update(
+                "UPDATE platform.business SET status = 'INACTIVE' WHERE id = ?", BUSINESS_ID);
+        final var inactive =
+                mockMvc.perform(get("/api/public/businesses/{businessSlug}", "salon-a"))
+                        .andExpect(status().isNotFound())
+                        .andReturn()
+                        .getResponse()
+                        .getContentAsString();
+
+        jdbcTemplate.update(
+                "UPDATE platform.business SET status = 'ACTIVE' WHERE id = ?", BUSINESS_ID);
+        final var missingSettings =
+                mockMvc.perform(get("/api/public/businesses/{businessSlug}", "salon-a"))
+                        .andExpect(status().isNotFound())
+                        .andReturn()
+                        .getResponse()
+                        .getContentAsString();
+
+        Assertions.assertEquals(
+                (String) JsonPath.read(missing, "$.detail"),
+                (String) JsonPath.read(inactive, "$.detail"));
+        Assertions.assertEquals(
+                (String) JsonPath.read(missing, "$.detail"),
+                (String) JsonPath.read(missingSettings, "$.detail"));
+    }
+
+    @Test
+    void publicSlotDiscoveryValidatesMalformedInputAndCollapsesResourceMisses() throws Exception {
+        final var token = signedToken(ACCOUNT_ID);
+        putSettings(token, 30, 10, 60, 30);
+        final var resourceId = createResource(token, "Room A", "room-a");
+        final var otherBusinessId = UUID.fromString("00000000-0000-0000-0000-000000000011");
+        final var otherResourceId = UUID.fromString("00000000-0000-0000-0000-000000000033");
+        insertBusiness(otherBusinessId, "Salon B", "salon-b", "ACTIVE");
+        insertResource(otherBusinessId, otherResourceId, "Room B", "room-b", "ACTIVE");
+
+        mockMvc.perform(get("/api/public/businesses/{businessSlug}", "Salon-A"))
+                .andExpect(status().isBadRequest());
+        mockMvc.perform(
+                        get(
+                                        "/api/public/businesses/{businessSlug}/resources/{resourceId}/slots",
+                                        "salon-a",
+                                        "not-a-uuid")
+                                .param("date", "2026-05-25"))
+                .andExpect(status().isBadRequest());
+
+        final var missing =
+                mockMvc.perform(
+                                get(
+                                                "/api/public/businesses/{businessSlug}/resources/{resourceId}/slots",
+                                                "salon-a",
+                                                UUID.fromString(
+                                                        "00000000-0000-0000-0000-000000000034"))
+                                        .param("date", "2026-05-25"))
+                        .andExpect(status().isNotFound())
+                        .andReturn()
+                        .getResponse()
+                        .getContentAsString();
+        final var inactive =
+                mockMvc.perform(
+                                get(
+                                                "/api/public/businesses/{businessSlug}/resources/{resourceId}/slots",
+                                                "salon-a",
+                                                resourceId)
+                                        .param("date", "2026-05-25"))
+                        .andExpect(status().isOk())
+                        .andReturn()
+                        .getResponse()
+                        .getContentAsString();
+        mockMvc.perform(
+                        post(
+                                        "/api/businesses/{businessId}/resources/{resourceId}/deactivate",
+                                        BUSINESS_ID,
+                                        resourceId)
+                                .header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
+                .andExpect(status().isOk());
+        final var nowInactive =
+                mockMvc.perform(
+                                get(
+                                                "/api/public/businesses/{businessSlug}/resources/{resourceId}/slots",
+                                                "salon-a",
+                                                resourceId)
+                                        .param("date", "2026-05-25"))
+                        .andExpect(status().isNotFound())
+                        .andReturn()
+                        .getResponse()
+                        .getContentAsString();
+        final var wrongBusiness =
+                mockMvc.perform(
+                                get(
+                                                "/api/public/businesses/{businessSlug}/resources/{resourceId}/slots",
+                                                "salon-a",
+                                                otherResourceId)
+                                        .param("date", "2026-05-25"))
+                        .andExpect(status().isNotFound())
+                        .andReturn()
+                        .getResponse()
+                        .getContentAsString();
+
+        Assertions.assertEquals("[]", inactive);
+        Assertions.assertEquals(
+                (String) JsonPath.read(missing, "$.detail"),
+                (String) JsonPath.read(nowInactive, "$.detail"));
+        Assertions.assertEquals(
+                (String) JsonPath.read(missing, "$.detail"),
+                (String) JsonPath.read(wrongBusiness, "$.detail"));
+    }
+
+    @Test
+    void generatedOpenApiIncludesPublicDiscoveryOperations() throws Exception {
+        final var publicSlotPath =
+                "$.paths['/api/public/businesses/{businessSlug}"
+                        + "/resources/{resourceId}/slots'].get";
+        mockMvc.perform(get("/v3/api-docs"))
+                .andExpect(status().isOk())
+                .andExpect(
+                        jsonPath("$.paths['/api/public/businesses/{businessSlug}'].get").exists())
+                .andExpect(
+                        jsonPath("$.paths['/api/public/businesses/{businessSlug}/resources'].get")
+                                .exists())
+                .andExpect(jsonPath(publicSlotPath).exists())
+                .andExpect(
+                        jsonPath(
+                                        "$.paths['/api/public/businesses/{businessSlug}/reservations'].post")
+                                .exists());
+    }
+
+    @Test
     void bookingSettingsReplacementRequiresAllFieldsAndAppliesToFuturePolicy() throws Exception {
         final var token = signedToken(ACCOUNT_ID);
         putSettings(token, 30, 10, 60, 30);
@@ -1013,6 +1213,15 @@ final class TimeslotBookingApiIntegrationTest {
 
     private void insertResource(
             final UUID resourceId, final String name, final String slug, final String status) {
+        insertResource(BUSINESS_ID, resourceId, name, slug, status);
+    }
+
+    private void insertResource(
+            final UUID businessId,
+            final UUID resourceId,
+            final String name,
+            final String slug,
+            final String status) {
         jdbcTemplate.update(
                 """
                 INSERT INTO timeslot.resource (
@@ -1020,11 +1229,26 @@ final class TimeslotBookingApiIntegrationTest {
                 ) VALUES (?, ?, ?, ?, null, ?, ?, ?)
                 """,
                 resourceId,
-                BUSINESS_ID,
+                businessId,
                 slug,
                 name,
                 status,
                 Timestamp.from(TOKEN_NOW),
+                Timestamp.from(TOKEN_NOW));
+    }
+
+    private void insertBusiness(
+            final UUID businessId, final String name, final String slug, final String status) {
+        jdbcTemplate.update(
+                """
+                INSERT INTO platform.business (
+                    id, name, slug, timezone, status, created_at
+                ) VALUES (?, ?, ?, 'Asia/Seoul', ?, ?)
+                """,
+                businessId,
+                name,
+                slug,
+                status,
                 Timestamp.from(TOKEN_NOW));
     }
 

@@ -54,6 +54,31 @@ final class LookupActiveBusinessServiceTest {
         assertTrue(service.findActiveById(BUSINESS_ID).isEmpty());
     }
 
+    @Test
+    void findsActiveBusinessBySlugAsContractDto() {
+        final var slug = new BusinessSlug("salon-a");
+        when(businessQueryPort.findBySlug(slug)).thenReturn(Optional.of(activeBusiness()));
+
+        final var business = service.findActiveBySlug("salon-a").orElseThrow();
+
+        assertEquals(BUSINESS_ID, business.id());
+        assertEquals("Salon A", business.name());
+        assertEquals("salon-a", business.slug());
+        assertEquals(Timezone.of("Asia/Seoul"), business.timezone());
+    }
+
+    @Test
+    void hidesInactiveOrMissingBusinessBySlug() {
+        final var slug = new BusinessSlug("salon-a");
+        when(businessQueryPort.findBySlug(slug)).thenReturn(Optional.of(inactiveBusiness()));
+
+        assertTrue(service.findActiveBySlug("salon-a").isEmpty());
+
+        when(businessQueryPort.findBySlug(slug)).thenReturn(Optional.empty());
+
+        assertTrue(service.findActiveBySlug("salon-a").isEmpty());
+    }
+
     private static Business activeBusiness() {
         return business(BusinessStatus.ACTIVE);
     }

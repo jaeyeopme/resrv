@@ -3,6 +3,8 @@ package io.resrv.platform.application.business;
 import io.resrv.platform.application.business.out.BusinessQueryPort;
 import io.resrv.platform.contract.business.BusinessSummaryLookup;
 import io.resrv.platform.contract.business.BusinessSummaryView;
+import io.resrv.platform.domain.business.Business;
+import io.resrv.platform.domain.business.BusinessSlug;
 import io.resrv.shared.kernel.BusinessId;
 import java.util.Optional;
 import org.springframework.stereotype.Service;
@@ -20,14 +22,21 @@ public class LookupBusinessSummaryService implements BusinessSummaryLookup {
 
     @Override
     public Optional<BusinessSummaryView> findCurrentSummaryById(final BusinessId businessId) {
+        return businessQueryPort.findById(businessId).map(LookupBusinessSummaryService::toView);
+    }
+
+    @Override
+    public Optional<BusinessSummaryView> findCurrentSummaryBySlug(final String slug) {
         return businessQueryPort
-                .findById(businessId)
-                .map(
-                        business ->
-                                new BusinessSummaryView(
-                                        business.id(),
-                                        business.name().value(),
-                                        business.slug().value(),
-                                        business.timezone()));
+                .findBySlug(new BusinessSlug(slug))
+                .map(LookupBusinessSummaryService::toView);
+    }
+
+    private static BusinessSummaryView toView(final Business business) {
+        return new BusinessSummaryView(
+                business.id(),
+                business.name().value(),
+                business.slug().value(),
+                business.timezone());
     }
 }

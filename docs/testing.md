@@ -73,6 +73,11 @@ activate/deactivate actions, public discovery exclusion for inactive resources, 
 effects for holds and cancellation cutoffs, and reservation fact preservation after lifecycle
 changes.
 
+Public booking discovery tests verify slug-based business discovery, active-only resource discovery,
+schedule-derived slots with `available` state, malformed-input validation, collapsed `404` responses
+for valid missing/inactive/not-bookable/wrong-business lookups, no public business UUID exposure,
+and business-slug-scoped authenticated hold creation.
+
 Account security hardening tests verify:
 
 - Five failed password sign-in attempts create account-scoped password reset protection.

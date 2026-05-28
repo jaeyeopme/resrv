@@ -34,6 +34,11 @@ class ResourcePersistenceAdapter implements ResourceCommandPort, ResourceQueryPo
     }
 
     @Override
+    public Optional<Resource> findById(final ResourceId resourceId) {
+        return repository.findById(resourceId.value()).map(ResourceJpaEntity::toDomain);
+    }
+
+    @Override
     public Optional<Resource> findByBusinessIdAndId(
             final BusinessId businessId, final ResourceId resourceId) {
         return repository

@@ -16,7 +16,11 @@ public interface BusinessLookupPort {
 
     Optional<BusinessView> findActiveById(BusinessId businessId);
 
+    Optional<BusinessView> findActiveBySlug(String slug);
+
     Optional<BusinessView> findCurrentSummaryById(BusinessId businessId);
+
+    Optional<BusinessView> findCurrentSummaryBySlug(String slug);
 
     record BusinessView(BusinessId id, String name, String slug, Timezone timezone) {
 
