@@ -72,6 +72,20 @@ Active-state checks stay server-side. Platform protected requests reject inactiv
 authentication. Business-scoped owner/staff decisions require active account, active business, and
 active membership. Timeslot consumes those decisions only through `platform.contract` types.
 
+Platform exposes separate cross-context contracts for different intents:
+
+- `ActiveBusinessLookup`: returns only active businesses for availability, settings, scheduling, and
+  booking flows.
+- `BusinessSummaryLookup`: returns current display summary data and may include inactive businesses
+  for historical customer-owned reservation rendering.
+- `BusinessAccessCheck`: returns an authorization decision for business-scoped owner/staff actions;
+  callers must not treat a false result as evidence about which underlying record is missing or
+  inactive.
+
+See [ADR-0019](adr/0019-platform-contracts-for-timeslot-reads.md) for the decision to use
+synchronous platform contracts in the current modular monolith and keep event-backed summary
+projections as a future option.
+
 ## Timeslot Context
 
 Timeslot uses:
