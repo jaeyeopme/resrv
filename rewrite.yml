@@ -5,7 +5,6 @@ displayName: resrv OpenRewrite cleanup
 description: Conservative source cleanup recipes for the resrv codebase.
 recipeList:
   - org.openrewrite.java.ShortenFullyQualifiedTypeReferences
-  - org.openrewrite.java.UseStaticImport
   - org.openrewrite.java.SimplifySingleElementAnnotation
   - org.openrewrite.java.OrderImports
   - org.openrewrite.java.RemoveUnusedImports
