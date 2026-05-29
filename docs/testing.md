@@ -144,4 +144,4 @@ JWT tests use a fixed local test secret and test issuer/audience values.
 
 - A separate timeslot service runtime is deferred until a later explicit runtime split and
   outbox/message-broker design.
-- Token revocation for redesigned account JWTs is deferred.
+- Token revocation for account-scoped JWTs is deferred.

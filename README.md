@@ -2,49 +2,206 @@
 
 [![CI](https://github.com/jaeyeopme/resrv/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/jaeyeopme/resrv/actions/workflows/ci.yml)
 
-`resrv` is a Java 25 + Spring Boot 4 backend for a multi-tenant B2B reservation
-platform.
+`resrv` is a Java 25 + Spring Boot 4 backend for reservation services used by
+businesses.
 
-It models platform accounts, businesses, memberships, booking settings,
-resources, schedules, virtual slots, and reservation lifecycle transitions. The
-main correctness goal is to answer:
+It is not a complete SaaS product. The project focuses on the backend side of a
+reservation system: accounts, businesses, staff access, booking rules,
+resources, schedules, generated slots, and reservations.
 
-> Who reserved which resource, for which business, and for which time range,
-> without leaking business data, trusting client-supplied authorization, or
-> allowing active overbooking?
+## Highlights
 
-## Current State
+- The backend is split into four Gradle modules: `platform`, `timeslot`,
+  `platform-exchange`, and `shared-kernel`.
+- JWTs identify the account only. Business access and reservation ownership are
+  checked on the server.
+- Sensitive lookups do not reveal whether an object is missing or belongs to
+  another business.
+- Slots are generated from booking settings and schedules instead of stored in a
+  slot table.
+- Hold creation locks the resource/time pair and checks active reservations
+  before saving a new hold.
+- OpenAPI is generated from the running app and is treated as the API contract.
+- Tests and CI cover database behavior, API flows, architecture rules,
+  formatting, style, and coverage.
 
-`v0.1.0-review-baseline` marks a review-ready bounded-context module baseline.
-It is not production-complete: payments, staff invitation delivery and acceptance
-UI, password reset UI, production deployment infrastructure, and notification
-workflows are intentionally out of scope. Core owner-managed staff membership
-administration is implemented in the platform API.
+## Features
 
-The active redesign uses four Gradle modules:
+- **Identity and recovery**: register accounts, log in with a password, issue
+  account-scoped JWTs, block repeated failed sign-ins, and complete password
+  reset challenges.
+- **Business access**: create businesses, create owner membership, and let
+  owners grant, list, audit, update, or disable staff access.
+- **Booking setup**: configure booking settings, resources, resource lifecycle
+  changes, weekly schedules, and date overrides.
+- **Public booking**: find a business by slug, list active resources, list
+  generated slots, and create an authenticated hold.
+- **Reservations**: hold, confirm, release, customer cancel, business cancel,
+  check in, mark no-show, view customer history, and search business
+  reservations.
+- **Runtime and API docs**: run one platform backend, serve generated
+  OpenAPI/Swagger UI, expose liveness/readiness probes, and build a Jib image.
 
-| Module | Role |
-|---|---|
-| `shared-kernel` | Shared IDs and time primitives |
-| `platform-exchange` | Pure Java platform-owned exchange APIs for cross-context lookup/check decisions |
-| `platform` | Account, login, business, membership, canonical runnable API |
-| `timeslot` | Booking settings, resources, schedules, slots, reservations contributed to the platform runtime |
+## Architecture
 
-`platform` is the canonical backend runtime and serves both platform and booking
-API groups. `timeslot` depends on `platform-exchange` rather than platform
-implementation packages, and its `bootJar` and `bootRun` tasks remain disabled
-so it does not become a second supported backend runtime accidentally.
+The app runs as one Spring Boot process from the `platform` module. The
+`timeslot` module adds booking behavior to that same process.
+`platform-exchange` contains plain Java types used between modules. It is not
+HTTP, messaging, or an outbox layer.
 
-## Project Entry Points
+```mermaid
+flowchart LR
+    subgraph runtime[one running backend process]
+        app[platform Spring Boot app]
+        platform[accounts, businesses, staff access]
+        timeslot[booking and reservations]
+        exchange[platform-exchange Java APIs]
+
+        app --> platform
+        app --> timeslot
+        timeslot --> exchange
+        exchange --> platform
+    end
+
+    client[API client] --> app
+    platform --> db[(PostgreSQL)]
+    timeslot --> db
+```
+
+Module roles:
+
+- `shared-kernel`: shared identity and time primitives.
+- `platform-exchange`: plain Java APIs used by other modules to ask platform for
+  account, business, and access data.
+- `platform`: accounts, login, businesses, memberships, and the runnable Spring
+  Boot app.
+- `timeslot`: booking settings, resources, schedules, generated slots, and
+  reservations.
+
+`platform` serves both platform and booking API groups. `timeslot` depends on
+`platform-exchange`, not on platform implementation packages. `timeslot`
+`bootJar` and `bootRun` stay disabled so there is only one supported backend
+runtime.
+
+## Core Flows
+
+### Hold Creation
+
+Hold creation is the main write path that prevents two active reservations from
+using the same generated slot.
+
+```mermaid
+sequenceDiagram
+    actor Customer
+    participant PublicAPI as Public booking API
+    participant Platform as Business lookup
+    participant Service as Reservation service
+    participant Lock as Resource and time lock
+    participant DB as PostgreSQL
+
+    Customer->>PublicAPI: Request a hold with business slug, resourceId, and slotId
+    PublicAPI->>Platform: Find active business by slug
+    PublicAPI->>Service: Create hold with business, resource, account, and slot
+    Service->>DB: Load booking settings, active resource, and schedule
+    Service->>Service: Decode slotId and verify generated slot
+    Service->>Lock: Lock resource and slot start time
+    Lock->>DB: Take PostgreSQL advisory lock
+    Service->>DB: Check active holds or reservations for this time
+    alt Existing active hold or reservation
+        Service-->>PublicAPI: Reject as unavailable
+    else Slot is still available
+        Service->>DB: Save hold with expiry time
+        Service-->>PublicAPI: Return held reservation
+    end
+```
+
+### Reservation Lifecycle
+
+Reservation state is derived from timestamps on the reservation row.
+`HELD`, `CONFIRMED`, and `CHECKED_IN` block slot availability. Expired,
+released, cancelled, and no-show reservations do not.
+
+```mermaid
+stateDiagram-v2
+    [*] --> HELD: hold saved
+    HELD --> CONFIRMED: customer confirms before expiry
+    HELD --> RELEASED: customer releases before expiry
+    HELD --> EXPIRED: hold expires
+    HELD --> BUSINESS_CANCELLED: owner or staff cancels
+
+    CONFIRMED --> CUSTOMER_CANCELLED: customer cancels before cutoff
+    CONFIRMED --> BUSINESS_CANCELLED: owner or staff cancels
+    CONFIRMED --> CHECKED_IN: owner or staff checks in at or after start
+    CONFIRMED --> NO_SHOW: owner or staff marks no-show at or after end
+
+    RELEASED --> [*]
+    EXPIRED --> [*]
+    CUSTOMER_CANCELLED --> [*]
+    BUSINESS_CANCELLED --> [*]
+    CHECKED_IN --> [*]
+    NO_SHOW --> [*]
+```
+
+## Security And Correctness
+
+- JWTs identify only the account. They do not include business ids or role
+  claims.
+- Owner/staff access is checked from current active `BusinessMembership` rows.
+- Customer reservation reads and transitions require reservation ownership.
+- Sensitive missing or unauthorized objects return the same public not-found
+  response.
+- `slotId` binds the business, resource, start time, and end time.
+- Hold creation uses PostgreSQL advisory locks and checks existing active holds
+  or reservations before saving.
+- Expired holds stop blocking capacity without a cleanup job.
+- Generated OpenAPI is the public API contract; docs do not duplicate endpoint
+  catalogs.
+
+## Testing And Quality
+
+- Testcontainers integration tests cover PostgreSQL schema, persistence behavior,
+  API flows, and runtime wiring.
+- Generated OpenAPI assertions check endpoint groups, response documentation,
+  and public/private schema boundaries.
+- ArchUnit tests check package direction, platform/timeslot dependency rules,
+  and `platform-exchange` purity.
+- JaCoCo gates enforce module and package-level coverage thresholds.
+- Spotless and Checkstyle enforce formatting and Java style.
+- OpenRewrite dry run checks for mechanical modernization drift.
+- Commitlint and GitHub Actions keep commit messages and quality checks
+  repeatable.
+
+## Project Status
+
+The current scope is a backend review baseline. It is not production-deployment
+ready. Payments, staff invitation delivery and acceptance UI, password reset UI,
+production deployment infrastructure, and notification workflows are outside the
+current scope. Owner-managed staff membership administration is implemented in
+the platform API.
+
+## Non-Goals
+
+These are not implemented in the current backend:
+
+- Payments, deposits, invoices, and refunds.
+- Staff invitation delivery and acceptance UI.
+- Password reset UI. The backend challenge completion exists, but a first-party
+  screen is undecided.
+- Notifications and reminders, except SMTP for password reset delivery.
+- External calendar sync.
+- A separate `timeslot` runtime.
+- Message broker, outbox, and projections. The current cross-module path is
+  synchronous `platform-exchange` APIs.
+
+## Documentation
 
 | Document | Purpose |
 |---|---|
-| [README](README.md) | Repository entry point, current structure, key commands |
-| [PRD](docs/prd.md) | Product requirements and open product questions |
-| [TRD](docs/trd.md) | Technical requirements and design |
-| [Architecture](docs/architecture.md) | Current architecture summary |
-| [ADR index](docs/adr/README.md) | Architecture decision record index |
-| [AGENTS](AGENTS.md) | Agent working rules, guardrails, build commands |
+| [PRD](docs/prd.md) | Product scope and open questions |
+| [TRD](docs/trd.md) | Technical design and current constraints |
+| [Architecture](docs/architecture.md) | Module and boundary summary |
+| [ADR index](docs/adr/README.md) | Architecture decision records |
+| [AGENTS](AGENTS.md) | Agent rules, guardrails, and build commands |
 
 Supporting docs:
 
@@ -57,7 +214,7 @@ Supporting docs:
 Baseline references and implemented feature artifacts are captured as Spec Kit
 specs under `specs/`.
 
-## Tech Stack
+## Technology Stack
 
 | Area | Technology |
 |---|---|
@@ -72,7 +229,7 @@ specs under `specs/`.
 
 ## Build And Verify
 
-Docker must be running for Testcontainers-backed tests.
+Docker must be running because integration tests use Testcontainers.
 
 ```bash
 npm ci
@@ -82,14 +239,14 @@ npm run hooks:install
 ./gradlew check
 ```
 
-`./gradlew check` runs compilation, tests, Checkstyle, ArchUnit tests, JaCoCo report generation, and
-coverage verification.
+`./gradlew check` runs compilation, tests, Checkstyle, ArchUnit tests, JaCoCo
+report generation, and coverage verification.
 
 ## Run Platform API Locally
 
-`platform` is the supported local backend runtime. It can be run with Spring Boot
-Docker Compose support and discovers the root `compose.yml` when started from the
-repository root.
+`platform` is the supported local backend runtime. When started from the
+repository root, Spring Boot Docker Compose support can discover the root
+`compose.yml`.
 
 ```bash
 RESRV_JWT_SECRET_KEY=01234567890123456789012345678901 \
@@ -107,12 +264,13 @@ Then open:
 - Liveness: <http://localhost:8080/actuator/health/liveness>
 - Readiness: <http://localhost:8080/actuator/health/readiness>
 
-Generated OpenAPI from the platform runtime is the API contract surface. Keep human docs at the
-API-group and policy level; do not maintain a separate hand-written endpoint catalog.
+Generated OpenAPI from the platform runtime is the API contract. Human docs stay
+at the API-group and policy level; the repository does not maintain a separate
+hand-written endpoint catalog.
 
-For production-like runs, use `SPRING_PROFILES_ACTIVE=prod` with explicit datasource, JWT, and
-password reset settings. See [Operations](docs/operations.md) for the full configuration and smoke
-check path.
+For production-like runs, use `SPRING_PROFILES_ACTIVE=prod` with explicit
+datasource, JWT, and password reset settings. See [Operations](docs/operations.md)
+for configuration and smoke checks.
 
 Build the executable runtime package:
 
@@ -128,7 +286,7 @@ Build the local container image with Jib:
 
 The local image name is `resrv-platform-api:latest`.
 
-Timeslot standalone runtime packaging remains intentionally disabled. The
-current runtime decision is recorded in
-[ADR-0022](docs/adr/0022-platform-runtime-packaging.md); a real runtime split
+Timeslot standalone runtime packaging remains disabled by design. The current
+runtime decision is recorded in
+[ADR-0022](docs/adr/0022-platform-runtime-packaging.md). A real runtime split
 needs a later outbox/message-broker design.

@@ -6,10 +6,10 @@ Accepted
 
 ## Context
 
-The platform uses account-scoped JWTs. Tokens do not carry business identity, tenant-local role, or
+The platform uses account-scoped JWTs. Tokens do not carry business identity, owner/staff role, or
 business authorization claims. Production readiness requires repeated password failures to trigger
-account recovery, and protected actions must stop when account, business, or membership state
-changes before token expiration.
+account recovery, and protected actions must stop when account, business, or membership state changes
+before token expiration.
 
 ## Decision
 

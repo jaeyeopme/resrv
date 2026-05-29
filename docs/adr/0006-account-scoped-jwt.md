@@ -33,8 +33,8 @@ Required token validation:
 - Token is within valid time range.
 - HS256 secret is at least 32 bytes.
 
-JWTs do not carry `businessId`, tenant-local roles, owner/staff role, or customer/business actor
-authority.
+JWTs do not carry `businessId`, owner/staff role, customer/business actor authority, or any other
+business-local authority.
 
 ## Alternatives
 
@@ -52,4 +52,3 @@ generated API review.
 - Business authorization must query membership data.
 - Timeslot can consume platform account tokens.
 - Token validation failures are rejected before application use cases run.
-

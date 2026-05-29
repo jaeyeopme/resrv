@@ -23,6 +23,7 @@
 | Sign-in protection | Account-scoped state that requires password reset after repeated failed password attempts |
 | Password reset challenge | Single-use recovery challenge delivered by email and stored only by token digest |
 | Active access decision | Request-time decision based on current account, business, membership, role, or ownership state |
+| IDOR | Insecure Direct Object Reference; an access-control risk where a caller probes another user's or business's object id |
 | Hold | Temporary reservation before confirmation |
 | Active blocker | Confirmed reservation or unexpired hold that blocks overlapping capacity |
 | Released | Held reservation released by the customer before confirmation |

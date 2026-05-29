@@ -2,7 +2,7 @@
 
 ## Scope
 
-This document describes the current redesign branch implementation. ADRs are the source of truth for
+This document describes the current implementation. ADRs are the source of truth for
 decisions; this TRD explains how those decisions appear in the codebase.
 
 Primary ADRs:
@@ -17,7 +17,7 @@ Primary ADRs:
 - [ADR-0011](adr/0011-derived-reservation-state.md): derived reservation state.
 - [ADR-0012](adr/0012-reservation-persistence-and-locking.md): hold correctness.
 - [ADR-0014](adr/0014-timeslot-booking-api-boundary.md): timeslot API boundary.
-- [ADR-0015](adr/0015-replace-tenant-booking-api.md): replacement of the old tenant API.
+- [ADR-0015](adr/0015-replace-tenant-booking-api.md): replacement of the legacy reservation API.
 - [ADR-0018](adr/0018-account-security-hardening.md): password reset recovery and active-state
   checks.
 - [ADR-0020](adr/0020-platform-exchange-boundary.md): pure Java platform exchange module for
@@ -43,7 +43,7 @@ Primary ADRs:
 
 ## Current Module Baseline
 
-The current branch has 4 Gradle modules:
+The backend has 4 Gradle modules:
 
 | Module | Responsibility |
 |---|---|

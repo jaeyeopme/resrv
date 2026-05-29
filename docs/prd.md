@@ -5,9 +5,9 @@
 `resrv` is a B2B reservation backend for businesses that need account-based access control,
 resource scheduling, virtual slot discovery, and reservation lifecycle management.
 
-The current redesign focuses on a timeslot booking product. A business configures booking settings,
-creates resources, defines schedules, exposes virtual slots, and lets accounts hold and confirm
-reservations.
+The current product scope focuses on a timeslot booking product. A business configures booking
+settings, creates resources, defines schedules, exposes virtual slots, and lets accounts hold and
+confirm reservations.
 
 ## Users
 
@@ -29,7 +29,7 @@ reservations.
 - Stop protected actions when account, business, or membership state becomes inactive.
 - Let owners grant, review, update, disable, and audit staff membership without sharing credentials.
 - Expose generated Swagger/OpenAPI docs for review.
-- Keep architecture decisions explicit in ADRs before merging the redesign.
+- Keep durable architecture decisions explicit in ADRs.
 
 ## Non-Goals
 

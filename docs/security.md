@@ -4,7 +4,7 @@
 
 - Authenticate callers as platform accounts.
 - Resolve business authorization on the server.
-- Avoid trusting `businessId`, tenant role, or staff role claims from JWTs.
+- Avoid trusting `businessId` or owner/staff/customer role claims from JWTs.
 - Keep generated API documentation public while protecting application endpoints.
 - Make deferred hardening explicit.
 
@@ -29,7 +29,7 @@ require `sub` to match `accountId`.
 JWTs must not contain:
 
 - `businessId`
-- tenant-local role
+- business-local role
 - owner/staff authority
 - customer/business actor authority
 
@@ -170,7 +170,7 @@ foreign keys from timeslot to platform.
 These are intentionally not implemented in the current phase:
 
 - Active hold quota per customer.
-- Token revocation or logout blacklist for the redesigned account token.
+- Token revocation or logout blacklist for account-scoped JWTs.
 - Production CORS, CSRF, and deployment-specific network policy.
 
 ## Operational Requirements
