@@ -60,5 +60,5 @@ names.
 - Timeslot may depend only on explicit `platform-exchange` APIs, not platform application
   services, domain, repositories, entities, or persistence schema.
 - Exchange API implementation wiring remains platform-owned.
-- Timeslot runtime packaging remains pending because `bootJar` and `bootRun` are currently
-  disabled.
+- Timeslot standalone runtime packaging remains disabled. ADR-0022 later made the platform runtime
+  the canonical process that serves this timeslot HTTP surface.

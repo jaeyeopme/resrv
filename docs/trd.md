@@ -24,6 +24,8 @@ Primary ADRs:
   cross-context lookup/check APIs.
 - [ADR-0021](adr/0021-staff-membership-administration.md): owner-only staff membership
   administration with append-only audit.
+- [ADR-0022](adr/0022-platform-runtime-packaging.md): platform runtime packages platform and booking
+  APIs.
 
 ## Runtime And Build
 
@@ -35,6 +37,7 @@ Primary ADRs:
 | Database | PostgreSQL 16 |
 | Migrations | Flyway migrations in bounded-context modules |
 | API docs | Springdoc generated OpenAPI and Swagger UI |
+| Container packaging | Jib image for the platform runtime |
 | Tests | JUnit 5, Spring Boot tests, Testcontainers, ArchUnit |
 
 ## Current Module Baseline
@@ -45,8 +48,8 @@ The current branch has 4 Gradle modules:
 |---|---|
 | `shared-kernel` | Shared IDs and timezone value object |
 | `platform-exchange` | Pure Java platform-owned exchange APIs for cross-context lookup/check decisions |
-| `platform` | Platform domain, use cases, adapters, Flyway migration, Spring Boot runtime, and security |
-| `timeslot` | Timeslot domain, use cases, adapters, Flyway migration, booking API assembly, and platform exchange adapter |
+| `platform` | Platform domain, use cases, adapters, Flyway migration, canonical Spring Boot runtime, security, and Jib packaging |
+| `timeslot` | Timeslot domain, use cases, adapters, Flyway migration, booking API assembly, and platform exchange adapter contributed to the platform runtime |
 
 Hexagonal layers remain as Java package boundaries inside `platform` and `timeslot`. ArchUnit
 enforces dependency direction, keeps direct database access in outbound adapter packages, and limits
@@ -77,10 +80,14 @@ Timeslot API owns booking lifecycle:
 - List business reservations for a business-local date, with optional resource, customer account,
   and derived-state filters.
 
-`timeslot` has an application class, but local runtime packaging is not final because `bootJar` and
-`bootRun` are currently disabled. Spec 009 establishes only the compile-time exchange boundary; it
-does not add a separate timeslot runtime, service-to-service transport, message broker, outbox,
-events, or projections.
+`platform` is the canonical backend runtime. It scans platform and timeslot bounded-context packages,
+serves both platform and booking API groups, and exposes one generated OpenAPI surface from
+`/v3/api-docs`.
+
+`timeslot` keeps an application class for module-local testing history, but its `bootJar` and
+`bootRun` tasks remain disabled. Booking APIs are served by the platform runtime. ADR-0022 does not
+add a separate timeslot runtime, service-to-service transport, message broker, outbox, events, or
+projections.
 
 ## Security Design
 
@@ -199,7 +206,9 @@ RESRV_JWT_EXPIRATION
 ```
 
 Database configuration can come from Spring Boot Docker Compose support in local development or
-standard Spring datasource properties in other environments.
+standard Spring datasource properties in other environments. The platform runtime loads
+`classpath:db/migration`, which includes platform migrations from the platform module and timeslot
+migrations from the timeslot module runtime classpath.
 
 Password reset email configuration uses Spring Mail plus feature properties:
 

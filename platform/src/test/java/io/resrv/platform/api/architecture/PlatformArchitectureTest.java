@@ -72,4 +72,17 @@ final class PlatformArchitectureTest {
                 .resideInAnyPackage("io.resrv.platform.adapter.out.persistence..")
                 .check(classes);
     }
+
+    @Test
+    void only_api_runtime_assembles_timeslot() {
+        noClasses()
+                .that()
+                .resideInAPackage("io.resrv.platform..")
+                .and()
+                .resideOutsideOfPackage("io.resrv.platform.api..")
+                .should()
+                .dependOnClassesThat()
+                .resideInAPackage("io.resrv.timeslot..")
+                .check(classes);
+    }
 }

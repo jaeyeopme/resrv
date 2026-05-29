@@ -30,3 +30,4 @@ that introduced or hardened the decision so future readers can inspect the imple
 | [0019](0019-platform-contracts-for-timeslot-reads.md) | Accepted | Use explicit platform exchange APIs for timeslot business lookup, summary, and access decisions |
 | [0020](0020-platform-exchange-boundary.md) | Accepted | Extract platform exchange APIs into a pure Java module |
 | [0021](0021-staff-membership-administration.md) | Accepted | Staff membership current state with append-only access audit |
+| [0022](0022-platform-runtime-packaging.md) | Accepted | Package platform as the canonical runtime for platform and booking APIs |

@@ -15,10 +15,12 @@ platform
 timeslot
 ```
 
-`platform` is the runnable Spring Boot API. `platform-exchange` contains pure Java
-platform-owned lookup/check APIs for cross-context consumers. `timeslot` contains
-booking API code, but its `bootJar` and `bootRun` tasks are intentionally disabled
-until runtime packaging is decided.
+`platform` is the canonical runnable Spring Boot API and serves both platform and
+booking API groups. `platform-exchange` contains pure Java platform-owned
+lookup/check APIs for cross-context consumers. `timeslot` contains booking API
+code contributed to the platform runtime, but its `bootJar` and `bootRun` tasks
+are intentionally disabled so it does not become a second supported backend
+runtime.
 
 ## Required Commands
 

@@ -73,6 +73,14 @@ class PlatformSecurityConfig {
                                                 "/api/auth/login",
                                                 "/api/auth/password-reset")
                                         .permitAll()
+                                        .requestMatchers(
+                                                HttpMethod.GET,
+                                                "/api/public/businesses/*",
+                                                "/api/public/businesses/*/resources",
+                                                "/api/public/businesses/*/resources/*/slots",
+                                                "/api/businesses/*/resources",
+                                                "/api/businesses/*/resources/*/slots")
+                                        .permitAll()
                                         .anyRequest()
                                         .authenticated())
                 .oauth2ResourceServer(oauth2 -> oauth2.jwt(jwt -> jwt.decoder(jwtDecoder)))

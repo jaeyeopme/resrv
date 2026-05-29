@@ -51,6 +51,7 @@ ArchUnit verifies:
 - Platform domain does not depend on application, adapters, or API runtime.
 - Platform domain has no Spring, Jakarta, or Hibernate dependencies.
 - Platform application does not depend on adapters or API runtime.
+- Only the platform API runtime layer may assemble timeslot classes.
 - Timeslot domain does not depend on application, adapters, or API runtime.
 - Timeslot domain has no Spring, Jakarta, or Hibernate dependencies.
 - Timeslot application does not depend on adapters or API runtime.
@@ -83,6 +84,11 @@ schedule-derived slots with `available` state, malformed-input validation, colla
 for valid missing/inactive/not-bookable/wrong-business lookups, no public business UUID exposure,
 and business-slug-scoped authenticated hold creation.
 
+Platform runtime packaging tests verify that the canonical platform runtime serves booking settings
+and public booking discovery endpoints, applies platform and timeslot schemas, rejects inactive
+accounts for protected booking actions, preserves non-enumerating wrong-business public slot lookup
+responses, and exposes platform plus booking endpoint groups from generated OpenAPI.
+
 Account security hardening tests verify:
 
 - Five failed password sign-in attempts create account-scoped password reset protection.
@@ -103,7 +109,16 @@ spring.datasource.driver-class-name=org.testcontainers.jdbc.ContainerDatabaseDri
 
 JWT tests use a fixed local test secret and test issuer/audience values.
 
+## Runtime Packaging Verification
+
+```bash
+./gradlew :platform:test --tests io.resrv.platform.api.PlatformRuntimePackagingIntegrationTest
+./gradlew :platform:bootJar
+./gradlew :platform:jibDockerBuild
+```
+
 ## Known Gaps
 
-- `timeslot` local boot packaging is pending.
+- A separate timeslot service runtime is deferred until a later explicit runtime split and
+  outbox/message-broker design.
 - Token revocation for redesigned account JWTs is deferred.

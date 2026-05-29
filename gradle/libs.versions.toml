@@ -3,6 +3,7 @@ spring-boot = "4.0.5"
 dependency-management = "1.1.7"
 spotless = "7.0.4"
 openrewrite = "7.32.2"
+jib = "3.5.3"
 google-java-format = "1.27.0"
 bouncycastle = "1.80"
 java-uuid-generator = "5.1.0"
@@ -80,3 +81,4 @@ spring-boot = { id = "org.springframework.boot", version.ref = "spring-boot" }
 dependency-management = { id = "io.spring.dependency-management", version.ref = "dependency-management" }
 spotless = { id = "com.diffplug.spotless", version.ref = "spotless" }
 openrewrite = { id = "org.openrewrite.rewrite", version.ref = "openrewrite" }
+jib = { id = "com.google.cloud.tools.jib", version.ref = "jib" }

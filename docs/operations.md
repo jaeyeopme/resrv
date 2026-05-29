@@ -40,6 +40,9 @@ runs from the repository root.
 
 ## Platform API Local Run
 
+`platform` is the canonical backend runtime. It serves both platform and booking API groups from one
+process.
+
 ```bash
 RESRV_JWT_SECRET_KEY=01234567890123456789012345678901 \
 RESRV_JWT_ISSUER=resrv-dev \
@@ -56,15 +59,32 @@ Open:
 
 ## Timeslot API Local Run
 
-`timeslot` currently has `bootJar` and `bootRun` disabled. This is intentional: ADR-0020 adds only a
-compile-time `platform-exchange` boundary, not a separate timeslot runtime.
+`timeslot` currently has `bootJar` and `bootRun` disabled. This is intentional:
+ADR-0022 packages booking APIs into the platform runtime instead of creating a separate timeslot
+runtime.
 
-Until a later runtime-split and outbox/message-broker decision is made, timeslot API behavior is
-verified through integration tests:
+Until a later runtime-split and outbox/message-broker decision is made, standalone timeslot runtime
+execution is not a supported operation. Timeslot API behavior is verified through integration tests:
 
 ```bash
 ./gradlew :timeslot:test
 ```
+
+## Runtime Packaging
+
+Build the executable platform runtime artifact:
+
+```bash
+./gradlew :platform:bootJar
+```
+
+Build the local Jib image:
+
+```bash
+./gradlew :platform:jibDockerBuild
+```
+
+The local image name is `resrv-platform-api:latest`.
 
 ## Required JWT Configuration
 
@@ -104,12 +124,15 @@ Flyway migrations are stored in bounded-context modules:
 | `platform/src/main/resources/db/migration/V11__account_security_hardening.sql` | Sign-in protection and password reset recovery |
 | `platform/src/main/resources/db/migration/V12__staff_membership_management.sql` | Membership timestamps and access audit history |
 
+The platform runtime loads `classpath:db/migration`, so platform and timeslot migration resources on
+the runtime classpath are applied through the same startup path.
+
 ## Troubleshooting
 
 | Symptom | Check |
 |---|---|
 | Tests fail before connecting to PostgreSQL | Docker is running |
 | JWT config validation fails | Secret is at least 32 bytes and issuer/audience/expiration are set |
-| `timeslot:bootRun` is unavailable | Boot task is currently disabled by design |
+| `timeslot:bootRun` is unavailable | Boot task is disabled by design; run `:platform:bootRun` |
 | Swagger returns 401 for docs | Security config should permit `/swagger-ui/**` and `/v3/api-docs/**` |
 | Coverage verification fails | Inspect module JaCoCo HTML report under `<module>/build/reports/jacoco/test/html` |

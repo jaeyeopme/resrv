@@ -3,6 +3,7 @@ plugins {
     checkstyle
     alias(libs.plugins.spring.boot)
     alias(libs.plugins.dependency.management)
+    alias(libs.plugins.jib)
     jacoco
 }
 
@@ -19,9 +20,23 @@ tasks.named<org.springframework.boot.gradle.tasks.run.BootRun>("bootRun") {
     workingDir = rootProject.projectDir
 }
 
+jib {
+    from {
+        image = "eclipse-temurin:25-jre"
+    }
+    to {
+        image = "resrv-platform-api:latest"
+    }
+    container {
+        mainClass = "io.resrv.platform.api.PlatformApiApplication"
+        ports = listOf("8080")
+    }
+}
+
 dependencies {
     implementation(project(":shared-kernel"))
     implementation(project(":platform-exchange"))
+    implementation(project(":timeslot"))
 
     implementation(libs.spring.tx)
     implementation(libs.spring.context)

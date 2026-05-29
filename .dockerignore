@@ -1,0 +1,12 @@
+.git/
+.gradle/
+build/
+*/build/
+node_modules/
+coverage/
+*.log
+*.log*
+.env
+.env*
+Dockerfile*
+.dockerignore

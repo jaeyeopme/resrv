@@ -17,9 +17,9 @@ main correctness goal is to answer:
 
 `v0.1.0-review-baseline` marks a review-ready bounded-context module baseline.
 It is not production-complete: payments, staff invitation delivery and acceptance
-UI, password reset UI, combined timeslot runtime packaging, deployment
-infrastructure, and notification workflows are intentionally out of scope. Core
-owner-managed staff membership administration is implemented in the platform API.
+UI, password reset UI, production deployment infrastructure, and notification
+workflows are intentionally out of scope. Core owner-managed staff membership
+administration is implemented in the platform API.
 
 The active redesign uses four Gradle modules:
 
@@ -27,12 +27,13 @@ The active redesign uses four Gradle modules:
 |---|---|
 | `shared-kernel` | Shared IDs and time primitives |
 | `platform-exchange` | Pure Java platform-owned exchange APIs for cross-context lookup/check decisions |
-| `platform` | Account, login, business, membership, runnable API |
-| `timeslot` | Booking settings, resources, schedules, slots, reservations |
+| `platform` | Account, login, business, membership, canonical runnable API |
+| `timeslot` | Booking settings, resources, schedules, slots, reservations contributed to the platform runtime |
 
-`platform` is runnable today. `timeslot` depends on `platform-exchange` rather
-than the platform implementation module, but `timeslot` `bootJar` and `bootRun`
-remain disabled until runtime packaging is finalized.
+`platform` is the canonical backend runtime and serves both platform and booking
+API groups. `timeslot` depends on `platform-exchange` rather than platform
+implementation packages, and its `bootJar` and `bootRun` tasks remain disabled
+so it does not become a second supported backend runtime accidentally.
 
 ## Project Entry Points
 
@@ -85,8 +86,9 @@ coverage verification.
 
 ## Run Platform API Locally
 
-`platform` can be run with Spring Boot Docker Compose support. It discovers the root
-`compose.yml` when started from the repository root.
+`platform` is the supported local backend runtime. It can be run with Spring Boot
+Docker Compose support and discovers the root `compose.yml` when started from the
+repository root.
 
 ```bash
 RESRV_JWT_SECRET_KEY=01234567890123456789012345678901 \
@@ -105,7 +107,21 @@ Then open:
 Generated OpenAPI is the API contract surface. Do not maintain a separate hand-written endpoint
 catalog.
 
-Timeslot local runtime packaging remains intentionally disabled. The current
-compile-time exchange boundary is recorded in
-[ADR-0020](docs/adr/0020-platform-exchange-boundary.md); a real runtime split
+Build the executable runtime package:
+
+```bash
+./gradlew :platform:bootJar
+```
+
+Build the local container image with Jib:
+
+```bash
+./gradlew :platform:jibDockerBuild
+```
+
+The local image name is `resrv-platform-api:latest`.
+
+Timeslot standalone runtime packaging remains intentionally disabled. The
+current runtime decision is recorded in
+[ADR-0022](docs/adr/0022-platform-runtime-packaging.md); a real runtime split
 needs a later outbox/message-broker design.

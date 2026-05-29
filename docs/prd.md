@@ -130,9 +130,9 @@ reservations.
 ## Open Product Questions
 
 - Whether customers need profile data beyond `Account`.
-- Runtime packaging is still future work after spec `009-modular-monolith-runtime`: timeslot now has
-  a compile-time platform exchange boundary, but `timeslot` local `bootRun` remains disabled until a
-  separate runtime-split and outbox/message-broker design is planned.
+- Current review runtime packaging uses the platform runtime to serve platform and booking APIs
+  together. `timeslot` local `bootRun` remains disabled until a separate runtime-split and
+  outbox/message-broker design is planned.
 - Future traffic-sensitive domains such as ticketing should use the same exchange-boundary approach
   first, then get a dedicated runtime split only after the broker/outbox operational model is
   explicit.

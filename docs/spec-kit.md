@@ -104,9 +104,10 @@ such as payments, notifications, external calendar sync, and UI work.
 | P3 | Data and authorization consistency | Membership, business, resource, and reservation state changes preserve access rules and IDOR-sensitive response policy. |
 | P4 | Spec and docs consistency | Specs, ADRs, README, TRD, and active plan metadata describe the same implemented state. |
 
-Prefer P0 before adding new domain capabilities. The largest current completion
-gap is not missing booking behavior; it is that the booking API implementation
-is not yet represented by a finalized runtime packaging decision.
+P0 is represented by spec `013-runtime-packaging`. After that implementation is
+merged, future runtime-split work should be treated as a separate broker/outbox
+or service-transport design rather than a continuation of the review runtime
+packaging cleanup.
 
 ## Extension Hooks
 
