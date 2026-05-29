@@ -56,10 +56,11 @@ Open:
 
 ## Timeslot API Local Run
 
-`timeslot` currently has `bootJar` and `bootRun` disabled. This is intentional pending the final
-timeslot runtime packaging decision recorded in ADR-0014.
+`timeslot` currently has `bootJar` and `bootRun` disabled. This is intentional: ADR-0020 adds only a
+compile-time `platform-exchange` boundary, not a separate timeslot runtime.
 
-Until that decision is made, timeslot API behavior is verified through integration tests:
+Until a later runtime-split and outbox/message-broker decision is made, timeslot API behavior is
+verified through integration tests:
 
 ```bash
 ./gradlew :timeslot:test

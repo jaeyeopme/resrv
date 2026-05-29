@@ -32,12 +32,12 @@ Expose timeslot endpoints for:
   and state filters.
 
 Add a `PlatformBusinessLookupAdapter` outbound adapter that implements timeslot ports by calling
-explicit `platform.contract` lookup/access types. Timeslot does not read platform tables or columns
-directly.
+explicit platform exchange lookup/access APIs. Timeslot does not read platform tables or columns
+directly. ADR-0020 later moved this API surface into the `platform-exchange` module.
 
-Platform owns `PlatformLookupContractConfiguration`, which wires the contract interfaces to
-platform application services and persistence implementations. Timeslot imports that contract
-configuration instead of importing platform application services directly.
+Platform implements the exchange interfaces with platform application services and persistence
+implementations. Timeslot consumes them through its outbound platform adapter instead of importing
+platform application services directly.
 
 Timeslot security accepts account-scoped JWTs and resolves business access server-side.
 
@@ -57,8 +57,8 @@ names.
 
 - Timeslot owns its HTTP surface.
 - Cross-context reads go through narrow ports.
-- Timeslot may depend only on explicit `platform.contract` types, not platform application
+- Timeslot may depend only on explicit `platform-exchange` APIs, not platform application
   services, domain, repositories, entities, or persistence schema.
-- Contract implementation wiring remains platform-owned.
+- Exchange API implementation wiring remains platform-owned.
 - Timeslot runtime packaging remains pending because `bootJar` and `bootRun` are currently
   disabled.

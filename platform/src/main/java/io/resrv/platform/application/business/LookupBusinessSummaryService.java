@@ -1,10 +1,10 @@
 package io.resrv.platform.application.business;
 
 import io.resrv.platform.application.business.out.BusinessQueryPort;
-import io.resrv.platform.contract.business.BusinessSummaryLookup;
-import io.resrv.platform.contract.business.BusinessSummaryView;
 import io.resrv.platform.domain.business.Business;
 import io.resrv.platform.domain.business.BusinessSlug;
+import io.resrv.platform.exchange.business.BusinessSummaryLookup;
+import io.resrv.platform.exchange.business.BusinessSummaryView;
 import io.resrv.shared.kernel.BusinessId;
 import java.util.Optional;
 import org.springframework.stereotype.Service;

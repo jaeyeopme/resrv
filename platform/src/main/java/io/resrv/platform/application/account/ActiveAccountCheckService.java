@@ -1,7 +1,7 @@
 package io.resrv.platform.application.account;
 
 import io.resrv.platform.application.account.out.AccountQueryPort;
-import io.resrv.platform.contract.account.ActiveAccountCheck;
+import io.resrv.platform.exchange.account.ActiveAccountCheck;
 import io.resrv.shared.kernel.AccountId;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;

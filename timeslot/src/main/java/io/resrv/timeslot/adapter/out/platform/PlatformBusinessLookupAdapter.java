@@ -1,10 +1,10 @@
 package io.resrv.timeslot.adapter.out.platform;
 
-import io.resrv.platform.contract.business.ActiveBusinessLookup;
-import io.resrv.platform.contract.business.ActiveBusinessView;
-import io.resrv.platform.contract.business.BusinessSummaryLookup;
-import io.resrv.platform.contract.business.BusinessSummaryView;
-import io.resrv.platform.contract.membership.BusinessAccessCheck;
+import io.resrv.platform.exchange.business.ActiveBusinessLookup;
+import io.resrv.platform.exchange.business.ActiveBusinessView;
+import io.resrv.platform.exchange.business.BusinessSummaryLookup;
+import io.resrv.platform.exchange.business.BusinessSummaryView;
+import io.resrv.platform.exchange.membership.BusinessAccessCheck;
 import io.resrv.shared.kernel.AccountId;
 import io.resrv.shared.kernel.BusinessId;
 import io.resrv.timeslot.application.auth.out.BusinessAccessPort;

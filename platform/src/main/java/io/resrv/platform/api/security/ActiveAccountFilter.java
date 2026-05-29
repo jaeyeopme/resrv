@@ -1,6 +1,6 @@
 package io.resrv.platform.api.security;
 
-import io.resrv.platform.contract.account.ActiveAccountCheck;
+import io.resrv.platform.exchange.account.ActiveAccountCheck;
 import io.resrv.shared.kernel.AccountId;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;

@@ -71,8 +71,7 @@ Use ArchUnit to enforce:
 - API packages assemble runtime concerns.
 - Timeslot must not depend on platform domain, adapters, API runtime, repositories, entities, or
   persistence schema directly. The timeslot outbound platform adapter may depend on explicit
-  `platform.contract` types. Platform-owned contract configuration wires those contracts to
-  platform application services and persistence implementations.
+  `platform-exchange` APIs. Platform application services implement those APIs.
 - Direct database access primitives must stay in outbound adapter packages. Production code should
   default to Spring Data JPA for owned persistence; native SQL is reserved for adapter-local
   database-specific behavior such as advisory locks.

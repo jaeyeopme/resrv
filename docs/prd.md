@@ -36,7 +36,7 @@ reservations.
 - SMS, push notifications, or reminder delivery.
 - Staff invitation and membership administration UI.
 - Full customer profile management separate from platform `Account`.
-- Distributed microservice deployment.
+- Distributed microservice deployment, message brokers, outbox processing, and event projections.
 - External calendar sync.
 
 ## Product Concepts
@@ -120,7 +120,11 @@ reservations.
 - Staff membership management is captured as pending spec `008-staff-membership-management`; it is
   not planned or implemented yet.
 - Whether customers need profile data beyond `Account`.
-- Runtime packaging is captured as pending spec `009-modular-monolith-runtime`; `timeslot` local
-  `bootRun` remains disabled until that decision is planned and implemented.
+- Runtime packaging is still future work after spec `009-modular-monolith-runtime`: timeslot now has
+  a compile-time platform exchange boundary, but `timeslot` local `bootRun` remains disabled until a
+  separate runtime-split and outbox/message-broker design is planned.
+- Future traffic-sensitive domains such as ticketing should use the same exchange-boundary approach
+  first, then get a dedicated runtime split only after the broker/outbox operational model is
+  explicit.
 - Whether password reset needs a first-party web screen in this repository or an external client
   route.

@@ -1,4 +1,4 @@
-package io.resrv.platform.contract.account;
+package io.resrv.platform.exchange.account;
 
 import io.resrv.shared.kernel.AccountId;
 

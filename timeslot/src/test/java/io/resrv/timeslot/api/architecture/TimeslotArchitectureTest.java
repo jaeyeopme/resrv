@@ -60,12 +60,13 @@ final class TimeslotArchitectureTest {
                 .resideInAnyPackage(
                         "io.resrv.platform.domain..",
                         "io.resrv.platform.adapter..",
+                        "io.resrv.platform.contract..",
                         "io.resrv.platform.api..")
                 .check(classes);
     }
 
     @Test
-    void only_platform_outbound_adapter_uses_platform_contracts() {
+    void only_platform_outbound_adapter_uses_platform_exchange() {
         noClasses()
                 .that()
                 .resideInAPackage("io.resrv.timeslot..")
@@ -73,7 +74,7 @@ final class TimeslotArchitectureTest {
                 .resideOutsideOfPackage("io.resrv.timeslot.adapter.out.platform..")
                 .should()
                 .dependOnClassesThat()
-                .resideInAPackage("io.resrv.platform.contract..")
+                .resideInAPackage("io.resrv.platform.exchange..")
                 .check(classes);
     }
 

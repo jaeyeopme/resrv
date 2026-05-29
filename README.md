@@ -20,17 +20,18 @@ It is not production-complete: payments, staff administration, password reset UI
 combined timeslot runtime packaging, deployment infrastructure, and notification
 workflows are intentionally out of scope.
 
-The active redesign uses three Gradle modules:
+The active redesign uses four Gradle modules:
 
 | Module | Role |
 |---|---|
 | `shared-kernel` | Shared IDs and time primitives |
+| `platform-exchange` | Pure Java platform-owned exchange APIs for cross-context lookup/check decisions |
 | `platform` | Account, login, business, membership, runnable API |
 | `timeslot` | Booking settings, resources, schedules, slots, reservations |
 
-`platform` is runnable today. `timeslot` has API code and integration-test
-coverage, but `bootJar` and `bootRun` are disabled until runtime packaging is
-finalized.
+`platform` is runnable today. `timeslot` depends on `platform-exchange` rather
+than the platform implementation module, but `timeslot` `bootJar` and `bootRun`
+remain disabled until runtime packaging is finalized.
 
 ## Project Entry Points
 
@@ -103,5 +104,7 @@ Then open:
 Generated OpenAPI is the API contract surface. Do not maintain a separate hand-written endpoint
 catalog.
 
-Timeslot local runtime packaging remains intentionally disabled as recorded in
-[ADR-0014](docs/adr/0014-timeslot-booking-api-boundary.md).
+Timeslot local runtime packaging remains intentionally disabled. The current
+compile-time exchange boundary is recorded in
+[ADR-0020](docs/adr/0020-platform-exchange-boundary.md); a real runtime split
+needs a later outbox/message-broker design.

@@ -27,11 +27,11 @@ projection-only enforcement.
 
 This codebase is currently a modular monolith. Context boundaries are package-enforced inside
 bounded-context Gradle modules, and cross-context calls are allowed only through explicit
-`platform.contract` types.
+platform exchange APIs.
 
 ## Decision
 
-Use explicit synchronous platform contracts for timeslot-to-platform communication:
+Use explicit synchronous platform exchange APIs for timeslot-to-platform communication:
 
 - `ActiveBusinessLookup` returns only active businesses for booking availability, settings,
   scheduling, and other flows where inactive businesses must be unavailable.

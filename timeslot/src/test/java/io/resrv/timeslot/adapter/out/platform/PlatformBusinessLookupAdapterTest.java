@@ -6,11 +6,11 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import io.resrv.platform.contract.business.ActiveBusinessLookup;
-import io.resrv.platform.contract.business.ActiveBusinessView;
-import io.resrv.platform.contract.business.BusinessSummaryLookup;
-import io.resrv.platform.contract.business.BusinessSummaryView;
-import io.resrv.platform.contract.membership.BusinessAccessCheck;
+import io.resrv.platform.exchange.business.ActiveBusinessLookup;
+import io.resrv.platform.exchange.business.ActiveBusinessView;
+import io.resrv.platform.exchange.business.BusinessSummaryLookup;
+import io.resrv.platform.exchange.business.BusinessSummaryView;
+import io.resrv.platform.exchange.membership.BusinessAccessCheck;
 import io.resrv.shared.kernel.AccountId;
 import io.resrv.shared.kernel.BusinessId;
 import io.resrv.shared.kernel.Timezone;
@@ -109,7 +109,7 @@ final class PlatformBusinessLookupAdapterTest {
     }
 
     @Test
-    void delegatesBusinessAccessCheckToPlatformContract() {
+    void delegatesBusinessAccessCheckToPlatformExchange() {
         when(businessAccessCheck.hasBusinessAccess(ACCOUNT_ID, BUSINESS_ID)).thenReturn(true);
 
         assertTrue(adapter.hasBusinessAccess(ACCOUNT_ID, BUSINESS_ID));

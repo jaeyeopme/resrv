@@ -14,6 +14,10 @@ import com.nimbusds.jose.JWSHeader;
 import com.nimbusds.jose.crypto.MACSigner;
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
+import io.resrv.shared.kernel.AccountId;
+import io.resrv.shared.kernel.BusinessId;
+import io.resrv.shared.kernel.Timezone;
+import io.resrv.timeslot.api.support.PlatformExchangeTestConfiguration;
 import java.sql.Timestamp;
 import java.time.Clock;
 import java.time.Instant;
@@ -29,6 +33,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Import;
 import org.springframework.context.annotation.Primary;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -46,6 +51,7 @@ import org.springframework.test.web.servlet.ResultActions;
             "resrv.jwt.expiration=3600"
         })
 @AutoConfigureMockMvc
+@Import(PlatformExchangeTestConfiguration.class)
 final class TimeslotBookingApiIntegrationTest {
 
     private static final String JWT_SECRET = "01234567890123456789012345678901";
@@ -61,6 +67,9 @@ final class TimeslotBookingApiIntegrationTest {
 
     @Autowired private JdbcTemplate jdbcTemplate;
 
+    @Autowired
+    private PlatformExchangeTestConfiguration.PlatformExchangeFixture platformExchangeFixture;
+
     @BeforeEach
     void setUp() {
         jdbcTemplate.update("DELETE FROM timeslot.reservation");
@@ -70,49 +79,15 @@ final class TimeslotBookingApiIntegrationTest {
         jdbcTemplate.update("DELETE FROM timeslot.resource_weekly_schedule");
         jdbcTemplate.update("DELETE FROM timeslot.resource");
         jdbcTemplate.update("DELETE FROM timeslot.business_booking_settings");
-        jdbcTemplate.update("DELETE FROM platform.business_membership");
-        jdbcTemplate.update("DELETE FROM platform.business");
-        jdbcTemplate.update("DELETE FROM platform.account");
-        jdbcTemplate.update(
-                """
-                INSERT INTO platform.account (
-                    id, email, name, hashed_password, status, created_at
-                ) VALUES (?, 'owner@example.com', 'Owner One', '$2a$10$testhash', 'ACTIVE', ?)
-                """,
-                ACCOUNT_ID,
-                Timestamp.from(TOKEN_NOW));
-        jdbcTemplate.update(
-                """
-                INSERT INTO platform.account (
-                    id, email, name, hashed_password, status, created_at
-                ) VALUES (?, 'other@example.com', 'Other One', '$2a$10$testhash', 'ACTIVE', ?)
-                """,
-                OTHER_ACCOUNT_ID,
-                Timestamp.from(TOKEN_NOW));
-        jdbcTemplate.update(
-                """
-                INSERT INTO platform.business (
-                    id, name, slug, timezone, status, created_at
-                ) VALUES (?, 'Salon A', 'salon-a', 'Asia/Seoul', 'ACTIVE', ?)
-                """,
-                BUSINESS_ID,
-                Timestamp.from(TOKEN_NOW));
-        jdbcTemplate.update(
-                """
-                INSERT INTO platform.business_membership (
-                    id, account_id, business_id, role, active, created_at
-                ) VALUES (?, ?, ?, 'OWNER', true, ?)
-                """,
-                UUID.fromString("00000000-0000-0000-0000-000000000020"),
-                ACCOUNT_ID,
-                BUSINESS_ID,
-                Timestamp.from(TOKEN_NOW));
+        platformExchangeFixture.reset();
+        platformExchangeFixture.putBusiness(
+                BusinessId.of(BUSINESS_ID), "Salon A", "salon-a", Timezone.of("Asia/Seoul"), true);
+        platformExchangeFixture.grantAccess(AccountId.of(ACCOUNT_ID), BusinessId.of(BUSINESS_ID));
     }
 
     @Test
     void inactiveBusinessIsDeniedForProtectedBusinessAction() throws Exception {
-        jdbcTemplate.update(
-                "UPDATE platform.business SET status = 'INACTIVE' WHERE id = ?", BUSINESS_ID);
+        platformExchangeFixture.setBusinessActive(BusinessId.of(BUSINESS_ID), false);
 
         mockMvc.perform(
                         put("/api/businesses/{businessId}/booking-settings", BUSINESS_ID)
@@ -134,9 +109,7 @@ final class TimeslotBookingApiIntegrationTest {
 
     @Test
     void inactiveMembershipIsDeniedForProtectedBusinessAction() throws Exception {
-        jdbcTemplate.update(
-                "UPDATE platform.business_membership SET active = false WHERE account_id = ?",
-                ACCOUNT_ID);
+        platformExchangeFixture.revokeAccess(AccountId.of(ACCOUNT_ID), BusinessId.of(BUSINESS_ID));
 
         mockMvc.perform(
                         put("/api/businesses/{businessId}/booking-settings", BUSINESS_ID)
@@ -377,8 +350,7 @@ final class TimeslotBookingApiIntegrationTest {
                         .getResponse()
                         .getContentAsString();
 
-        jdbcTemplate.update(
-                "UPDATE platform.business SET status = 'INACTIVE' WHERE id = ?", BUSINESS_ID);
+        platformExchangeFixture.setBusinessActive(BusinessId.of(BUSINESS_ID), false);
         final var inactive =
                 mockMvc.perform(get("/api/public/businesses/{businessSlug}", "salon-a"))
                         .andExpect(status().isNotFound())
@@ -386,8 +358,7 @@ final class TimeslotBookingApiIntegrationTest {
                         .getResponse()
                         .getContentAsString();
 
-        jdbcTemplate.update(
-                "UPDATE platform.business SET status = 'ACTIVE' WHERE id = ?", BUSINESS_ID);
+        platformExchangeFixture.setBusinessActive(BusinessId.of(BUSINESS_ID), true);
         final var missingSettings =
                 mockMvc.perform(get("/api/public/businesses/{businessSlug}", "salon-a"))
                         .andExpect(status().isNotFound())
@@ -1239,17 +1210,12 @@ final class TimeslotBookingApiIntegrationTest {
 
     private void insertBusiness(
             final UUID businessId, final String name, final String slug, final String status) {
-        jdbcTemplate.update(
-                """
-                INSERT INTO platform.business (
-                    id, name, slug, timezone, status, created_at
-                ) VALUES (?, ?, ?, 'Asia/Seoul', ?, ?)
-                """,
-                businessId,
+        platformExchangeFixture.putBusiness(
+                BusinessId.of(businessId),
                 name,
                 slug,
-                status,
-                Timestamp.from(TOKEN_NOW));
+                Timezone.of("Asia/Seoul"),
+                "ACTIVE".equals(status));
     }
 
     private void insertReservation(

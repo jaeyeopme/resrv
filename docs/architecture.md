@@ -7,6 +7,7 @@
 | Context | Owns |
 |---|---|
 | Platform | Account identity, login, business creation, business membership |
+| Platform exchange | Published platform-owned lookup and decision APIs for other contexts |
 | Timeslot | Booking settings, resources, schedules, virtual slots, reservations |
 | Shared kernel | Stable identity and time primitives shared by contexts |
 
@@ -17,6 +18,7 @@ The current branch uses bounded-context Gradle modules. This is recorded in
 
 ```text
 shared-kernel
+platform-exchange
 platform
 timeslot
 ```
@@ -39,9 +41,9 @@ Rules:
 - Adapters implement ports.
 - API packages assemble web, persistence, security, and configuration.
 - Timeslot code must not depend on platform domain, adapters, API runtime, repositories, entities,
-  or persistence schema. Its outbound platform adapter may depend only on explicit platform
-  `platform.contract` types; platform-owned contract configuration wires the service and persistence
-  implementation.
+  or persistence schema. Its outbound platform adapter may depend only on explicit
+  `platform-exchange` APIs. Platform application services implement those APIs inside the platform
+  module.
 - Direct database access primitives are limited to outbound adapters.
 
 ## Persistence Access Policy
@@ -70,7 +72,7 @@ an outbound adapter behind an application port.
 
 Active-state checks stay server-side. Platform protected requests reject inactive accounts after JWT
 authentication. Business-scoped owner/staff decisions require active account, active business, and
-active membership. Timeslot consumes those decisions only through `platform.contract` types.
+active membership. Timeslot consumes those decisions only through `platform-exchange` APIs.
 
 Platform exposes separate cross-context contracts for different intents:
 
@@ -84,7 +86,8 @@ Platform exposes separate cross-context contracts for different intents:
 
 See [ADR-0019](adr/0019-platform-contracts-for-timeslot-reads.md) for the decision to use
 synchronous platform contracts in the current modular monolith and keep event-backed summary
-projections as a future option.
+projections as a future option. See [ADR-0020](adr/0020-platform-exchange-boundary.md) for the
+module boundary that keeps those APIs out of the platform implementation module.
 
 ## Timeslot Context
 

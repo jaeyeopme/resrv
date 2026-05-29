@@ -1,4 +1,4 @@
-package io.resrv.platform.contract.membership;
+package io.resrv.platform.exchange.membership;
 
 import io.resrv.shared.kernel.AccountId;
 import io.resrv.shared.kernel.BusinessId;
@@ -6,8 +6,8 @@ import io.resrv.shared.kernel.BusinessId;
 /**
  * Platform-owned authorization check for business-scoped owner/staff actions.
  *
- * <p>This is a decision contract, not a data lookup. Consumers must not infer partial facts such as
- * whether the account, business, or membership exists from a false result.
+ * <p>This is a decision exchange API, not a data lookup. Consumers must not infer partial facts
+ * such as whether the account, business, or membership exists from a false result.
  */
 public interface BusinessAccessCheck {
 

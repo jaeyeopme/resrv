@@ -1,4 +1,4 @@
-package io.resrv.platform.contract.business;
+package io.resrv.platform.exchange.business;
 
 import io.resrv.shared.kernel.BusinessId;
 import io.resrv.shared.kernel.Timezone;

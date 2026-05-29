@@ -24,7 +24,7 @@ used, and clears sign-in protection.
 
 Protected authenticated requests recheck active account state at request time. Business-scoped
 owner/staff checks require active account, active business, and active membership. Timeslot keeps
-using explicit `platform.contract` lookups through its outbound platform adapter.
+using explicit `platform-exchange` lookups through its outbound platform adapter.
 
 Public generated documentation and public booking discovery remain reachable. Inactive businesses
 or resources produce no bookable public discovery results.

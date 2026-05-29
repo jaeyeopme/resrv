@@ -104,8 +104,8 @@ logged internally for debugging.
 Business write operations require active `BusinessMembership` with role `OWNER` or `STAFF`.
 
 Timeslot checks membership through `BusinessAccessPort`, implemented by an outbound adapter that
-calls an explicit `platform.contract` access check. Timeslot application code does not depend
-directly on platform application services, domain, repositories, entities, or persistence schema.
+calls an explicit `platform-exchange` access check. Timeslot application code does not depend
+directly on platform implementation services, domain, repositories, entities, or persistence schema.
 Lookup contracts are separate from authorization contracts: `ActiveBusinessLookup` is active-only
 availability data, while `BusinessSummaryLookup` may return inactive businesses for historical
 customer-owned reservation rendering. Neither lookup should replace `BusinessAccessCheck` for

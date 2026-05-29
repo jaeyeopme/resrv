@@ -1,4 +1,4 @@
-package io.resrv.platform.contract.business;
+package io.resrv.platform.exchange.business;
 
 import io.resrv.shared.kernel.BusinessId;
 import java.util.Optional;
@@ -6,7 +6,7 @@ import java.util.Optional;
 /**
  * Platform-owned lookup for use cases that require a currently active business.
  *
- * <p>This contract intentionally hides inactive businesses. Timeslot uses it for booking,
+ * <p>This exchange API intentionally hides inactive businesses. Timeslot uses it for booking,
  * scheduling, settings, and business-scoped flows where inactive businesses must behave as
  * unavailable.
  */

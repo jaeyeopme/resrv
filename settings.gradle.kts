@@ -6,6 +6,7 @@ rootProject.name = "resrv"
 
 include(
     "shared-kernel",
+    "platform-exchange",
     "platform",
     "timeslot",
 )

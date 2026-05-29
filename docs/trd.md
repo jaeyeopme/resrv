@@ -20,6 +20,8 @@ Primary ADRs:
 - [ADR-0015](adr/0015-replace-tenant-booking-api.md): replacement of the old tenant API.
 - [ADR-0018](adr/0018-account-security-hardening.md): password reset recovery and active-state
   checks.
+- [ADR-0020](adr/0020-platform-exchange-boundary.md): pure Java platform exchange module for
+  cross-context lookup/check APIs.
 
 ## Runtime And Build
 
@@ -35,17 +37,19 @@ Primary ADRs:
 
 ## Current Module Baseline
 
-The current branch has 3 Gradle modules:
+The current branch has 4 Gradle modules:
 
 | Module | Responsibility |
 |---|---|
 | `shared-kernel` | Shared IDs and timezone value object |
+| `platform-exchange` | Pure Java platform-owned exchange APIs for cross-context lookup/check decisions |
 | `platform` | Platform domain, use cases, adapters, Flyway migration, Spring Boot runtime, and security |
-| `timeslot` | Timeslot domain, use cases, adapters, Flyway migration, booking API assembly, and platform contract adapter |
+| `timeslot` | Timeslot domain, use cases, adapters, Flyway migration, booking API assembly, and platform exchange adapter |
 
 Hexagonal layers remain as Java package boundaries inside `platform` and `timeslot`. ArchUnit
 enforces dependency direction, keeps direct database access in outbound adapter packages, and limits
-timeslot-to-platform dependencies to explicit `platform.contract` types.
+timeslot-to-platform dependencies to the explicit `platform-exchange` APIs consumed by the timeslot
+outbound platform adapter.
 
 ## API Boundary
 
@@ -67,7 +71,9 @@ Timeslot API owns booking lifecycle:
   and derived-state filters.
 
 `timeslot` has an application class, but local runtime packaging is not final because `bootJar` and
-`bootRun` are currently disabled.
+`bootRun` are currently disabled. Spec 009 establishes only the compile-time exchange boundary; it
+does not add a separate timeslot runtime, service-to-service transport, message broker, outbox,
+events, or projections.
 
 ## Security Design
 
@@ -91,7 +97,7 @@ as digests.
 Protected platform requests pass through an active-account check after JWT authentication.
 Business-scoped owner/staff authorization requires active account, active business, and active
 membership through `BusinessAccessCheck`. Timeslot obtains those decisions through explicit
-`platform.contract` types and must not read platform tables directly.
+`platform-exchange` APIs and must not read platform tables directly.
 
 ## Persistence Design
 
@@ -120,7 +126,7 @@ do not add cross-schema foreign keys from timeslot to platform.
 Production persistence code defaults to Spring Data JPA for owned tables. Native SQL or JDBC is
 reserved for outbound adapters where database-specific behavior is required, such as PostgreSQL
 advisory locks. Timeslot obtains platform business and membership data through platform application
-contracts rather than reading platform tables directly.
+exchange APIs rather than reading platform tables directly.
 
 ## Reservation Correctness
 
@@ -194,8 +200,8 @@ resrv.security.password-reset.token-ttl
 
 ## Open Technical Decisions
 
-- Decide whether `timeslot` should produce a bootable artifact now.
-- Decide whether platform and timeslot should run as separate local processes or a combined review
-  runtime while the product remains monorepo-only.
+- Decide the future runtime split strategy for traffic-sensitive domains such as timeslot and
+  ticketing, including process boundaries, transport, outbox/message broker, event schemas,
+  replay/backfill, and projection repair.
 - Decide whether password reset link handling is owned by this repository or by a separate client.
 - Decide the production SMTP provider, sender identity, and delivery failure policy.
