@@ -103,6 +103,18 @@ logged internally for debugging.
 
 Business write operations require active `BusinessMembership` with role `OWNER` or `STAFF`.
 
+Membership administration operations are owner-only:
+
+- grant staff membership to an existing active account
+- list current memberships
+- list membership audit history
+- change membership role
+- disable membership
+
+These operations resolve owner authority server-side from current membership state. Missing
+businesses, wrong-business membership ids, and callers without owner authority return the same
+not-found style public response. Last-owner downgrade or disable attempts are rejected.
+
 Timeslot checks membership through `BusinessAccessPort`, implemented by an outbound adapter that
 calls an explicit `platform-exchange` access check. Timeslot application code does not depend
 directly on platform implementation services, domain, repositories, entities, or persistence schema.
@@ -138,7 +150,6 @@ These are intentionally not implemented in the current phase:
 
 - Active hold quota per customer.
 - Token revocation or logout blacklist for the redesigned account token.
-- Full membership administration policy.
 - Production CORS, CSRF, and deployment-specific network policy.
 
 ## Operational Requirements

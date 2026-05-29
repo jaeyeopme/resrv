@@ -8,6 +8,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import io.resrv.platform.application.membership.out.BusinessMembershipCommandPort;
 import io.resrv.platform.application.membership.out.BusinessMembershipQueryPort;
 import io.resrv.platform.domain.membership.BusinessMembership;
+import io.resrv.platform.domain.membership.BusinessMembershipAuditEntry;
+import io.resrv.platform.domain.membership.BusinessRole;
+import io.resrv.platform.domain.membership.MembershipAuditAction;
 import io.resrv.shared.kernel.AccountId;
 import io.resrv.shared.kernel.BusinessId;
 import jakarta.persistence.PersistenceException;
@@ -57,6 +60,70 @@ class PlatformBusinessMembershipPersistenceAdapterTest {
         assertEquals(businessId, found.businessId());
         assertEquals(membership.role(), found.role());
         assertTrue(found.active());
+        assertEquals(NOW, found.createdAt());
+        assertEquals(NOW, found.updatedAt());
+    }
+
+    @Test
+    void saveInactiveAndFindByIdAndBusinessList() {
+        final var accountId = insertAccountDirectly("inactive-member@example.com");
+        final var businessId = insertBusinessDirectly("inactive-membership-business");
+        final var membership = BusinessMembership.staff(accountId, businessId, NOW).disable(NOW);
+
+        commandPort.save(membership);
+
+        assertFalse(
+                queryPort.findActiveByAccountIdAndBusinessId(accountId, businessId).isPresent());
+        final var foundById = queryPort.findById(membership.id()).orElseThrow();
+        assertEquals(membership.id(), foundById.id());
+        assertFalse(foundById.active());
+        assertEquals(NOW, foundById.disabledAt());
+        assertEquals(1, queryPort.findByBusinessId(businessId).size());
+        assertEquals(membership.id(), queryPort.findByBusinessId(businessId).getFirst().id());
+    }
+
+    @Test
+    void countActiveOwnersAndPersistAuditEntriesNewestFirst() {
+        final var ownerId = insertAccountDirectly("owner-audit@example.com");
+        final var staffId = insertAccountDirectly("staff-audit@example.com");
+        final var businessId = insertBusinessDirectly("audit-membership-business");
+        final var owner = BusinessMembership.owner(ownerId, businessId, NOW);
+        final var staff = BusinessMembership.staff(staffId, businessId, NOW);
+        commandPort.save(owner);
+        commandPort.save(staff);
+
+        assertEquals(1, queryPort.countActiveByBusinessIdAndRole(businessId, BusinessRole.OWNER));
+        assertEquals(1, queryPort.countActiveByBusinessIdAndRole(businessId, BusinessRole.STAFF));
+
+        commandPort.saveAuditEntry(
+                BusinessMembershipAuditEntry.create(
+                        staff.id(),
+                        businessId,
+                        ownerId,
+                        staffId,
+                        MembershipAuditAction.GRANTED,
+                        null,
+                        null,
+                        BusinessRole.STAFF,
+                        true,
+                        NOW));
+        commandPort.saveAuditEntry(
+                BusinessMembershipAuditEntry.create(
+                        staff.id(),
+                        businessId,
+                        ownerId,
+                        staffId,
+                        MembershipAuditAction.DISABLED,
+                        BusinessRole.STAFF,
+                        true,
+                        BusinessRole.STAFF,
+                        false,
+                        NOW.plusSeconds(60)));
+
+        final var auditEntries = queryPort.findAuditEntriesByBusinessId(businessId);
+        assertEquals(2, auditEntries.size());
+        assertEquals(MembershipAuditAction.DISABLED, auditEntries.getFirst().action());
+        assertEquals(MembershipAuditAction.GRANTED, auditEntries.get(1).action());
     }
 
     @Test

@@ -13,7 +13,7 @@ reservations.
 
 | User | Need |
 |---|---|
-| Business owner | Create a business, own settings, manage staff access later |
+| Business owner | Create a business, own settings, and manage staff access |
 | Business staff | Manage resources, schedules, and operational reservation transitions |
 | Customer account | Find slots, hold a slot, confirm, release, or cancel own reservation |
 | API reviewer/integrator | Inspect generated API docs and understand auth boundaries |
@@ -27,6 +27,7 @@ reservations.
 - Keep expired holds from blocking capacity without requiring a cleanup worker.
 - Require account recovery through password reset after repeated failed password sign-ins.
 - Stop protected actions when account, business, or membership state becomes inactive.
+- Let owners grant, review, update, disable, and audit staff membership without sharing credentials.
 - Expose generated Swagger/OpenAPI docs for review.
 - Keep architecture decisions explicit in ADRs before merging the redesign.
 
@@ -34,7 +35,7 @@ reservations.
 
 - Payments, deposits, invoices, and refunds.
 - SMS, push notifications, or reminder delivery.
-- Staff invitation and membership administration UI.
+- Staff invitation email delivery, acceptance workflow, and membership administration UI.
 - Full customer profile management separate from platform `Account`.
 - Distributed microservice deployment, message brokers, outbox processing, and event projections.
 - External calendar sync.
@@ -69,6 +70,14 @@ reservations.
 2. Create resources.
 3. Replace weekly schedule windows.
 4. Replace date override windows when needed.
+
+### Staff Membership Administration
+
+1. Owner grants staff access to an existing active account by login email.
+2. Owner lists current active and inactive memberships with account summaries.
+3. Owner lists immutable access-change audit history.
+4. Owner changes a membership role between `STAFF` and `OWNER`.
+5. Owner disables membership; request-time business access uses the updated server-side state.
 
 ### Customer Booking
 
@@ -112,13 +121,14 @@ reservations.
 - Customer reservation transitions must require reservation ownership.
 - Business reservation transitions must require active owner/staff membership.
 - Business reservation list/search must require active owner/staff membership.
+- Staff membership administration must require active owner membership and must preserve at least
+  one active owner per business.
+- Membership grant, role change, reactivation, and disablement must append access audit entries.
 - Public booking discovery must remain reachable while excluding inactive businesses and inactive
   resources from bookable results.
 
 ## Open Product Questions
 
-- Staff membership management is captured as pending spec `008-staff-membership-management`; it is
-  not planned or implemented yet.
 - Whether customers need profile data beyond `Account`.
 - Runtime packaging is still future work after spec `009-modular-monolith-runtime`: timeslot now has
   a compile-time platform exchange boundary, but `timeslot` local `bootRun` remains disabled until a

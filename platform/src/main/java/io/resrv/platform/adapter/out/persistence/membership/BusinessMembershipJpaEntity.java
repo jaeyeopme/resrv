@@ -35,6 +35,12 @@ class BusinessMembershipJpaEntity {
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
 
+    @Column(name = "updated_at", nullable = false)
+    private Instant updatedAt;
+
+    @Column(name = "disabled_at")
+    private Instant disabledAt;
+
     protected BusinessMembershipJpaEntity() {}
 
     BusinessMembershipJpaEntity(
@@ -43,13 +49,17 @@ class BusinessMembershipJpaEntity {
             final UUID businessId,
             final BusinessRole role,
             final boolean active,
-            final Instant createdAt) {
+            final Instant createdAt,
+            final Instant updatedAt,
+            final Instant disabledAt) {
         this.id = id;
         this.accountId = accountId;
         this.businessId = businessId;
         this.role = role;
         this.active = active;
         this.createdAt = createdAt;
+        this.updatedAt = updatedAt;
+        this.disabledAt = disabledAt;
     }
 
     static BusinessMembershipJpaEntity fromDomain(final BusinessMembership membership) {
@@ -59,11 +69,20 @@ class BusinessMembershipJpaEntity {
                 membership.businessId().value(),
                 membership.role(),
                 membership.active(),
-                membership.createdAt());
+                membership.createdAt(),
+                membership.updatedAt(),
+                membership.disabledAt());
     }
 
     BusinessMembership toDomain() {
         return BusinessMembership.reconstitute(
-                id, AccountId.of(accountId), BusinessId.of(businessId), role, active, createdAt);
+                id,
+                AccountId.of(accountId),
+                BusinessId.of(businessId),
+                role,
+                active,
+                createdAt,
+                updatedAt,
+                disabledAt);
     }
 }

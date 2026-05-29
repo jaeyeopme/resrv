@@ -61,4 +61,15 @@ final class PlatformArchitectureTest {
                         "jakarta.persistence..", "javax.sql..", "org.springframework.jdbc..")
                 .check(classes);
     }
+
+    @Test
+    void inbound_web_adapters_do_not_depend_on_persistence_adapters() {
+        noClasses()
+                .that()
+                .resideInAPackage("io.resrv.platform.adapter.in.web..")
+                .should()
+                .dependOnClassesThat()
+                .resideInAnyPackage("io.resrv.platform.adapter.out.persistence..")
+                .check(classes);
+    }
 }

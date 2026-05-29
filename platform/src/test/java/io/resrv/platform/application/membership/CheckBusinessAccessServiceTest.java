@@ -72,6 +72,24 @@ final class CheckBusinessAccessServiceTest {
     }
 
     @Test
+    void disabledMembershipDoesNotHaveBusinessAccessOnNextCheck() {
+        when(membershipQueryPort.findActiveByAccountIdAndBusinessId(ACCOUNT_ID, BUSINESS_ID))
+                .thenReturn(Optional.empty());
+
+        assertFalse(service.hasBusinessAccess(ACCOUNT_ID, BUSINESS_ID));
+    }
+
+    @Test
+    void roleChangesAreResolvedFromCurrentMembershipState() {
+        when(membershipQueryPort.findActiveByAccountIdAndBusinessId(ACCOUNT_ID, BUSINESS_ID))
+                .thenReturn(Optional.of(membership(BusinessRole.STAFF)))
+                .thenReturn(Optional.of(membership(BusinessRole.OWNER)));
+
+        assertTrue(service.hasBusinessAccess(ACCOUNT_ID, BUSINESS_ID));
+        assertTrue(service.hasBusinessAccess(ACCOUNT_ID, BUSINESS_ID));
+    }
+
+    @Test
     void inactiveAccountDoesNotHaveBusinessAccess() {
         when(accountQueryPort.findById(ACCOUNT_ID)).thenReturn(Optional.of(disabledAccount()));
 

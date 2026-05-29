@@ -59,6 +59,8 @@ Platform uses:
 - `Account` for identity.
 - `Business` for organization ownership.
 - `BusinessMembership` for `OWNER` and `STAFF` access.
+- `BusinessMembershipAuditEntry` for append-only grant, reactivation, role-change, and disablement
+  history.
 - Sign-in protection and password reset challenges for account recovery.
 
 Account-scoped JWTs identify the caller. Business access is resolved server-side from membership
@@ -73,6 +75,8 @@ an outbound adapter behind an application port.
 Active-state checks stay server-side. Platform protected requests reject inactive accounts after JWT
 authentication. Business-scoped owner/staff decisions require active account, active business, and
 active membership. Timeslot consumes those decisions only through `platform-exchange` APIs.
+Membership administration operations are owner-only and preserve at least one active owner per
+business.
 
 Platform exposes separate cross-context contracts for different intents:
 

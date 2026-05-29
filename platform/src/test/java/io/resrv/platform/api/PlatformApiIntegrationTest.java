@@ -64,6 +64,7 @@ final class PlatformApiIntegrationTest {
         jdbcTemplate.update("DELETE FROM platform.sign_in_attempt");
         jdbcTemplate.update("DELETE FROM platform.password_reset_challenge");
         jdbcTemplate.update("DELETE FROM platform.account_sign_in_protection");
+        jdbcTemplate.update("DELETE FROM platform.business_membership_audit_entry");
         jdbcTemplate.update("DELETE FROM platform.business_membership");
         jdbcTemplate.update("DELETE FROM platform.business");
         jdbcTemplate.update("DELETE FROM platform.account");

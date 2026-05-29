@@ -3,6 +3,11 @@ package io.resrv.platform.adapter.in.web.error;
 import io.resrv.platform.application.auth.AuthenticationFailedException;
 import io.resrv.platform.application.auth.PasswordResetRequiredException;
 import io.resrv.platform.application.auth.PasswordResetTokenInvalidException;
+import io.resrv.platform.application.membership.BusinessMembershipNotFoundException;
+import io.resrv.platform.application.membership.DuplicateActiveMembershipException;
+import io.resrv.platform.application.membership.LastOwnerMembershipException;
+import io.resrv.platform.application.membership.MembershipAdministrationDeniedException;
+import io.resrv.platform.application.membership.TargetAccountUnavailableException;
 import io.resrv.platform.domain.account.AccountEmailAlreadyExistsException;
 import io.resrv.platform.domain.business.BusinessSlugAlreadyExistsException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -40,7 +45,9 @@ class PlatformExceptionHandler {
 
     @ExceptionHandler({
         AccountEmailAlreadyExistsException.class,
-        BusinessSlugAlreadyExistsException.class
+        BusinessSlugAlreadyExistsException.class,
+        DuplicateActiveMembershipException.class,
+        LastOwnerMembershipException.class
     })
     ProblemDetail handleConflict(
             final RuntimeException exception, final HttpServletRequest request) {
@@ -63,6 +70,21 @@ class PlatformExceptionHandler {
     ProblemDetail handlePasswordResetTokenInvalid(
             final PasswordResetTokenInvalidException exception, final HttpServletRequest request) {
         return problem(HttpStatus.BAD_REQUEST, exception.getMessage(), request);
+    }
+
+    @ExceptionHandler(TargetAccountUnavailableException.class)
+    ProblemDetail handleTargetAccountUnavailable(
+            final TargetAccountUnavailableException exception, final HttpServletRequest request) {
+        return problem(HttpStatus.BAD_REQUEST, exception.getMessage(), request);
+    }
+
+    @ExceptionHandler({
+        MembershipAdministrationDeniedException.class,
+        BusinessMembershipNotFoundException.class
+    })
+    ProblemDetail handleMembershipNotFound(
+            final RuntimeException exception, final HttpServletRequest request) {
+        return problem(HttpStatus.NOT_FOUND, exception.getMessage(), request);
     }
 
     @ExceptionHandler(IllegalArgumentException.class)

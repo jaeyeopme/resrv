@@ -22,6 +22,8 @@ Primary ADRs:
   checks.
 - [ADR-0020](adr/0020-platform-exchange-boundary.md): pure Java platform exchange module for
   cross-context lookup/check APIs.
+- [ADR-0021](adr/0021-staff-membership-administration.md): owner-only staff membership
+  administration with append-only audit.
 
 ## Runtime And Build
 
@@ -59,6 +61,11 @@ Platform API owns account and business lifecycle:
 - Login.
 - Complete password reset from an emailed reset token.
 - Create business and owner membership.
+- Grant staff membership to an existing active account.
+- List current business memberships.
+- List membership audit history.
+- Update membership role by membership id.
+- Disable membership by membership id.
 
 Timeslot API owns booking lifecycle:
 
@@ -99,6 +106,9 @@ Business-scoped owner/staff authorization requires active account, active busine
 membership through `BusinessAccessCheck`. Timeslot obtains those decisions through explicit
 `platform-exchange` APIs and must not read platform tables directly.
 
+Membership administration is stricter than generic business access: grant, list, audit, role update,
+and disable operations require active owner membership. JWTs still carry only account identity.
+
 ## Persistence Design
 
 Platform schema:
@@ -106,6 +116,7 @@ Platform schema:
 - `platform.account`
 - `platform.business`
 - `platform.business_membership`
+- `platform.business_membership_audit_entry`
 - `platform.sign_in_attempt`
 - `platform.account_sign_in_protection`
 - `platform.password_reset_challenge`
