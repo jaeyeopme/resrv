@@ -13,8 +13,10 @@
 
 ## Current Module State
 
-The current branch uses bounded-context Gradle modules. This is recorded in
-[ADR-0017](adr/0017-collapse-to-bounded-context-modules.md).
+The current branch uses bounded-context Gradle modules. The bounded-context
+collapse is recorded in [ADR-0017](adr/0017-collapse-to-bounded-context-modules.md),
+and the dedicated exchange module is recorded in
+[ADR-0020](adr/0020-platform-exchange-boundary.md).
 
 ```text
 shared-kernel

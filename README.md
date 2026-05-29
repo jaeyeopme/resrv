@@ -52,6 +52,7 @@ Supporting docs:
 - [Testing](docs/testing.md)
 - [Operations](docs/operations.md)
 - [Glossary](docs/glossary.md)
+- [Spec Kit usage](docs/spec-kit.md)
 
 Baseline references and implemented feature artifacts are captured as Spec Kit
 specs under `specs/`.

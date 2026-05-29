@@ -31,6 +31,7 @@
 | Checked in | Confirmed reservation marked attended after start time |
 | No-show | Confirmed reservation marked missed after end time |
 | Platform context | Bounded context for account, business, and membership |
+| Platform exchange | Pure Java platform-owned lookup and decision API surface consumed by other contexts |
 | Timeslot context | Bounded context for booking configuration, slots, and reservations |
 | Shared kernel | Small set of stable primitives shared across contexts |
 | ADR | Architecture Decision Record explaining why a durable technical decision exists |

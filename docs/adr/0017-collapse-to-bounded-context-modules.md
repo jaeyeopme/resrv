@@ -110,7 +110,9 @@ Costs:
 
 ## Consequences
 
-- `settings.gradle.kts` includes only `shared-kernel`, `platform`, and `timeslot`.
+- At acceptance time, `settings.gradle.kts` included only `shared-kernel`, `platform`, and
+  `timeslot`. [ADR-0020](0020-platform-exchange-boundary.md) later added `platform-exchange` as a
+  pure Java exchange module without reopening the bounded-context collapse decision.
 - Existing code moves into package-level layers inside `platform` and `timeslot`.
 - JaCoCo coverage gates are enforced at both module and package level.
 - ArchUnit tests become the primary layer enforcement mechanism.

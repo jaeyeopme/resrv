@@ -29,6 +29,7 @@ Docker must be running because persistence and API integration tests use Testcon
 | Persistence tests | `platform/src/test`, `timeslot/src/test` | JPA mapping, Flyway schema, PostgreSQL behavior |
 | API integration tests | `platform/src/test`, `timeslot/src/test` | Security, HTTP flow, runtime wiring |
 | Architecture tests | `platform/src/test/.../architecture`, `timeslot/src/test/.../architecture` | Package/module dependency rules |
+| Platform exchange architecture tests | `platform-exchange/src/test` | Pure Java exchange boundary and event-package guard |
 
 ## Coverage Gates
 
@@ -58,6 +59,8 @@ ArchUnit verifies:
 - Timeslot does not depend on platform domain, adapters, API runtime, repositories, entities, or
   persistence schema.
 - Only the timeslot outbound platform adapter may depend on explicit `platform-exchange` APIs.
+- Platform exchange APIs do not depend on Spring, Jakarta, Hibernate, platform implementation
+  packages, or exchange event packages.
 - Direct database access primitives stay inside outbound adapter packages in production code.
 - Request-handling Web Adapter classes do not depend on endpoint-level Swagger/OpenAPI
   annotations; those annotations live on same-package `*ApiDocs` interfaces implemented by the

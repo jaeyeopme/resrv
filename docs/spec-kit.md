@@ -90,24 +90,23 @@ implementation tasks. Use `Pending` for candidate feature specs that have no
 `plan.md` or `tasks.md` yet. Use `Implemented` only after a task-backed feature
 has all tasks completed and the implementation has been merged.
 
-## Completion Priorities
+## Implemented Review Priorities
 
-Use this priority order when deciding the next Spec Kit feature after the
-current implemented specs. These priorities exclude adjacent product additions
-such as payments, notifications, external calendar sync, and UI work.
+The review-cleanup queue below has already been implemented. Treat it as a
+historical checkpoint list, not as the next work queue.
 
-| Priority | Focus | Completion Bar |
+| Spec | Focus | Completion Bar |
 |---|---|---|
-| P0 | Runtime packaging | Implemented platform and timeslot APIs run from an intentional, documented deployment shape. |
-| P1 | API contract consistency | Generated OpenAPI, API tests, error responses, and public/private boundaries match implemented behavior. |
-| P2 | Minimal operations | Production profile, migration execution, health checks, and packaging instructions are enough to run the backend predictably. |
-| P3 | Data and authorization consistency | Membership, business, resource, and reservation state changes preserve access rules and IDOR-sensitive response policy. |
-| P4 | Spec and docs consistency | Specs, ADRs, README, TRD, and active plan metadata describe the same implemented state. |
+| `013-runtime-packaging` | Runtime packaging | Implemented platform and timeslot APIs run from an intentional, documented deployment shape. |
+| `014-api-contract-consistency` | API contract consistency | Generated OpenAPI, API tests, error responses, and public/private boundaries match implemented behavior. |
+| `015-minimal-operations` | Minimal operations | Production profile, migration execution, health checks, and packaging instructions are enough to run the backend predictably. |
+| `016-data-authorization-consistency` | Data and authorization consistency | Membership, business, resource, and reservation state changes preserve access rules and IDOR-sensitive response policy. |
+| `017-web-adapter-docs` | Web adapter documentation separation | Request-handling Web Adapters stay focused on HTTP mapping while generated OpenAPI metadata lives on matching `*ApiDocs` interfaces. |
 
-P0 is represented by spec `013-runtime-packaging`. After that implementation is
-merged, future runtime-split work should be treated as a separate broker/outbox
-or service-transport design rather than a continuation of the review runtime
-packaging cleanup.
+There is no committed `Pending` Spec Kit feature at the current checkpoint.
+Future runtime-split, outbox/message-broker, payments, notifications, external
+calendar sync, UI, or token-revocation work needs a fresh feature spec before
+planning.
 
 ## Extension Hooks
 
