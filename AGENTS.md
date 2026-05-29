@@ -165,5 +165,5 @@ Do not include AI attribution, generated-by footers, model names, or AI co-autho
 
 <!-- SPECKIT START -->
 When working from a Spec Kit plan, read the active plan before implementation.
-Active plan: specs/013-runtime-packaging/plan.md
+Active plan: none
 <!-- SPECKIT END -->
