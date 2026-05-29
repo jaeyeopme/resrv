@@ -66,6 +66,7 @@ omx_wiki/
 .worktrees/
 
 # AI tooling internals
+.specify/extension-catalogs.yml
 .specify/extensions.yml
 .specify/extensions/
 .specify/integrations/
