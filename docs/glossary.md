@@ -6,6 +6,7 @@
 | Account-scoped JWT | Token that identifies only the platform account and carries no business role or authority |
 | Business | Organization that owns booking configuration, resources, schedules, and reservations |
 | BusinessMembership | Relationship granting an account `OWNER` or `STAFF` access to a business |
+| BusinessMembershipAuditEntry | Append-only record of membership grant, reactivation, role-change, or disablement |
 | Owner | Account with `OWNER` membership for a business |
 | Staff | Account with `STAFF` membership for a business |
 | Customer | Account that owns a reservation from the booking side |

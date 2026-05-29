@@ -10,13 +10,15 @@ Current Gradle modules:
 
 ```text
 shared-kernel
+platform-exchange
 platform
 timeslot
 ```
 
-`platform` is the runnable Spring Boot API. `timeslot` contains booking API code,
-but its `bootJar` and `bootRun` tasks are intentionally disabled until runtime
-packaging is decided.
+`platform` is the runnable Spring Boot API. `platform-exchange` contains pure Java
+platform-owned lookup/check APIs for cross-context consumers. `timeslot` contains
+booking API code, but its `bootJar` and `bootRun` tasks are intentionally disabled
+until runtime packaging is decided.
 
 ## Required Commands
 

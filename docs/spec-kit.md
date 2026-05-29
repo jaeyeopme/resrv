@@ -90,11 +90,30 @@ implementation tasks. Use `Pending` for candidate feature specs that have no
 `plan.md` or `tasks.md` yet. Use `Implemented` only after a task-backed feature
 has all tasks completed and the implementation has been merged.
 
+## Completion Priorities
+
+Use this priority order when deciding the next Spec Kit feature after the
+current implemented specs. These priorities exclude adjacent product additions
+such as payments, notifications, external calendar sync, and UI work.
+
+| Priority | Focus | Completion Bar |
+|---|---|---|
+| P0 | Runtime packaging | Implemented platform and timeslot APIs run from an intentional, documented deployment shape. |
+| P1 | API contract consistency | Generated OpenAPI, API tests, error responses, and public/private boundaries match implemented behavior. |
+| P2 | Minimal operations | Production profile, migration execution, health checks, and packaging instructions are enough to run the backend predictably. |
+| P3 | Data and authorization consistency | Membership, business, resource, and reservation state changes preserve access rules and IDOR-sensitive response policy. |
+| P4 | Spec and docs consistency | Specs, ADRs, README, TRD, and active plan metadata describe the same implemented state. |
+
+Prefer P0 before adding new domain capabilities. The largest current completion
+gap is not missing booking behavior; it is that the booking API implementation
+is not yet represented by a finalized runtime packaging decision.
+
 ## Extension Hooks
 
-Local `.specify/extensions.yml` hook settings are ignored by Git. Disabling the
-analyze hook suppresses `/speckit.analyze` commit prompts only; other Spec Kit
-steps can still show their own enabled hook prompts.
+Local `.specify/extensions.yml`, `.specify/extensions/`, and
+`.specify/extension-catalogs.yml` state are ignored by Git. Disabling the analyze
+hook suppresses `/speckit.analyze` commit prompts only; other Spec Kit steps can
+still show their own enabled hook prompts.
 
 ## Implementation Rules
 

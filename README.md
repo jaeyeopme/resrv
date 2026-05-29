@@ -16,9 +16,10 @@ main correctness goal is to answer:
 ## Current State
 
 `v0.1.0-review-baseline` marks a review-ready bounded-context module baseline.
-It is not production-complete: payments, staff administration, password reset UI,
-combined timeslot runtime packaging, deployment infrastructure, and notification
-workflows are intentionally out of scope.
+It is not production-complete: payments, staff invitation delivery and acceptance
+UI, password reset UI, combined timeslot runtime packaging, deployment
+infrastructure, and notification workflows are intentionally out of scope. Core
+owner-managed staff membership administration is implemented in the platform API.
 
 The active redesign uses four Gradle modules:
 
@@ -51,8 +52,8 @@ Supporting docs:
 - [Operations](docs/operations.md)
 - [Glossary](docs/glossary.md)
 
-Future and pending feature candidates are captured as Spec Kit specs under
-`specs/`.
+Baseline references and implemented feature artifacts are captured as Spec Kit
+specs under `specs/`.
 
 ## Tech Stack
 

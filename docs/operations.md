@@ -102,6 +102,7 @@ Flyway migrations are stored in bounded-context modules:
 | `platform/src/main/resources/db/migration/V9__create_platform_schema.sql` | Platform account, business, membership |
 | `timeslot/src/main/resources/db/migration/V10__create_timeslot_schema.sql` | Timeslot settings, resources, schedules, reservations |
 | `platform/src/main/resources/db/migration/V11__account_security_hardening.sql` | Sign-in protection and password reset recovery |
+| `platform/src/main/resources/db/migration/V12__staff_membership_management.sql` | Membership timestamps and access audit history |
 
 ## Troubleshooting
 

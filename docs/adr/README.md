@@ -27,6 +27,6 @@ that introduced or hardened the decision so future readers can inspect the imple
 | [0016](0016-public-generated-openapi.md) | Accepted | Generated Swagger/OpenAPI docs remain publicly readable |
 | [0017](0017-collapse-to-bounded-context-modules.md) | Accepted | Collapse layer modules into bounded-context Gradle modules |
 | [0018](0018-account-security-hardening.md) | Accepted | Account security hardening with password reset recovery and active-state checks |
-| [0019](0019-platform-contracts-for-timeslot-reads.md) | Accepted | Use explicit platform contracts for timeslot business lookup, summary, and access decisions |
+| [0019](0019-platform-contracts-for-timeslot-reads.md) | Accepted | Use explicit platform exchange APIs for timeslot business lookup, summary, and access decisions |
 | [0020](0020-platform-exchange-boundary.md) | Accepted | Extract platform exchange APIs into a pure Java module |
 | [0021](0021-staff-membership-administration.md) | Accepted | Staff membership current state with append-only access audit |

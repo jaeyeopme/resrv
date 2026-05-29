@@ -89,7 +89,7 @@ Platform exposes separate cross-context contracts for different intents:
   inactive.
 
 See [ADR-0019](adr/0019-platform-contracts-for-timeslot-reads.md) for the decision to use
-synchronous platform contracts in the current modular monolith and keep event-backed summary
+synchronous platform exchange APIs in the current modular monolith and keep event-backed summary
 projections as a future option. See [ADR-0020](adr/0020-platform-exchange-boundary.md) for the
 module boundary that keeps those APIs out of the platform implementation module.
 

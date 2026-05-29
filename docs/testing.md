@@ -73,6 +73,11 @@ activate/deactivate actions, public discovery exclusion for inactive resources, 
 effects for holds and cancellation cutoffs, and reservation fact preservation after lifecycle
 changes.
 
+Staff membership administration tests verify owner-only grant/list/audit/update/disable APIs,
+duplicate active membership rejection, disabled membership reactivation, last-owner protection,
+wrong-business membership denial, immutable audit entries, generated OpenAPI response documentation,
+and request-time access decisions from current membership state.
+
 Public booking discovery tests verify slug-based business discovery, active-only resource discovery,
 schedule-derived slots with `available` state, malformed-input validation, collapsed `404` responses
 for valid missing/inactive/not-bookable/wrong-business lookups, no public business UUID exposure,
