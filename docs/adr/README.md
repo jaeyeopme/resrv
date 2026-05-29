@@ -2,8 +2,8 @@
 
 This directory records durable technical decisions for `resrv`.
 
-The ADR sequence is reconstructed from the redesign branch git history. Each ADR lists the commits
-that introduced or hardened the decision so future readers can inspect the implementation context.
+The ADR sequence is reconstructed from project git history. Each ADR lists the commits that
+introduced or hardened the decision so future readers can inspect the implementation context.
 
 ## Index
 

@@ -2,7 +2,7 @@
   "name": "resrv",
   "version": "0.0.1",
   "private": true,
-  "description": "Reservation API repository tooling",
+  "description": "Backend for business reservation workflows",
   "engines": {
     "node": ">=24"
   },

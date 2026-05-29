@@ -2,7 +2,7 @@
 
 ## Overview
 
-`resrv` is a B2B reservation backend for businesses that need account-based access control,
+`resrv` is a backend for business reservation workflows that need account-based access control,
 resource scheduling, virtual slot discovery, and reservation lifecycle management.
 
 The current product scope focuses on a timeslot booking product. A business configures booking

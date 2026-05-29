@@ -2,9 +2,10 @@
 
 ## Project Snapshot
 
-`resrv` is a multi-tenant B2B reservation API built with Java 25, Spring Boot 4,
-PostgreSQL, and Gradle. The codebase uses bounded-context modules with hexagonal
-package boundaries.
+`resrv` is a Java 25 + Spring Boot 4 backend for business reservation workflows.
+It models accounts, businesses, staff access, booking setup, generated slots,
+and reservation lifecycle transitions. The codebase uses bounded-context modules
+with hexagonal package boundaries.
 
 Current Gradle modules:
 
@@ -35,10 +36,6 @@ Run formatting before full verification:
 Run the platform API locally:
 
 ```bash
-RESRV_JWT_SECRET_KEY=01234567890123456789012345678901 \
-RESRV_JWT_ISSUER=resrv-dev \
-RESRV_JWT_AUDIENCE=resrv-api \
-RESRV_JWT_EXPIRATION=3600 \
 ./gradlew :platform:bootRun
 ```
 

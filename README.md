@@ -2,12 +2,11 @@
 
 [![CI](https://github.com/jaeyeopme/resrv/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/jaeyeopme/resrv/actions/workflows/ci.yml)
 
-`resrv` is a Java 25 + Spring Boot 4 backend for reservation services used by
-businesses.
+`resrv` is a Java 25 + Spring Boot 4 backend for business reservation workflows.
 
-It is not a complete SaaS product. The project focuses on the backend side of a
-reservation system: accounts, businesses, staff access, booking rules,
-resources, schedules, generated slots, and reservations.
+It focuses on backend API behavior rather than a full product UI: accounts,
+businesses, staff access, booking rules, resources, schedules, generated slots,
+and reservations.
 
 ## Highlights
 
@@ -87,21 +86,22 @@ runtime.
 
 ### Hold Creation
 
-Hold creation is the main write path that prevents two active reservations from
-using the same generated slot.
+Hold creation starts from a public business slug. The platform context resolves
+that slug to an active business, then the booking service verifies the resource,
+slot, and capacity before saving the hold.
 
 ```mermaid
 sequenceDiagram
     actor Customer
     participant PublicAPI as Public booking API
-    participant Platform as Business lookup
+    participant Platform as Platform context
     participant Service as Reservation service
     participant Lock as Resource and time lock
     participant DB as PostgreSQL
 
     Customer->>PublicAPI: Request a hold with business slug, resourceId, and slotId
-    PublicAPI->>Platform: Find active business by slug
-    PublicAPI->>Service: Create hold with business, resource, account, and slot
+    PublicAPI->>Platform: Resolve active business from slug
+    PublicAPI->>Service: Create hold with business id, resourceId, account, and slotId
     Service->>DB: Load booking settings, active resource, and schedule
     Service->>Service: Decode slotId and verify generated slot
     Service->>Lock: Lock resource and slot start time
@@ -173,11 +173,11 @@ stateDiagram-v2
 
 ## Project Status
 
-The current scope is a backend review baseline. It is not production-deployment
-ready. Payments, staff invitation delivery and acceptance UI, password reset UI,
-production deployment infrastructure, and notification workflows are outside the
-current scope. Owner-managed staff membership administration is implemented in
-the platform API.
+The current scope is a working backend API for local execution and code review.
+It is not production-deployment ready. Payments, staff invitation delivery and
+acceptance UI, password reset UI, production deployment infrastructure, and
+notification workflows are outside the current scope. Owner-managed staff
+membership administration is implemented in the platform API.
 
 ## Non-Goals
 
