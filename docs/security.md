@@ -107,6 +107,10 @@ Public discovery must collapse syntactically valid missing, inactive, incomplete
 lookups into the same no-public-bookable-representation response. Non-sensitive denial facts may be
 logged internally for debugging.
 
+Resource-scoped object probes also use a generic public not-found response when a valid resource id
+is missing or belongs outside the addressed business. The request path may still identify the
+attempted object; the problem detail must not reveal ownership or existence facts.
+
 ## Business Authorization
 
 Business write operations require active `BusinessMembership` with role `OWNER` or `STAFF`.
@@ -135,9 +139,14 @@ business-scoped authorization.
 
 Customer-scoped transitions require reservation ownership:
 
+- View own reservation detail.
 - Confirm own hold.
 - Release own hold.
 - Customer-cancel own confirmed reservation before cutoff.
+
+Customer reservation detail, confirm, release, and customer-cancel are IDOR-sensitive object probes.
+Missing reservations and reservations owned by another customer return the same public `404` status
+and detail. Internal logs may still distinguish missing from not-owned for support.
 
 Business-scoped transitions require owner/staff access:
 
@@ -145,6 +154,10 @@ Business-scoped transitions require owner/staff access:
 - Business cancel.
 - Check-in.
 - No-show.
+
+Business reservation operations keep business-membership authorization semantics. A caller without
+active owner/staff access receives `403`; a reservation id outside the addressed business is treated
+as not found for that route.
 
 ## Data Boundary
 

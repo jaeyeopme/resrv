@@ -118,8 +118,8 @@ public class ReservationService {
     public ReservationResult confirm(final ConfirmReservationCommand command) {
         Objects.requireNonNull(command, "Command must not be null");
         final var now = clock.instant();
-        final var reservation = findLocked(command.businessId(), command.reservationId());
-        requireCustomerOwner(reservation, command.accountId());
+        final var reservation = findCustomerLocked(command.businessId(), command.reservationId());
+        requireCustomerOwnerOrNotFound(reservation, command.accountId());
         final var confirmed = reservation.confirm(now);
         reservationCommandPort.save(confirmed);
         return ReservationResult.from(confirmed, now, businessZone(command.businessId()));
@@ -128,8 +128,8 @@ public class ReservationService {
     public ReservationResult release(final ReleaseReservationCommand command) {
         Objects.requireNonNull(command, "Command must not be null");
         final var now = clock.instant();
-        final var reservation = findLocked(command.businessId(), command.reservationId());
-        requireCustomerOwner(reservation, command.accountId());
+        final var reservation = findCustomerLocked(command.businessId(), command.reservationId());
+        requireCustomerOwnerOrNotFound(reservation, command.accountId());
         final var released = reservation.release(now);
         reservationCommandPort.save(released);
         return ReservationResult.from(released, now, businessZone(command.businessId()));
@@ -138,11 +138,10 @@ public class ReservationService {
     public ReservationResult cancel(final CancelReservationCommand command) {
         Objects.requireNonNull(command, "Command must not be null");
         final var now = clock.instant();
-        final var reservation = findLocked(command.businessId(), command.reservationId());
         final var cancelled =
                 switch (command.actor()) {
-                    case CUSTOMER -> cancelByCustomer(command, reservation, now);
-                    case BUSINESS -> cancelByBusiness(command, reservation, now);
+                    case CUSTOMER -> cancelByCustomer(command, now);
+                    case BUSINESS -> cancelByBusiness(command, now);
                 };
         reservationCommandPort.save(cancelled);
         return ReservationResult.from(cancelled, now, businessZone(command.businessId()));
@@ -243,10 +242,9 @@ public class ReservationService {
     }
 
     private Reservation cancelByCustomer(
-            final CancelReservationCommand command,
-            final Reservation reservation,
-            final Instant now) {
-        requireCustomerOwner(reservation, command.accountId());
+            final CancelReservationCommand command, final Instant now) {
+        final var reservation = findCustomerLocked(command.businessId(), command.reservationId());
+        requireCustomerOwnerOrNotFound(reservation, command.accountId());
         final var context = loadBookingContext(command.businessId(), reservation.resourceId());
         final var cutoff =
                 reservation
@@ -256,9 +254,8 @@ public class ReservationService {
     }
 
     private Reservation cancelByBusiness(
-            final CancelReservationCommand command,
-            final Reservation reservation,
-            final Instant now) {
+            final CancelReservationCommand command, final Instant now) {
+        final var reservation = findLocked(command.businessId(), command.reservationId());
         requireBusinessAccess(command.accountId(), command.businessId());
         return reservation.cancelByBusiness(now);
     }
@@ -267,6 +264,17 @@ public class ReservationService {
         return reservationCommandPort
                 .findByBusinessIdAndIdForUpdate(businessId, reservationId)
                 .orElseThrow(() -> new ReservationNotFoundException(businessId, reservationId));
+    }
+
+    private Reservation findCustomerLocked(
+            final BusinessId businessId, final ReservationId reservationId) {
+        return reservationCommandPort
+                .findByBusinessIdAndIdForUpdate(businessId, reservationId)
+                .orElseThrow(
+                        () ->
+                                customerReservationNotFound(
+                                        reservationId,
+                                        CustomerReservationDenialFact.RESERVATION_NOT_FOUND));
     }
 
     private ZoneId businessZone(final BusinessId businessId) {
@@ -316,7 +324,7 @@ public class ReservationService {
     private ReservationNotFoundException customerReservationNotFound(
             final ReservationId reservationId, final CustomerReservationDenialFact denialFact) {
         LOGGER.info(
-                "Customer reservation detail denied: reservationId={}, fact={}",
+                "Customer reservation access denied: reservationId={}, fact={}",
                 reservationId.value(),
                 denialFact);
         return new ReservationNotFoundException(reservationId);
@@ -395,9 +403,11 @@ public class ReservationService {
                 windows);
     }
 
-    private void requireCustomerOwner(final Reservation reservation, final AccountId accountId) {
+    private void requireCustomerOwnerOrNotFound(
+            final Reservation reservation, final AccountId accountId) {
         if (!reservation.customerAccountId().equals(accountId)) {
-            throw new ReservationAccessDeniedException();
+            throw customerReservationNotFound(
+                    reservation.id(), CustomerReservationDenialFact.RESERVATION_NOT_OWNED);
         }
     }
 

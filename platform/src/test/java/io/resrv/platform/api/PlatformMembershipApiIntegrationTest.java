@@ -122,8 +122,10 @@ final class PlatformMembershipApiIntegrationTest {
         final var otherId = insertAccount("other@example.com", "Other", "ACTIVE");
         insertAccount("disabled@example.com", "Disabled", "DISABLED");
         final var businessId = insertBusiness("membership-denials");
+        final var inactiveBusinessId = insertBusiness("membership-denials-inactive", "INACTIVE");
         insertMembership(ownerId, businessId, "OWNER", true);
         insertMembership(staffId, businessId, "STAFF", true);
+        insertMembership(ownerId, inactiveBusinessId, "OWNER", true);
         final var staffMembershipId = membershipId(staffId, businessId);
 
         mockMvc.perform(
@@ -155,6 +157,26 @@ final class PlatformMembershipApiIntegrationTest {
                                         businessId,
                                         staffMembershipId)
                                 .header(HttpHeaders.AUTHORIZATION, bearer(staffId)))
+                .andExpect(status().isNotFound());
+        mockMvc.perform(
+                        post("/api/businesses/{businessId}/memberships", businessId)
+                                .header(HttpHeaders.AUTHORIZATION, bearer(otherId))
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content("{\"targetAccountEmail\":\"staff@example.com\"}"))
+                .andExpect(status().isNotFound());
+        mockMvc.perform(
+                        get("/api/businesses/{businessId}/memberships", businessId)
+                                .header(HttpHeaders.AUTHORIZATION, bearer(otherId)))
+                .andExpect(status().isNotFound());
+        mockMvc.perform(
+                        post("/api/businesses/{businessId}/memberships", inactiveBusinessId)
+                                .header(HttpHeaders.AUTHORIZATION, bearer(ownerId))
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content("{\"targetAccountEmail\":\"staff@example.com\"}"))
+                .andExpect(status().isNotFound());
+        mockMvc.perform(
+                        get("/api/businesses/{businessId}/memberships", inactiveBusinessId)
+                                .header(HttpHeaders.AUTHORIZATION, bearer(ownerId)))
                 .andExpect(status().isNotFound());
         mockMvc.perform(
                         post("/api/businesses/{businessId}/memberships", businessId)
@@ -459,15 +481,20 @@ final class PlatformMembershipApiIntegrationTest {
     }
 
     private UUID insertBusiness(final String slug) {
+        return insertBusiness(slug, "ACTIVE");
+    }
+
+    private UUID insertBusiness(final String slug, final String status) {
         final var id = UUID.randomUUID();
         jdbcTemplate.update(
                 """
                 INSERT INTO platform.business
                     (id, name, slug, timezone, status, created_at)
-                VALUES (?, 'Studio', ?, 'Asia/Seoul', 'ACTIVE', ?)
+                VALUES (?, 'Studio', ?, 'Asia/Seoul', ?, ?)
                 """,
                 id,
                 slug,
+                status,
                 Timestamp.from(NOW));
         return id;
     }

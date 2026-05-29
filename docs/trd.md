@@ -124,6 +124,12 @@ membership through `BusinessAccessCheck`. Timeslot obtains those decisions throu
 Membership administration is stricter than generic business access: grant, list, audit, role update,
 and disable operations require active owner membership. JWTs still carry only account identity.
 
+IDOR-sensitive object probes use uniform public not-found responses. Customer reservation detail,
+confirm, release, and customer-cancel return the same `404` status and detail for missing and
+not-owned reservations. Resource-scoped mutations return a generic resource not-found response for
+missing or wrong-business resource ids. Internal diagnostic facts may be logged, but they are not
+returned in problem details.
+
 ## Persistence Design
 
 Platform schema:

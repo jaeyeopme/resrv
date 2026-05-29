@@ -66,13 +66,17 @@ windows, optional resource/customer/state filters, and deterministic start-time 
 Customer reservation history tests verify self-scoped list/detail APIs, owner-only account
 filtering, inactive business/resource summary rendering, bounded page/size validation, stable
 descending ordering, derived state and `upcoming=true` filtering before pagination, and identical
-public `404` responses for missing and not-owned detail lookups.
+public `404` responses for missing and not-owned detail, confirm, release, and customer-cancel
+lookups.
 
 Business resource lifecycle tests verify full replacement semantics for booking settings, resource
 details, booking overrides, weekly schedules, and date overrides. They also cover explicit
 activate/deactivate actions, public discovery exclusion for inactive resources, future-only policy
 effects for holds and cancellation cutoffs, and reservation fact preservation after lifecycle
 changes.
+
+Resource probe tests compare missing and wrong-business resource identifiers at the API boundary so
+public problem details do not expose resource ownership or existence facts.
 
 Staff membership administration tests verify owner-only grant/list/audit/update/disable APIs,
 duplicate active membership rejection, disabled membership reactivation, last-owner protection,

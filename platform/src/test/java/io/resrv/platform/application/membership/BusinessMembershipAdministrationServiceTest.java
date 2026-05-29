@@ -151,6 +151,54 @@ final class BusinessMembershipAdministrationServiceTest {
     }
 
     @Test
+    void membershipAdministrationRejectsInactiveOwnerAccountAndInactiveBusiness() {
+        final var staffMembership = BusinessMembership.staff(STAFF_ID, BUSINESS_ID, EARLIER);
+
+        when(accountQueryPort.findById(OWNER_ID))
+                .thenReturn(
+                        Optional.of(
+                                account(OWNER_ID, "owner@example.com", AccountStatus.DISABLED)));
+        assertThrows(
+                MembershipAdministrationDeniedException.class,
+                () ->
+                        service.grantStaff(
+                                new GrantStaffMembershipCommand(
+                                        OWNER_ID, BUSINESS_ID, "staff@example.com")));
+
+        when(accountQueryPort.findById(OWNER_ID))
+                .thenReturn(
+                        Optional.of(account(OWNER_ID, "owner@example.com", AccountStatus.ACTIVE)));
+        when(businessQueryPort.findById(BUSINESS_ID)).thenReturn(Optional.of(inactiveBusiness()));
+        when(queryPort.findById(staffMembership.id())).thenReturn(Optional.of(staffMembership));
+
+        assertThrows(
+                MembershipAdministrationDeniedException.class,
+                () ->
+                        service.listMemberships(
+                                new ListBusinessMembershipsQuery(OWNER_ID, BUSINESS_ID)));
+        assertThrows(
+                MembershipAdministrationDeniedException.class,
+                () ->
+                        service.listAuditHistory(
+                                new MembershipAuditHistoryQuery(OWNER_ID, BUSINESS_ID)));
+        assertThrows(
+                MembershipAdministrationDeniedException.class,
+                () ->
+                        service.updateRole(
+                                new UpdateMembershipRoleCommand(
+                                        OWNER_ID,
+                                        BUSINESS_ID,
+                                        staffMembership.id(),
+                                        BusinessRole.OWNER)));
+        assertThrows(
+                MembershipAdministrationDeniedException.class,
+                () ->
+                        service.disable(
+                                new DisableMembershipCommand(
+                                        OWNER_ID, BUSINESS_ID, staffMembership.id())));
+    }
+
+    @Test
     void grantReactivatesDisabledMembership() {
         final var disabled =
                 BusinessMembership.staff(STAFF_ID, BUSINESS_ID, EARLIER).disable(EARLIER);
@@ -290,12 +338,20 @@ final class BusinessMembershipAdministrationServiceTest {
     }
 
     private static Business activeBusiness() {
+        return business(BusinessStatus.ACTIVE);
+    }
+
+    private static Business inactiveBusiness() {
+        return business(BusinessStatus.INACTIVE);
+    }
+
+    private static Business business(final BusinessStatus status) {
         return Business.reconstitute(
                 BUSINESS_ID,
                 new BusinessName("Salon A"),
                 new BusinessSlug("salon-a"),
                 Timezone.of("Asia/Seoul"),
-                BusinessStatus.ACTIVE,
+                status,
                 EARLIER);
     }
 }

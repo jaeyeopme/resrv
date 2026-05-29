@@ -107,7 +107,6 @@ class ReservationWebAdapter {
                 @ApiResponse(responseCode = "200", description = "Reservation confirmed"),
                 @ApiResponse(responseCode = "400", description = "Validation failure"),
                 @ApiResponse(responseCode = "401", description = "Authentication is required"),
-                @ApiResponse(responseCode = "403", description = "Reservation access is required"),
                 @ApiResponse(responseCode = "404", description = "Reservation not found"),
                 @ApiResponse(responseCode = "422", description = "Reservation cannot be confirmed")
             })
@@ -131,7 +130,6 @@ class ReservationWebAdapter {
                 @ApiResponse(responseCode = "200", description = "Reservation released"),
                 @ApiResponse(responseCode = "400", description = "Validation failure"),
                 @ApiResponse(responseCode = "401", description = "Authentication is required"),
-                @ApiResponse(responseCode = "403", description = "Reservation access is required"),
                 @ApiResponse(responseCode = "404", description = "Reservation not found"),
                 @ApiResponse(responseCode = "422", description = "Reservation cannot be released")
             })

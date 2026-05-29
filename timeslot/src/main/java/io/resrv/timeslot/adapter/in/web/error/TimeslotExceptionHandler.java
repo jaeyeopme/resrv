@@ -75,12 +75,17 @@ class TimeslotExceptionHandler {
     @ExceptionHandler({
         BusinessNotAvailableException.class,
         PublicDiscoveryNotFoundException.class,
-        ResourceNotAvailableException.class,
         ReservationNotFoundException.class,
     })
     ProblemDetail handleNotFound(
             final RuntimeException exception, final HttpServletRequest request) {
         return problem(HttpStatus.NOT_FOUND, exception.getMessage(), request);
+    }
+
+    @ExceptionHandler(ResourceNotAvailableException.class)
+    ProblemDetail handleResourceNotFound(
+            final ResourceNotAvailableException exception, final HttpServletRequest request) {
+        return problem(HttpStatus.NOT_FOUND, "Resource not found", request);
     }
 
     @ExceptionHandler({

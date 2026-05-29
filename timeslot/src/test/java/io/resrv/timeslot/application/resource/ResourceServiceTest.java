@@ -446,6 +446,30 @@ class ResourceServiceTest {
     }
 
     @Test
+    void replaceDetailsRejectsWrongBusinessResourceAsUnavailable() {
+        final var resourceId = ResourceId.create();
+        when(businessLookupPort.findActiveById(BUSINESS_ID))
+                .thenReturn(Optional.of(activeBusiness()));
+        when(queryPort.findByBusinessIdAndId(BUSINESS_ID, resourceId)).thenReturn(Optional.empty());
+
+        assertThrows(
+                ResourceNotAvailableException.class,
+                () ->
+                        service.replaceDetails(
+                                new ReplaceResourceDetailsCommand(
+                                        BUSINESS_ID,
+                                        resourceId,
+                                        "Room A",
+                                        "room-a",
+                                        null,
+                                        null,
+                                        null,
+                                        null)));
+
+        verify(commandPort, never()).save(any());
+    }
+
+    @Test
     void activateAndDeactivateChangeOnlyStatusAndUpdatedAt() {
         final var resource = resource(ResourceBookingOverrides.none());
         when(businessLookupPort.findActiveById(BUSINESS_ID))

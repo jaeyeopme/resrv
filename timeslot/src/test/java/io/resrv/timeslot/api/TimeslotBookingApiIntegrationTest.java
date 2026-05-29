@@ -87,13 +87,12 @@ final class TimeslotBookingApiIntegrationTest {
 
     @Test
     void inactiveBusinessIsDeniedForProtectedBusinessAction() throws Exception {
+        final var token = signedToken(ACCOUNT_ID);
         platformExchangeFixture.setBusinessActive(BusinessId.of(BUSINESS_ID), false);
 
         mockMvc.perform(
                         put("/api/businesses/{businessId}/booking-settings", BUSINESS_ID)
-                                .header(
-                                        HttpHeaders.AUTHORIZATION,
-                                        "Bearer " + signedToken(ACCOUNT_ID))
+                                .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(
                                         """
@@ -109,13 +108,12 @@ final class TimeslotBookingApiIntegrationTest {
 
     @Test
     void inactiveMembershipIsDeniedForProtectedBusinessAction() throws Exception {
+        final var token = signedToken(ACCOUNT_ID);
         platformExchangeFixture.revokeAccess(AccountId.of(ACCOUNT_ID), BusinessId.of(BUSINESS_ID));
 
         mockMvc.perform(
                         put("/api/businesses/{businessId}/booking-settings", BUSINESS_ID)
-                                .header(
-                                        HttpHeaders.AUTHORIZATION,
-                                        "Bearer " + signedToken(ACCOUNT_ID))
+                                .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(
                                         """
@@ -366,12 +364,8 @@ final class TimeslotBookingApiIntegrationTest {
                         .getResponse()
                         .getContentAsString();
 
-        Assertions.assertEquals(
-                (String) JsonPath.read(missing, "$.detail"),
-                (String) JsonPath.read(inactive, "$.detail"));
-        Assertions.assertEquals(
-                (String) JsonPath.read(missing, "$.detail"),
-                (String) JsonPath.read(missingSettings, "$.detail"));
+        assertSameProblemStatusAndDetail(missing, inactive);
+        assertSameProblemStatusAndDetail(missing, missingSettings);
     }
 
     @Test
@@ -448,12 +442,8 @@ final class TimeslotBookingApiIntegrationTest {
                         .getContentAsString();
 
         Assertions.assertEquals("[]", inactive);
-        Assertions.assertEquals(
-                (String) JsonPath.read(missing, "$.detail"),
-                (String) JsonPath.read(nowInactive, "$.detail"));
-        Assertions.assertEquals(
-                (String) JsonPath.read(missing, "$.detail"),
-                (String) JsonPath.read(wrongBusiness, "$.detail"));
+        assertSameProblemStatusAndDetail(missing, nowInactive);
+        assertSameProblemStatusAndDetail(missing, wrongBusiness);
     }
 
     @Test
@@ -677,20 +667,78 @@ final class TimeslotBookingApiIntegrationTest {
     }
 
     @Test
+    void resourceProbeResponsesCollapseMissingAndWrongBusinessResources() throws Exception {
+        final var token = signedToken(ACCOUNT_ID);
+        final var missingResourceId = UUID.fromString("00000000-0000-0000-0000-000000000035");
+        final var otherBusinessId = UUID.fromString("00000000-0000-0000-0000-000000000012");
+        final var otherResourceId = UUID.fromString("00000000-0000-0000-0000-000000000036");
+        insertBusiness(otherBusinessId, "Salon C", "salon-c", "ACTIVE");
+        insertResource(otherBusinessId, otherResourceId, "Room C", "room-c", "ACTIVE");
+
+        final var missing =
+                mockMvc.perform(
+                                put(
+                                                "/api/businesses/{businessId}/resources/{resourceId}",
+                                                BUSINESS_ID,
+                                                missingResourceId)
+                                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+                                        .contentType(MediaType.APPLICATION_JSON)
+                                        .content(
+                                                """
+                                                {
+                                                  "name": "Room A",
+                                                  "slug": "room-a",
+                                                  "description": null
+                                                }
+                                                """))
+                        .andExpect(status().isNotFound())
+                        .andReturn()
+                        .getResponse()
+                        .getContentAsString();
+        final var wrongBusiness =
+                mockMvc.perform(
+                                put(
+                                                "/api/businesses/{businessId}/resources/{resourceId}",
+                                                BUSINESS_ID,
+                                                otherResourceId)
+                                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+                                        .contentType(MediaType.APPLICATION_JSON)
+                                        .content(
+                                                """
+                                                {
+                                                  "name": "Room A",
+                                                  "slug": "room-a",
+                                                  "description": null
+                                                }
+                                                """))
+                        .andExpect(status().isNotFound())
+                        .andReturn()
+                        .getResponse()
+                        .getContentAsString();
+
+        assertSameProblemStatusAndDetail(missing, wrongBusiness);
+    }
+
+    @Test
     void scheduleReplacementSupportsClosedOverridesAndInactiveResources() throws Exception {
         final var token = signedToken(ACCOUNT_ID);
         putSettings(token, 30, 10, 60, 30);
         final var resourceId = createResource(token, "Room A", "room-a");
         replaceWeeklySchedule(token, resourceId, "MONDAY", "10:00:00", "11:00:00");
 
-        mockMvc.perform(
-                        get(
-                                        "/api/businesses/{businessId}/resources/{resourceId}/slots",
-                                        BUSINESS_ID,
-                                        resourceId)
-                                .param("date", "2026-05-25"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].startAt").value("2026-05-25T10:00:00+09:00"));
+        final var slotsJson =
+                mockMvc.perform(
+                                get(
+                                                "/api/businesses/{businessId}/resources/{resourceId}/slots",
+                                                BUSINESS_ID,
+                                                resourceId)
+                                        .param("date", "2026-05-25"))
+                        .andExpect(status().isOk())
+                        .andExpect(jsonPath("$[0].startAt").value("2026-05-25T10:00:00+09:00"))
+                        .andReturn()
+                        .getResponse()
+                        .getContentAsString();
+        final String slotId = JsonPath.read(slotsJson, "$[0].slotId");
 
         mockMvc.perform(
                         put(
@@ -729,6 +777,7 @@ final class TimeslotBookingApiIntegrationTest {
                                 .param("date", "2026-05-25"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$").isEmpty());
+        holdReservation(token, resourceId, slotId).andExpect(status().isNotFound());
     }
 
     @Test
@@ -827,8 +876,36 @@ final class TimeslotBookingApiIntegrationTest {
                                         "$.paths['"
                                                 + reservationPath
                                                 + "/{reservationId}/confirm'].post"
+                                                + ".responses['404'].description")
+                                .value("Reservation not found"))
+                .andExpect(
+                        jsonPath(
+                                        "$.paths['"
+                                                + reservationPath
+                                                + "/{reservationId}/confirm'].post"
                                                 + ".responses['422'].description")
                                 .value("Reservation cannot be confirmed"))
+                .andExpect(
+                        jsonPath(
+                                        "$.paths['"
+                                                + reservationPath
+                                                + "/{reservationId}/release'].post"
+                                                + ".responses['404'].description")
+                                .value("Reservation not found"))
+                .andExpect(
+                        jsonPath(
+                                        "$.paths['"
+                                                + reservationPath
+                                                + "/{reservationId}/cancel'].post"
+                                                + ".responses['403'].description")
+                                .value("Reservation access is required"))
+                .andExpect(
+                        jsonPath(
+                                        "$.paths['"
+                                                + reservationPath
+                                                + "/{reservationId}/cancel'].post"
+                                                + ".responses['404'].description")
+                                .value("Reservation not found"))
                 .andExpect(
                         jsonPath(
                                         "$.paths['"
@@ -981,12 +1058,142 @@ final class TimeslotBookingApiIntegrationTest {
                         .getResponse()
                         .getContentAsString();
 
-        Assertions.assertEquals(
-                (Integer) JsonPath.read(notOwned, "$.status"),
-                (Integer) JsonPath.read(missing, "$.status"));
-        Assertions.assertEquals(
-                (String) JsonPath.read(notOwned, "$.detail"),
-                (String) JsonPath.read(missing, "$.detail"));
+        assertSameProblemStatusAndDetail(notOwned, missing);
+    }
+
+    @Test
+    void customerReservationTransitionsUseSameNotFoundForMissingAndNotOwned() throws Exception {
+        final var resourceId = UUID.fromString("00000000-0000-0000-0000-000000000048");
+        final var reservationId = UUID.fromString("00000000-0000-0000-0000-000000000049");
+        final var missingId = UUID.fromString("00000000-0000-0000-0000-000000000050");
+        final var otherToken = signedToken(OTHER_ACCOUNT_ID);
+        insertResource(resourceId, "Room D", "room-d", "ACTIVE");
+        insertReservation(
+                reservationId,
+                ACCOUNT_ID,
+                resourceId,
+                "2026-05-25T01:00:00Z",
+                "2026-05-25T01:30:00Z",
+                "2026-05-25T00:05:00Z",
+                "2026-05-25T00:00:00Z",
+                null);
+
+        final var notOwnedConfirm =
+                mockMvc.perform(
+                                post(
+                                                "/api/businesses/{businessId}/reservations/{reservationId}/confirm",
+                                                BUSINESS_ID,
+                                                reservationId)
+                                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + otherToken))
+                        .andExpect(status().isNotFound())
+                        .andReturn()
+                        .getResponse()
+                        .getContentAsString();
+        final var missingConfirm =
+                mockMvc.perform(
+                                post(
+                                                "/api/businesses/{businessId}/reservations/{reservationId}/confirm",
+                                                BUSINESS_ID,
+                                                missingId)
+                                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + otherToken))
+                        .andExpect(status().isNotFound())
+                        .andReturn()
+                        .getResponse()
+                        .getContentAsString();
+        final var notOwnedRelease =
+                mockMvc.perform(
+                                post(
+                                                "/api/businesses/{businessId}/reservations/{reservationId}/release",
+                                                BUSINESS_ID,
+                                                reservationId)
+                                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + otherToken))
+                        .andExpect(status().isNotFound())
+                        .andReturn()
+                        .getResponse()
+                        .getContentAsString();
+        final var missingRelease =
+                mockMvc.perform(
+                                post(
+                                                "/api/businesses/{businessId}/reservations/{reservationId}/release",
+                                                BUSINESS_ID,
+                                                missingId)
+                                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + otherToken))
+                        .andExpect(status().isNotFound())
+                        .andReturn()
+                        .getResponse()
+                        .getContentAsString();
+        final var notOwnedCancel =
+                mockMvc.perform(
+                                post(
+                                                "/api/businesses/{businessId}/reservations/{reservationId}/cancel",
+                                                BUSINESS_ID,
+                                                reservationId)
+                                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + otherToken))
+                        .andExpect(status().isNotFound())
+                        .andReturn()
+                        .getResponse()
+                        .getContentAsString();
+        final var missingCancel =
+                mockMvc.perform(
+                                post(
+                                                "/api/businesses/{businessId}/reservations/{reservationId}/cancel",
+                                                BUSINESS_ID,
+                                                missingId)
+                                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + otherToken))
+                        .andExpect(status().isNotFound())
+                        .andReturn()
+                        .getResponse()
+                        .getContentAsString();
+
+        assertSameProblemStatusAndDetail(notOwnedConfirm, missingConfirm);
+        assertSameProblemStatusAndDetail(notOwnedRelease, missingRelease);
+        assertSameProblemStatusAndDetail(notOwnedCancel, missingCancel);
+    }
+
+    @Test
+    void businessReservationTransitionsStillRequireBusinessAccess() throws Exception {
+        final var resourceId = UUID.fromString("00000000-0000-0000-0000-000000000051");
+        final var reservationId = UUID.fromString("00000000-0000-0000-0000-000000000052");
+        final var otherToken = signedToken(OTHER_ACCOUNT_ID);
+        insertResource(resourceId, "Room E", "room-e", "ACTIVE");
+        insertReservation(
+                reservationId,
+                ACCOUNT_ID,
+                resourceId,
+                "2026-05-25T01:00:00Z",
+                "2026-05-25T01:30:00Z",
+                "2026-05-25T00:05:00Z",
+                "2026-05-25T00:00:00Z",
+                "2026-05-25T00:00:00Z");
+
+        mockMvc.perform(
+                        get("/api/businesses/{businessId}/reservations", BUSINESS_ID)
+                                .header(HttpHeaders.AUTHORIZATION, "Bearer " + otherToken)
+                                .param("date", "2026-05-25"))
+                .andExpect(status().isForbidden());
+        mockMvc.perform(
+                        post(
+                                        "/api/businesses/{businessId}/reservations/{reservationId}/cancel",
+                                        BUSINESS_ID,
+                                        reservationId)
+                                .header(HttpHeaders.AUTHORIZATION, "Bearer " + otherToken)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content("{\"actor\":\"BUSINESS\"}"))
+                .andExpect(status().isForbidden());
+        mockMvc.perform(
+                        post(
+                                        "/api/businesses/{businessId}/reservations/{reservationId}/check-in",
+                                        BUSINESS_ID,
+                                        reservationId)
+                                .header(HttpHeaders.AUTHORIZATION, "Bearer " + otherToken))
+                .andExpect(status().isForbidden());
+        mockMvc.perform(
+                        post(
+                                        "/api/businesses/{businessId}/reservations/{reservationId}/no-show",
+                                        BUSINESS_ID,
+                                        reservationId)
+                                .header(HttpHeaders.AUTHORIZATION, "Bearer " + otherToken))
+                .andExpect(status().isForbidden());
     }
 
     @Test
@@ -1155,6 +1362,15 @@ final class TimeslotBookingApiIntegrationTest {
                                 .header(HttpHeaders.AUTHORIZATION, "Bearer " + accessToken)
                                 .param("date", "2026-05-25"))
                 .andExpect(status().isUnauthorized());
+    }
+
+    private static void assertSameProblemStatusAndDetail(final String first, final String second) {
+        Assertions.assertEquals(
+                (Integer) JsonPath.read(first, "$.status"),
+                (Integer) JsonPath.read(second, "$.status"));
+        Assertions.assertEquals(
+                (String) JsonPath.read(first, "$.detail"),
+                (String) JsonPath.read(second, "$.detail"));
     }
 
     private void putSettings(

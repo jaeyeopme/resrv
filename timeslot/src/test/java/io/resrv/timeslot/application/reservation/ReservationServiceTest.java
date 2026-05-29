@@ -62,6 +62,7 @@ import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.function.Executable;
 import org.mockito.ArgumentCaptor;
 
 final class ReservationServiceTest {
@@ -208,6 +209,60 @@ final class ReservationServiceTest {
     }
 
     @Test
+    void customerTransitionsUseSharedNotFoundForMissingAndNotOwnedReservations() {
+        final var reservation =
+                Reservation.hold(
+                        BUSINESS_ID,
+                        RESOURCE_ID,
+                        CUSTOMER_ACCOUNT_ID,
+                        SLOT_START_AT,
+                        SLOT_END_AT,
+                        NOW.plusSeconds(60),
+                        NOW.minusSeconds(60));
+        final var missingId = ReservationId.create();
+        when(reservationCommandPort.findByBusinessIdAndIdForUpdate(BUSINESS_ID, reservation.id()))
+                .thenReturn(Optional.of(reservation));
+        when(reservationCommandPort.findByBusinessIdAndIdForUpdate(BUSINESS_ID, missingId))
+                .thenReturn(Optional.empty());
+
+        assertSameReservationNotFound(
+                () ->
+                        service.confirm(
+                                new ConfirmReservationCommand(
+                                        BUSINESS_ID, reservation.id(), STAFF_ACCOUNT_ID)),
+                () ->
+                        service.confirm(
+                                new ConfirmReservationCommand(
+                                        BUSINESS_ID, missingId, STAFF_ACCOUNT_ID)));
+        assertSameReservationNotFound(
+                () ->
+                        service.release(
+                                new ReleaseReservationCommand(
+                                        BUSINESS_ID, reservation.id(), STAFF_ACCOUNT_ID)),
+                () ->
+                        service.release(
+                                new ReleaseReservationCommand(
+                                        BUSINESS_ID, missingId, STAFF_ACCOUNT_ID)));
+        assertSameReservationNotFound(
+                () ->
+                        service.cancel(
+                                new CancelReservationCommand(
+                                        BUSINESS_ID,
+                                        reservation.id(),
+                                        STAFF_ACCOUNT_ID,
+                                        ReservationCancellationActor.CUSTOMER)),
+                () ->
+                        service.cancel(
+                                new CancelReservationCommand(
+                                        BUSINESS_ID,
+                                        missingId,
+                                        STAFF_ACCOUNT_ID,
+                                        ReservationCancellationActor.CUSTOMER)));
+
+        verify(reservationCommandPort, never()).save(any());
+    }
+
+    @Test
     void customerCancelUsesCancellationWindow() {
         serviceAt(Instant.parse("2026-05-24T23:31:00Z"));
         givenBookingContext(ResourceBookingOverrides.none());
@@ -281,6 +336,38 @@ final class ReservationServiceTest {
         assertEquals(ReservationState.BUSINESS_CANCELLED, confirmedResult.state());
         assertEquals(TIMEZONE.value(), heldResult.businessZone());
         assertEquals(TIMEZONE.value(), confirmedResult.businessZone());
+    }
+
+    @Test
+    void businessReservationTransitionsStillRequireBusinessAccess() {
+        final var reservation = confirmedReservation();
+        when(businessAccessPort.hasBusinessAccess(STAFF_ACCOUNT_ID, BUSINESS_ID)).thenReturn(false);
+        when(reservationCommandPort.findByBusinessIdAndIdForUpdate(BUSINESS_ID, reservation.id()))
+                .thenReturn(Optional.of(reservation));
+
+        assertThrows(
+                ReservationAccessDeniedException.class,
+                () ->
+                        service.cancel(
+                                new CancelReservationCommand(
+                                        BUSINESS_ID,
+                                        reservation.id(),
+                                        STAFF_ACCOUNT_ID,
+                                        ReservationCancellationActor.BUSINESS)));
+        assertThrows(
+                ReservationAccessDeniedException.class,
+                () ->
+                        service.checkIn(
+                                new CheckInReservationCommand(
+                                        BUSINESS_ID, reservation.id(), STAFF_ACCOUNT_ID)));
+        assertThrows(
+                ReservationAccessDeniedException.class,
+                () ->
+                        service.markNoShow(
+                                new MarkNoShowReservationCommand(
+                                        BUSINESS_ID, reservation.id(), STAFF_ACCOUNT_ID)));
+
+        verify(reservationCommandPort, never()).save(any());
     }
 
     @Test
@@ -484,6 +571,13 @@ final class ReservationServiceTest {
                         reservationQueryPort,
                         businessAccessPort,
                         Clock.fixed(now, ZoneOffset.UTC));
+    }
+
+    private static void assertSameReservationNotFound(
+            final Executable first, final Executable second) {
+        final var firstException = assertThrows(ReservationNotFoundException.class, first);
+        final var secondException = assertThrows(ReservationNotFoundException.class, second);
+        assertEquals(firstException.getMessage(), secondException.getMessage());
     }
 
     private void givenHoldableSlot(final ResourceBookingOverrides overrides) {
