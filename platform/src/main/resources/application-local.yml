@@ -1,0 +1,6 @@
+resrv:
+  jwt:
+    secret-key: 01234567890123456789012345678901
+    issuer: resrv-dev
+    audience: resrv-api
+    expiration: 3600

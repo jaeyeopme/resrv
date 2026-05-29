@@ -249,12 +249,11 @@ repository root, Spring Boot Docker Compose support can discover the root
 `compose.yml`.
 
 ```bash
-RESRV_JWT_SECRET_KEY=01234567890123456789012345678901 \
-RESRV_JWT_ISSUER=resrv-dev \
-RESRV_JWT_AUDIENCE=resrv-api \
-RESRV_JWT_EXPIRATION=3600 \
 ./gradlew :platform:bootRun
 ```
+
+The Gradle `bootRun` task uses the `local` profile when no active profile is
+set. That profile contains development-only JWT defaults.
 
 Then open:
 
