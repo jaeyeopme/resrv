@@ -59,6 +59,9 @@ ArchUnit verifies:
   persistence schema.
 - Only the timeslot outbound platform adapter may depend on explicit `platform-exchange` APIs.
 - Direct database access primitives stay inside outbound adapter packages in production code.
+- Request-handling Web Adapter classes do not depend on endpoint-level Swagger/OpenAPI
+  annotations; those annotations live on same-package `*ApiDocs` interfaces implemented by the
+  adapters.
 
 Reservation list/search tests verify business membership authorization, business-local date
 windows, optional resource/customer/state filters, and deterministic start-time ordering.
@@ -102,7 +105,8 @@ reachability for smoke checks, and documentation drift around unsupported standa
 API contract consistency tests use generated OpenAPI as the source of truth. They assert path/method
 coverage, representative response documentation for success and failure statuses, and boundary
 schemas for public discovery, customer history, business-scoped reservations, and owner-only
-membership administration.
+membership administration. When endpoint documentation changes, tests should verify generated
+summaries or response descriptions rather than inspecting controller annotations directly.
 
 Account security hardening tests verify:
 

@@ -14,8 +14,6 @@ import io.resrv.timeslot.application.resource.in.ListResourcesUseCase;
 import io.resrv.timeslot.application.resource.in.ReplaceResourceDetailsCommand;
 import io.resrv.timeslot.application.resource.in.ReplaceResourceDetailsUseCase;
 import io.resrv.timeslot.application.resource.in.ResourceResult;
-import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
@@ -36,7 +34,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/api/businesses/{businessId}/resources")
-class ResourceWebAdapter {
+class ResourceWebAdapter implements ResourceApiDocs {
 
     private final CreateResourceUseCase createResourceUseCase;
     private final ListResourcesUseCase listResourcesUseCase;
@@ -60,17 +58,9 @@ class ResourceWebAdapter {
         this.businessAccessPort = businessAccessPort;
     }
 
+    @Override
     @PostMapping
-    @Operation(
-            summary = "Create resource",
-            responses = {
-                @ApiResponse(responseCode = "201", description = "Resource created"),
-                @ApiResponse(responseCode = "400", description = "Validation failure"),
-                @ApiResponse(responseCode = "401", description = "Unauthorized"),
-                @ApiResponse(responseCode = "403", description = "Forbidden"),
-                @ApiResponse(responseCode = "409", description = "Duplicate resource slug")
-            })
-    ResponseEntity<ResourceResponse> create(
+    public ResponseEntity<ResourceResponse> create(
             @PathVariable final UUID businessId,
             final JwtAuthenticationToken authentication,
             @Valid @RequestBody final ResourceRequest request) {
@@ -90,18 +80,9 @@ class ResourceWebAdapter {
                 .body(ResourceResponse.from(result));
     }
 
+    @Override
     @PutMapping("/{resourceId}")
-    @Operation(
-            summary = "Replace resource details and booking overrides",
-            responses = {
-                @ApiResponse(responseCode = "200", description = "Resource replaced"),
-                @ApiResponse(responseCode = "400", description = "Validation failure"),
-                @ApiResponse(responseCode = "401", description = "Unauthorized"),
-                @ApiResponse(responseCode = "403", description = "Forbidden"),
-                @ApiResponse(responseCode = "404", description = "Resource not found"),
-                @ApiResponse(responseCode = "409", description = "Duplicate resource slug")
-            })
-    ResourceResponse replace(
+    public ResourceResponse replace(
             @PathVariable final UUID businessId,
             @PathVariable final UUID resourceId,
             final JwtAuthenticationToken authentication,
@@ -120,16 +101,9 @@ class ResourceWebAdapter {
                                 request.cancellationWindowMinutes())));
     }
 
+    @Override
     @PostMapping("/{resourceId}/activate")
-    @Operation(
-            summary = "Activate resource",
-            responses = {
-                @ApiResponse(responseCode = "200", description = "Resource activated"),
-                @ApiResponse(responseCode = "401", description = "Unauthorized"),
-                @ApiResponse(responseCode = "403", description = "Forbidden"),
-                @ApiResponse(responseCode = "404", description = "Resource not found")
-            })
-    ResourceResponse activate(
+    public ResourceResponse activate(
             @PathVariable final UUID businessId,
             @PathVariable final UUID resourceId,
             final JwtAuthenticationToken authentication) {
@@ -140,16 +114,9 @@ class ResourceWebAdapter {
                                 BusinessId.of(businessId), ResourceId.of(resourceId))));
     }
 
+    @Override
     @PostMapping("/{resourceId}/deactivate")
-    @Operation(
-            summary = "Deactivate resource",
-            responses = {
-                @ApiResponse(responseCode = "200", description = "Resource deactivated"),
-                @ApiResponse(responseCode = "401", description = "Unauthorized"),
-                @ApiResponse(responseCode = "403", description = "Forbidden"),
-                @ApiResponse(responseCode = "404", description = "Resource not found")
-            })
-    ResourceResponse deactivate(
+    public ResourceResponse deactivate(
             @PathVariable final UUID businessId,
             @PathVariable final UUID resourceId,
             final JwtAuthenticationToken authentication) {
@@ -160,16 +127,9 @@ class ResourceWebAdapter {
                                 BusinessId.of(businessId), ResourceId.of(resourceId))));
     }
 
+    @Override
     @GetMapping
-    @Operation(
-            summary = "List public bookable resources",
-            responses = {
-                @ApiResponse(
-                        responseCode = "200",
-                        description =
-                                "Active resources for an active business, or an empty list when not bookable")
-            })
-    List<ResourceResponse> list(@PathVariable final UUID businessId) {
+    public List<ResourceResponse> list(@PathVariable final UUID businessId) {
         return listResourcesUseCase.listActive(BusinessId.of(businessId)).stream()
                 .map(ResourceResponse::from)
                 .toList();

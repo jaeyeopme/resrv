@@ -120,7 +120,11 @@ still show their own enabled hook prompts.
 
 - Read the active feature's `plan.md` before implementation.
 - Keep generated specs aligned with PRD/TRD and ADRs.
-- Update API tests and Springdoc annotations for API behavior changes.
+- For API behavior changes, update Web Adapters, DTOs, generated OpenAPI/API integration tests,
+  and the matching same-package `*ApiDocs` interface for endpoint-level Springdoc metadata.
+- Keep HTTP mapping and request binding on Web Adapters. Keep payload field schema metadata on
+  payload types. Mirror method-validation annotations on `*ApiDocs` only when Bean Validation
+  requires interface and implementation method declarations to match.
 - Preserve bounded-context and hexagonal package boundaries.
 - Run project verification after implementation:
 

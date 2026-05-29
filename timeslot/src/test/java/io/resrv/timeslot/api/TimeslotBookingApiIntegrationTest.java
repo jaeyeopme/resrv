@@ -24,6 +24,7 @@ import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
@@ -456,13 +457,29 @@ final class TimeslotBookingApiIntegrationTest {
                 .andExpect(
                         jsonPath("$.paths['/api/public/businesses/{businessSlug}'].get").exists())
                 .andExpect(
+                        jsonPath("$.paths['/api/public/businesses/{businessSlug}'].get.summary")
+                                .value("Discover public bookable business"))
+                .andExpect(
                         jsonPath("$.paths['/api/public/businesses/{businessSlug}/resources'].get")
                                 .exists())
+                .andExpect(
+                        jsonPath(
+                                        "$.paths['/api/public/businesses/{businessSlug}/resources']"
+                                                + ".get.summary")
+                                .value("List public bookable resources"))
                 .andExpect(jsonPath(publicSlotPath).exists())
+                .andExpect(
+                        jsonPath(publicSlotPath + ".summary")
+                                .value("List public schedule-derived slots"))
                 .andExpect(
                         jsonPath(
                                         "$.paths['/api/public/businesses/{businessSlug}/reservations'].post")
-                                .exists());
+                                .exists())
+                .andExpect(
+                        jsonPath(
+                                        "$.paths['/api/public/businesses/{businessSlug}/reservations']"
+                                                + ".post.summary")
+                                .value("Create public booking hold"));
     }
 
     @Test
@@ -789,7 +806,15 @@ final class TimeslotBookingApiIntegrationTest {
                         jsonPath("$.paths['/api/businesses/{businessId}/booking-settings'].put")
                                 .exists())
                 .andExpect(
+                        jsonPath(
+                                        "$.paths['/api/businesses/{businessId}/booking-settings']"
+                                                + ".put.summary")
+                                .value("Replace business booking settings"))
+                .andExpect(
                         jsonPath("$.paths['/api/businesses/{businessId}/resources'].post").exists())
+                .andExpect(
+                        jsonPath("$.paths['/api/businesses/{businessId}/resources'].post.summary")
+                                .value("Create resource"))
                 .andExpect(jsonPath("$.paths['" + resourcePath + "'].put").exists())
                 .andExpect(jsonPath("$.paths['" + resourcePath + "/activate'].post").exists())
                 .andExpect(jsonPath("$.paths['" + resourcePath + "/deactivate'].post").exists())
@@ -1258,7 +1283,34 @@ final class TimeslotBookingApiIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.paths['/api/me/reservations'].get").exists())
                 .andExpect(
-                        jsonPath("$.paths['/api/me/reservations/{reservationId}'].get").exists());
+                        jsonPath("$.paths['/api/me/reservations'].get.summary")
+                                .value("List my reservations"))
+                .andExpect(jsonPath("$.paths['/api/me/reservations/{reservationId}'].get").exists())
+                .andExpect(
+                        jsonPath("$.paths['/api/me/reservations/{reservationId}'].get.summary")
+                                .value("Get my reservation"));
+    }
+
+    @Test
+    void generatedOpenApiDocumentsTimeslotPublicAndCustomerBoundarySchemas() throws Exception {
+        final var openApi =
+                mockMvc.perform(get("/v3/api-docs"))
+                        .andExpect(status().isOk())
+                        .andReturn()
+                        .getResponse()
+                        .getContentAsString();
+
+        assertSchemaHasProperties(openApi, "PublicBusinessResponse", "slug", "name", "timezone");
+        assertSchemaOmitsProperties(openApi, "PublicBusinessResponse", "id", "businessId");
+        assertSchemaHasProperties(
+                openApi, "PublicResourceResponse", "resourceId", "businessSlug", "name", "slug");
+        assertSchemaOmitsProperties(openApi, "PublicResourceResponse", "businessId");
+        assertSchemaHasProperties(
+                openApi, "PublicReservationResponse", "id", "resourceId", "state");
+        assertSchemaOmitsProperties(
+                openApi, "PublicReservationResponse", "businessId", "customerAccountId");
+        assertSchemaHasProperties(
+                openApi, "CustomerReservationResponse", "business", "resource", "state");
     }
 
     @Test
@@ -1568,6 +1620,44 @@ final class TimeslotBookingApiIntegrationTest {
                 Timestamp.from(Instant.parse(createdAt)),
                 Timestamp.from(Instant.parse(createdAt)),
                 confirmedAt == null ? null : Timestamp.from(Instant.parse(confirmedAt)));
+    }
+
+    private static void assertSchemaHasProperties(
+            final String openApi, final String schemaName, final String... propertyNames) {
+        final var properties = schemaProperties(openApi, schemaName);
+        for (final var propertyName : propertyNames) {
+            Assertions.assertTrue(
+                    properties.containsKey(propertyName),
+                    () -> schemaName + " is missing property " + propertyName);
+        }
+    }
+
+    private static void assertSchemaOmitsProperties(
+            final String openApi, final String schemaName, final String... propertyNames) {
+        final var properties = schemaProperties(openApi, schemaName);
+        for (final var propertyName : propertyNames) {
+            Assertions.assertFalse(
+                    properties.containsKey(propertyName),
+                    () -> schemaName + " exposes property " + propertyName);
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    private static Map<String, Object> schemaProperties(
+            final String openApi, final String schemaName) {
+        final Map<String, Object> schemas = JsonPath.read(openApi, "$.components.schemas");
+        final var schemaEntry =
+                schemas.entrySet().stream()
+                        .filter(
+                                entry ->
+                                        entry.getKey().equals(schemaName)
+                                                || entry.getKey().endsWith("." + schemaName))
+                        .findFirst()
+                        .orElseThrow(() -> new AssertionError("Missing schema: " + schemaName));
+        final var schema = (Map<String, Object>) schemaEntry.getValue();
+        final var properties = schema.get("properties");
+        Assertions.assertTrue(properties instanceof Map, () -> schemaName + " has no properties");
+        return (Map<String, Object>) properties;
     }
 
     private static String signedToken(final UUID accountId) throws JOSEException {

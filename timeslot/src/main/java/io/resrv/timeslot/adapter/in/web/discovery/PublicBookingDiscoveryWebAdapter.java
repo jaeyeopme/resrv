@@ -14,8 +14,6 @@ import io.resrv.timeslot.application.discovery.in.PublicSlotDiscoveryQuery;
 import io.resrv.timeslot.application.discovery.in.PublicSlotDiscoveryResult;
 import io.resrv.timeslot.application.discovery.in.PublicSlotDiscoveryUseCase;
 import io.resrv.timeslot.application.reservation.in.ReservationResult;
-import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -37,7 +35,7 @@ import org.springframework.web.bind.annotation.RestController;
 @Validated
 @RestController
 @RequestMapping("/api/public/businesses/{businessSlug}")
-class PublicBookingDiscoveryWebAdapter {
+class PublicBookingDiscoveryWebAdapter implements PublicBookingDiscoveryApiDocs {
 
     private static final String SLUG_PATTERN = "^[a-z0-9][a-z0-9-]{1,61}[a-z0-9]$";
 
@@ -57,34 +55,18 @@ class PublicBookingDiscoveryWebAdapter {
         this.holdUseCase = holdUseCase;
     }
 
+    @Override
     @GetMapping
-    @Operation(
-            summary = "Discover public bookable business",
-            responses = {
-                @ApiResponse(responseCode = "200", description = "Public business summary"),
-                @ApiResponse(responseCode = "400", description = "Malformed business slug"),
-                @ApiResponse(
-                        responseCode = "404",
-                        description = "No public bookable business representation")
-            })
-    PublicBusinessResponse business(
+    public PublicBusinessResponse business(
             @PathVariable @Pattern(regexp = SLUG_PATTERN) final String businessSlug) {
         return PublicBusinessResponse.from(
                 businessDiscoveryUseCase.discoverBusiness(
                         new PublicBusinessDiscoveryQuery(businessSlug)));
     }
 
+    @Override
     @GetMapping("/resources")
-    @Operation(
-            summary = "List public bookable resources",
-            responses = {
-                @ApiResponse(responseCode = "200", description = "Public resource list"),
-                @ApiResponse(responseCode = "400", description = "Malformed business slug"),
-                @ApiResponse(
-                        responseCode = "404",
-                        description = "No public bookable business representation")
-            })
-    List<PublicResourceResponse> resources(
+    public List<PublicResourceResponse> resources(
             @PathVariable @Pattern(regexp = SLUG_PATTERN) final String businessSlug) {
         return resourceDiscoveryUseCase
                 .listResources(new PublicResourceDiscoveryQuery(businessSlug))
@@ -93,17 +75,9 @@ class PublicBookingDiscoveryWebAdapter {
                 .toList();
     }
 
+    @Override
     @GetMapping("/resources/{resourceId}/slots")
-    @Operation(
-            summary = "List public schedule-derived slots",
-            responses = {
-                @ApiResponse(responseCode = "200", description = "Public slot list"),
-                @ApiResponse(responseCode = "400", description = "Malformed path or query input"),
-                @ApiResponse(
-                        responseCode = "404",
-                        description = "No public bookable resource representation")
-            })
-    List<PublicSlotResponse> slots(
+    public List<PublicSlotResponse> slots(
             @PathVariable @Pattern(regexp = SLUG_PATTERN) final String businessSlug,
             @PathVariable final UUID resourceId,
             @RequestParam final LocalDate date) {
@@ -115,19 +89,9 @@ class PublicBookingDiscoveryWebAdapter {
                 .toList();
     }
 
+    @Override
     @PostMapping("/reservations")
-    @Operation(
-            summary = "Create public booking hold",
-            responses = {
-                @ApiResponse(responseCode = "200", description = "Reservation hold created"),
-                @ApiResponse(responseCode = "400", description = "Malformed request"),
-                @ApiResponse(responseCode = "401", description = "Authentication is required"),
-                @ApiResponse(
-                        responseCode = "404",
-                        description = "No public bookable business representation"),
-                @ApiResponse(responseCode = "422", description = "Slot unavailable")
-            })
-    PublicReservationResponse hold(
+    public PublicReservationResponse hold(
             @PathVariable @Pattern(regexp = SLUG_PATTERN) final String businessSlug,
             final JwtAuthenticationToken authentication,
             @Valid @RequestBody final HoldRequest request) {

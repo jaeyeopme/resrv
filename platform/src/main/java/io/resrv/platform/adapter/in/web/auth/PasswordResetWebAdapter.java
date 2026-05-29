@@ -3,8 +3,6 @@ package io.resrv.platform.adapter.in.web.auth;
 import io.resrv.platform.application.auth.in.ResetPasswordCommand;
 import io.resrv.platform.application.auth.in.ResetPasswordResult;
 import io.resrv.platform.application.auth.in.ResetPasswordUseCase;
-import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
@@ -16,7 +14,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/api/auth/password-reset")
-class PasswordResetWebAdapter {
+class PasswordResetWebAdapter implements PasswordResetApiDocs {
 
     private final ResetPasswordUseCase resetPasswordUseCase;
 
@@ -24,16 +22,9 @@ class PasswordResetWebAdapter {
         this.resetPasswordUseCase = resetPasswordUseCase;
     }
 
-    @Operation(
-            summary = "Reset password",
-            responses = {
-                @ApiResponse(responseCode = "200", description = "Password reset succeeded"),
-                @ApiResponse(
-                        responseCode = "400",
-                        description = "Reset token, password, or request body is invalid")
-            })
+    @Override
     @PostMapping
-    ResponseEntity<ResetPasswordResponse> resetPassword(
+    public ResponseEntity<ResetPasswordResponse> resetPassword(
             @Valid @RequestBody final ResetPasswordRequest request) {
         final var result =
                 resetPasswordUseCase.resetPassword(

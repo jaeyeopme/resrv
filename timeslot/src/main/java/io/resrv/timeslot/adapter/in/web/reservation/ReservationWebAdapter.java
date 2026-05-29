@@ -16,8 +16,6 @@ import io.resrv.timeslot.application.reservation.in.ReleaseReservationCommand;
 import io.resrv.timeslot.application.reservation.in.ReservationResult;
 import io.resrv.timeslot.domain.reservation.ReservationCancellationActor;
 import io.resrv.timeslot.domain.reservation.ReservationState;
-import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -36,7 +34,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/api/businesses/{businessId}/reservations")
-class ReservationWebAdapter {
+class ReservationWebAdapter implements ReservationApiDocs {
 
     private final ReservationService service;
 
@@ -44,18 +42,9 @@ class ReservationWebAdapter {
         this.service = service;
     }
 
+    @Override
     @PostMapping
-    @Operation(
-            summary = "Hold reservation",
-            responses = {
-                @ApiResponse(responseCode = "200", description = "Reservation hold created"),
-                @ApiResponse(responseCode = "400", description = "Validation failure"),
-                @ApiResponse(responseCode = "401", description = "Authentication is required"),
-                @ApiResponse(responseCode = "403", description = "Business access is required"),
-                @ApiResponse(responseCode = "404", description = "Business or resource not found"),
-                @ApiResponse(responseCode = "422", description = "Slot unavailable")
-            })
-    ReservationResponse hold(
+    public ReservationResponse hold(
             @PathVariable final UUID businessId,
             final JwtAuthenticationToken authentication,
             @Valid @RequestBody final HoldRequest request) {
@@ -69,17 +58,9 @@ class ReservationWebAdapter {
                                 request.slotId())));
     }
 
+    @Override
     @GetMapping
-    @Operation(
-            summary = "List business reservations",
-            responses = {
-                @ApiResponse(responseCode = "200", description = "Reservations returned"),
-                @ApiResponse(responseCode = "400", description = "Validation failure"),
-                @ApiResponse(responseCode = "401", description = "Authentication is required"),
-                @ApiResponse(responseCode = "403", description = "Business access is required"),
-                @ApiResponse(responseCode = "404", description = "Business not found")
-            })
-    List<ReservationResponse> list(
+    public List<ReservationResponse> list(
             @PathVariable final UUID businessId,
             final JwtAuthenticationToken authentication,
             @RequestParam final LocalDate date,
@@ -100,17 +81,9 @@ class ReservationWebAdapter {
         return results.stream().map(ReservationResponse::from).toList();
     }
 
+    @Override
     @PostMapping("/{reservationId}/confirm")
-    @Operation(
-            summary = "Confirm reservation",
-            responses = {
-                @ApiResponse(responseCode = "200", description = "Reservation confirmed"),
-                @ApiResponse(responseCode = "400", description = "Validation failure"),
-                @ApiResponse(responseCode = "401", description = "Authentication is required"),
-                @ApiResponse(responseCode = "404", description = "Reservation not found"),
-                @ApiResponse(responseCode = "422", description = "Reservation cannot be confirmed")
-            })
-    ReservationResponse confirm(
+    public ReservationResponse confirm(
             @PathVariable final UUID businessId,
             @PathVariable final UUID reservationId,
             final JwtAuthenticationToken authentication) {
@@ -123,17 +96,9 @@ class ReservationWebAdapter {
                                 account.accountId())));
     }
 
+    @Override
     @PostMapping("/{reservationId}/release")
-    @Operation(
-            summary = "Release reservation",
-            responses = {
-                @ApiResponse(responseCode = "200", description = "Reservation released"),
-                @ApiResponse(responseCode = "400", description = "Validation failure"),
-                @ApiResponse(responseCode = "401", description = "Authentication is required"),
-                @ApiResponse(responseCode = "404", description = "Reservation not found"),
-                @ApiResponse(responseCode = "422", description = "Reservation cannot be released")
-            })
-    ReservationResponse release(
+    public ReservationResponse release(
             @PathVariable final UUID businessId,
             @PathVariable final UUID reservationId,
             final JwtAuthenticationToken authentication) {
@@ -146,18 +111,9 @@ class ReservationWebAdapter {
                                 account.accountId())));
     }
 
+    @Override
     @PostMapping("/{reservationId}/cancel")
-    @Operation(
-            summary = "Cancel reservation",
-            responses = {
-                @ApiResponse(responseCode = "200", description = "Reservation cancelled"),
-                @ApiResponse(responseCode = "400", description = "Validation failure"),
-                @ApiResponse(responseCode = "401", description = "Authentication is required"),
-                @ApiResponse(responseCode = "403", description = "Reservation access is required"),
-                @ApiResponse(responseCode = "404", description = "Reservation not found"),
-                @ApiResponse(responseCode = "422", description = "Reservation cannot be cancelled")
-            })
-    ReservationResponse cancel(
+    public ReservationResponse cancel(
             @PathVariable final UUID businessId,
             @PathVariable final UUID reservationId,
             final JwtAuthenticationToken authentication,
@@ -176,18 +132,9 @@ class ReservationWebAdapter {
                                 actor)));
     }
 
+    @Override
     @PostMapping("/{reservationId}/check-in")
-    @Operation(
-            summary = "Check in reservation",
-            responses = {
-                @ApiResponse(responseCode = "200", description = "Reservation checked in"),
-                @ApiResponse(responseCode = "400", description = "Validation failure"),
-                @ApiResponse(responseCode = "401", description = "Authentication is required"),
-                @ApiResponse(responseCode = "403", description = "Reservation access is required"),
-                @ApiResponse(responseCode = "404", description = "Reservation not found"),
-                @ApiResponse(responseCode = "422", description = "Reservation cannot be checked in")
-            })
-    ReservationResponse checkIn(
+    public ReservationResponse checkIn(
             @PathVariable final UUID businessId,
             @PathVariable final UUID reservationId,
             final JwtAuthenticationToken authentication) {
@@ -200,20 +147,9 @@ class ReservationWebAdapter {
                                 account.accountId())));
     }
 
+    @Override
     @PostMapping("/{reservationId}/no-show")
-    @Operation(
-            summary = "Mark reservation no-show",
-            responses = {
-                @ApiResponse(responseCode = "200", description = "Reservation marked no-show"),
-                @ApiResponse(responseCode = "400", description = "Validation failure"),
-                @ApiResponse(responseCode = "401", description = "Authentication is required"),
-                @ApiResponse(responseCode = "403", description = "Reservation access is required"),
-                @ApiResponse(responseCode = "404", description = "Reservation not found"),
-                @ApiResponse(
-                        responseCode = "422",
-                        description = "Reservation cannot be marked no-show")
-            })
-    ReservationResponse noShow(
+    public ReservationResponse noShow(
             @PathVariable final UUID businessId,
             @PathVariable final UUID reservationId,
             final JwtAuthenticationToken authentication) {

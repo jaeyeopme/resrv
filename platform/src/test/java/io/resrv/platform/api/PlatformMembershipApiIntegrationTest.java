@@ -339,6 +339,11 @@ final class PlatformMembershipApiIntegrationTest {
                 .andExpect(
                         jsonPath(
                                         "$.paths['/api/businesses/{businessId}/memberships']"
+                                                + ".post.summary")
+                                .value("Grant staff membership"))
+                .andExpect(
+                        jsonPath(
+                                        "$.paths['/api/businesses/{businessId}/memberships']"
                                                 + ".post.responses['201'].description")
                                 .value("Membership granted"))
                 .andExpect(
@@ -364,6 +369,11 @@ final class PlatformMembershipApiIntegrationTest {
                 .andExpect(
                         jsonPath(
                                         "$.paths['/api/businesses/{businessId}/memberships']"
+                                                + ".get.summary")
+                                .value("List business memberships"))
+                .andExpect(
+                        jsonPath(
+                                        "$.paths['/api/businesses/{businessId}/memberships']"
                                                 + ".get.responses['200'].description")
                                 .value("Memberships returned"))
                 .andExpect(
@@ -379,6 +389,11 @@ final class PlatformMembershipApiIntegrationTest {
                 .andExpect(
                         jsonPath(
                                         "$.paths['/api/businesses/{businessId}/memberships/audit']"
+                                                + ".get.summary")
+                                .value("List membership audit history"))
+                .andExpect(
+                        jsonPath(
+                                        "$.paths['/api/businesses/{businessId}/memberships/audit']"
                                                 + ".get.responses['200'].description")
                                 .value("Audit history returned"))
                 .andExpect(
@@ -391,6 +406,11 @@ final class PlatformMembershipApiIntegrationTest {
                                         "$.paths['/api/businesses/{businessId}/memberships/audit']"
                                                 + ".get.responses['404'].description")
                                 .value("Owner access is required"))
+                .andExpect(
+                        jsonPath(
+                                        "$.paths['/api/businesses/{businessId}/memberships/{membershipId}']"
+                                                + ".put.summary")
+                                .value("Update membership role"))
                 .andExpect(
                         jsonPath(
                                         "$.paths['/api/businesses/{businessId}/memberships/{membershipId}']"

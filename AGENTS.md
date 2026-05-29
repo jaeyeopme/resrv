@@ -94,7 +94,12 @@ Generated OpenAPI/Swagger is the API contract surface. Do not create or maintain
 
 When changing API behavior:
 
-- Update controllers, DTOs, validation, and Springdoc annotations where needed.
+- Update Web Adapters for HTTP mapping, request binding, validation, and behavior.
+- Put endpoint-level Springdoc metadata such as `@Operation` and `@ApiResponse` on same-package
+  `*ApiDocs` interfaces implemented by the matching Web Adapter.
+- Mirror method-validation annotations on `*ApiDocs` only when Bean Validation inheritance rules
+  require the interface declaration to match the implementing Web Adapter method.
+- Keep DTO/payload schema metadata on the payload type when it describes fields.
 - Update or add API integration tests.
 - Let `/v3/api-docs`, `/v3/api-docs.yaml`, and `/swagger-ui.html` expose the contract.
 - Keep human docs focused on product, architecture, security, operations, and testing context.

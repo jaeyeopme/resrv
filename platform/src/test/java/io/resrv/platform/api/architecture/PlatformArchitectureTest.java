@@ -74,6 +74,19 @@ final class PlatformArchitectureTest {
     }
 
     @Test
+    void request_handling_web_adapters_do_not_own_generated_documentation_annotations() {
+        noClasses()
+                .that()
+                .resideInAPackage("io.resrv.platform.adapter.in.web..")
+                .and()
+                .haveSimpleNameEndingWith("WebAdapter")
+                .should()
+                .dependOnClassesThat()
+                .resideInAPackage("io.swagger.v3.oas.annotations..")
+                .check(classes);
+    }
+
+    @Test
     void only_api_runtime_assembles_timeslot() {
         noClasses()
                 .that()

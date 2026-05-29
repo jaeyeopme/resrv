@@ -6,8 +6,6 @@ import io.resrv.timeslot.application.auth.out.BusinessAccessPort;
 import io.resrv.timeslot.application.settings.in.BusinessBookingSettingsResult;
 import io.resrv.timeslot.application.settings.in.UpsertBusinessBookingSettingsCommand;
 import io.resrv.timeslot.application.settings.in.UpsertBusinessBookingSettingsUseCase;
-import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
@@ -22,7 +20,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/api/businesses/{businessId}/booking-settings")
-class BusinessBookingSettingsWebAdapter {
+class BusinessBookingSettingsWebAdapter implements BusinessBookingSettingsApiDocs {
 
     private final UpsertBusinessBookingSettingsUseCase useCase;
     private final BusinessAccessPort businessAccessPort;
@@ -34,16 +32,9 @@ class BusinessBookingSettingsWebAdapter {
         this.businessAccessPort = businessAccessPort;
     }
 
+    @Override
     @PutMapping
-    @Operation(
-            summary = "Replace business booking settings",
-            responses = {
-                @ApiResponse(responseCode = "200", description = "Booking settings replaced"),
-                @ApiResponse(responseCode = "400", description = "Validation failure"),
-                @ApiResponse(responseCode = "401", description = "Unauthorized"),
-                @ApiResponse(responseCode = "403", description = "Forbidden")
-            })
-    SettingsResponse upsert(
+    public SettingsResponse upsert(
             @PathVariable final UUID businessId,
             final JwtAuthenticationToken authentication,
             @Valid @RequestBody final SettingsRequest request) {

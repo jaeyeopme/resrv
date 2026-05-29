@@ -247,6 +247,8 @@ final class PlatformApiIntegrationTest {
         mockMvc.perform(get("/v3/api-docs"))
                 .andExpect(status().isOk())
                 .andExpect(
+                        jsonPath("$.paths['/api/accounts'].post.summary").value("Register account"))
+                .andExpect(
                         jsonPath("$.paths['/api/accounts'].post.responses['201'].description")
                                 .value("Account registered"))
                 .andExpect(
@@ -255,6 +257,7 @@ final class PlatformApiIntegrationTest {
                 .andExpect(
                         jsonPath("$.paths['/api/accounts'].post.responses['409'].description")
                                 .value("Email already registered"))
+                .andExpect(jsonPath("$.paths['/api/auth/login'].post.summary").value("Sign in"))
                 .andExpect(
                         jsonPath("$.paths['/api/auth/login'].post.responses['200'].description")
                                 .value("Sign-in succeeded"))
@@ -266,6 +269,9 @@ final class PlatformApiIntegrationTest {
                                 .value(
                                         "Sign-in failed or password reset is required without account enumeration"))
                 .andExpect(
+                        jsonPath("$.paths['/api/auth/password-reset'].post.summary")
+                                .value("Reset password"))
+                .andExpect(
                         jsonPath(
                                         "$.paths['/api/auth/password-reset'].post.responses['200'].description")
                                 .value("Password reset succeeded"))
@@ -273,6 +279,9 @@ final class PlatformApiIntegrationTest {
                         jsonPath(
                                         "$.paths['/api/auth/password-reset'].post.responses['400'].description")
                                 .value("Reset token, password, or request body is invalid"))
+                .andExpect(
+                        jsonPath("$.paths['/api/businesses'].post.summary")
+                                .value("Create business"))
                 .andExpect(
                         jsonPath("$.paths['/api/businesses'].post.responses['201'].description")
                                 .value("Business created"))

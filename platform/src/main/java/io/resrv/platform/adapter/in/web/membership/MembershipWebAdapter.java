@@ -8,8 +8,6 @@ import io.resrv.platform.application.membership.in.ListBusinessMembershipsQuery;
 import io.resrv.platform.application.membership.in.MembershipAuditHistoryQuery;
 import io.resrv.platform.application.membership.in.UpdateMembershipRoleCommand;
 import io.resrv.shared.kernel.BusinessId;
-import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import jakarta.validation.Valid;
 import java.net.URI;
 import java.util.List;
@@ -26,7 +24,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/api/businesses/{businessId}/memberships")
-class MembershipWebAdapter {
+class MembershipWebAdapter implements MembershipApiDocs {
 
     private final BusinessMembershipAdministrationUseCase useCase;
 
@@ -34,17 +32,9 @@ class MembershipWebAdapter {
         this.useCase = useCase;
     }
 
-    @Operation(
-            summary = "Grant staff membership",
-            responses = {
-                @ApiResponse(responseCode = "201", description = "Membership granted"),
-                @ApiResponse(responseCode = "400", description = "Target account is unavailable"),
-                @ApiResponse(responseCode = "401", description = "Authentication is required"),
-                @ApiResponse(responseCode = "404", description = "Owner access is required"),
-                @ApiResponse(responseCode = "409", description = "Active membership already exists")
-            })
+    @Override
     @PostMapping
-    ResponseEntity<MembershipResponse> grant(
+    public ResponseEntity<MembershipResponse> grant(
             final JwtAuthenticationToken authentication,
             @PathVariable final UUID businessId,
             @Valid @RequestBody final GrantMembershipRequest request) {
@@ -62,15 +52,9 @@ class MembershipWebAdapter {
                 .body(MembershipResponse.from(response));
     }
 
-    @Operation(
-            summary = "List business memberships",
-            responses = {
-                @ApiResponse(responseCode = "200", description = "Memberships returned"),
-                @ApiResponse(responseCode = "401", description = "Authentication is required"),
-                @ApiResponse(responseCode = "404", description = "Owner access is required")
-            })
+    @Override
     @GetMapping
-    List<MembershipListResponse> list(
+    public List<MembershipListResponse> list(
             final JwtAuthenticationToken authentication, @PathVariable final UUID businessId) {
         final var account = AuthenticatedAccount.from(authentication);
         return useCase
@@ -82,15 +66,9 @@ class MembershipWebAdapter {
                 .toList();
     }
 
-    @Operation(
-            summary = "List membership audit history",
-            responses = {
-                @ApiResponse(responseCode = "200", description = "Audit history returned"),
-                @ApiResponse(responseCode = "401", description = "Authentication is required"),
-                @ApiResponse(responseCode = "404", description = "Owner access is required")
-            })
+    @Override
     @GetMapping("/audit")
-    List<MembershipAuditHistoryResponse> audit(
+    public List<MembershipAuditHistoryResponse> audit(
             final JwtAuthenticationToken authentication, @PathVariable final UUID businessId) {
         final var account = AuthenticatedAccount.from(authentication);
         return useCase
@@ -102,21 +80,9 @@ class MembershipWebAdapter {
                 .toList();
     }
 
-    @Operation(
-            summary = "Update membership role",
-            responses = {
-                @ApiResponse(responseCode = "200", description = "Membership role updated"),
-                @ApiResponse(responseCode = "400", description = "Requested role is invalid"),
-                @ApiResponse(responseCode = "401", description = "Authentication is required"),
-                @ApiResponse(
-                        responseCode = "404",
-                        description = "Owner access or membership not found"),
-                @ApiResponse(
-                        responseCode = "409",
-                        description = "Last owner membership is protected")
-            })
+    @Override
     @PutMapping("/{membershipId}")
-    MembershipResponse updateRole(
+    public MembershipResponse updateRole(
             final JwtAuthenticationToken authentication,
             @PathVariable final UUID businessId,
             @PathVariable final UUID membershipId,
@@ -131,22 +97,9 @@ class MembershipWebAdapter {
                                 request.role())));
     }
 
-    @Operation(
-            summary = "Disable membership",
-            responses = {
-                @ApiResponse(
-                        responseCode = "200",
-                        description = "Membership disabled or current inactive state returned"),
-                @ApiResponse(responseCode = "401", description = "Authentication is required"),
-                @ApiResponse(
-                        responseCode = "404",
-                        description = "Owner access or membership not found"),
-                @ApiResponse(
-                        responseCode = "409",
-                        description = "Last owner membership is protected")
-            })
+    @Override
     @PostMapping("/{membershipId}/disable")
-    MembershipResponse disable(
+    public MembershipResponse disable(
             final JwtAuthenticationToken authentication,
             @PathVariable final UUID businessId,
             @PathVariable final UUID membershipId) {

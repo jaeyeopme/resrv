@@ -5,8 +5,6 @@ import io.resrv.shared.kernel.ResourceId;
 import io.resrv.timeslot.application.slot.in.ListSlotsQuery;
 import io.resrv.timeslot.application.slot.in.ListSlotsUseCase;
 import io.resrv.timeslot.application.slot.in.SlotResult;
-import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.util.List;
@@ -19,7 +17,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/api/businesses/{businessId}/resources/{resourceId}/slots")
-class SlotWebAdapter {
+class SlotWebAdapter implements SlotApiDocs {
 
     private final ListSlotsUseCase useCase;
 
@@ -27,20 +25,9 @@ class SlotWebAdapter {
         this.useCase = useCase;
     }
 
+    @Override
     @GetMapping
-    @Operation(
-            summary = "List public bookable slots",
-            responses = {
-                @ApiResponse(
-                        responseCode = "200",
-                        description = "Bookable slots returned for active business/resource state"),
-                @ApiResponse(responseCode = "400", description = "Validation failure"),
-                @ApiResponse(
-                        responseCode = "404",
-                        description = "Business settings or resource not available"),
-                @ApiResponse(responseCode = "422", description = "Booking settings are required")
-            })
-    List<SlotResponse> list(
+    public List<SlotResponse> list(
             @PathVariable final UUID businessId,
             @PathVariable final UUID resourceId,
             @RequestParam final LocalDate date) {

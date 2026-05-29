@@ -9,8 +9,6 @@ import io.resrv.timeslot.application.schedule.in.ReplaceDateScheduleOverrideComm
 import io.resrv.timeslot.application.schedule.in.ReplaceWeeklyScheduleCommand;
 import io.resrv.timeslot.application.schedule.in.ScheduleResult;
 import io.resrv.timeslot.domain.schedule.ScheduleWindow;
-import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import java.time.DayOfWeek;
@@ -27,7 +25,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/api/businesses/{businessId}/resources/{resourceId}")
-class ResourceScheduleWebAdapter {
+class ResourceScheduleWebAdapter implements ResourceScheduleApiDocs {
 
     private final ResourceScheduleService service;
     private final BusinessAccessPort businessAccessPort;
@@ -38,17 +36,9 @@ class ResourceScheduleWebAdapter {
         this.businessAccessPort = businessAccessPort;
     }
 
+    @Override
     @PutMapping("/weekly-schedules/{dayOfWeek}")
-    @Operation(
-            summary = "Replace weekly resource schedule",
-            responses = {
-                @ApiResponse(responseCode = "200", description = "Weekly schedule replaced"),
-                @ApiResponse(responseCode = "400", description = "Validation failure"),
-                @ApiResponse(responseCode = "401", description = "Unauthorized"),
-                @ApiResponse(responseCode = "403", description = "Forbidden"),
-                @ApiResponse(responseCode = "404", description = "Resource not found")
-            })
-    ScheduleResponse replaceWeekly(
+    public ScheduleResponse replaceWeekly(
             @PathVariable final UUID businessId,
             @PathVariable final UUID resourceId,
             @PathVariable final DayOfWeek dayOfWeek,
@@ -64,17 +54,9 @@ class ResourceScheduleWebAdapter {
                                 request.toWindows())));
     }
 
+    @Override
     @PutMapping("/date-schedule-overrides/{date}")
-    @Operation(
-            summary = "Replace resource date schedule override",
-            responses = {
-                @ApiResponse(responseCode = "200", description = "Date override replaced"),
-                @ApiResponse(responseCode = "400", description = "Validation failure"),
-                @ApiResponse(responseCode = "401", description = "Unauthorized"),
-                @ApiResponse(responseCode = "403", description = "Forbidden"),
-                @ApiResponse(responseCode = "404", description = "Resource not found")
-            })
-    ScheduleResponse replaceDateOverride(
+    public ScheduleResponse replaceDateOverride(
             @PathVariable final UUID businessId,
             @PathVariable final UUID resourceId,
             @PathVariable final LocalDate date,
