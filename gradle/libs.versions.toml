@@ -45,6 +45,8 @@ spring-boot-starter-oauth2-resource-server = { module = "org.springframework.boo
 spring-boot-starter-test = { module = "org.springframework.boot:spring-boot-starter-test" }
 # Auto-start Docker Compose for local development
 spring-boot-docker-compose = { module = "org.springframework.boot:spring-boot-docker-compose" }
+# Health and readiness probes
+spring-boot-starter-actuator = { module = "org.springframework.boot:spring-boot-starter-actuator" }
 # Generated OpenAPI description and Swagger UI for Spring MVC
 springdoc-openapi-starter-webmvc-ui = { module = "org.springdoc:springdoc-openapi-starter-webmvc-ui", version.ref = "springdoc-openapi" }
 # Swagger/OpenAPI annotations used by adapter DTOs and controllers

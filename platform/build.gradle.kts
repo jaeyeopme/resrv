@@ -41,6 +41,7 @@ dependencies {
     implementation(libs.spring.tx)
     implementation(libs.spring.context)
     implementation(libs.spring.boot.starter.mail)
+    implementation(libs.spring.boot.starter.actuator)
     implementation(libs.spring.boot.starter.security)
     implementation(libs.spring.boot.starter.oauth2.resource.server)
     implementation(libs.spring.boot.starter.data.jpa)

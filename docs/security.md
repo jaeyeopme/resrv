@@ -75,6 +75,11 @@ Generated documentation endpoints are public:
 - `/v3/api-docs/**`
 - `/v3/api-docs.yaml`
 
+Operational probe endpoints are public and must not expose secrets or private domain data:
+
+- `/actuator/health`
+- `/actuator/health/**`
+
 Platform public endpoints:
 
 - `POST /api/accounts`

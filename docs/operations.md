@@ -56,6 +56,34 @@ Open:
 - <http://localhost:8080/swagger-ui.html>
 - <http://localhost:8080/v3/api-docs>
 - <http://localhost:8080/v3/api-docs.yaml>
+- <http://localhost:8080/actuator/health/liveness>
+- <http://localhost:8080/actuator/health/readiness>
+
+The local run path may use Spring Boot Docker Compose support to discover the root `compose.yml`.
+
+## Platform API Production-Like Run
+
+Use the `prod` profile when checking deployed-environment configuration. This profile disables local
+Docker Compose discovery and requires explicit datasource, JWT, and password reset settings from the
+environment.
+
+```bash
+SPRING_PROFILES_ACTIVE=prod \
+SPRING_DATASOURCE_URL=jdbc:postgresql://db.example.internal:5432/resrv \
+SPRING_DATASOURCE_USERNAME=resrv \
+SPRING_DATASOURCE_PASSWORD=<secret> \
+RESRV_JWT_SECRET_KEY=<at-least-32-bytes> \
+RESRV_JWT_ISSUER=resrv-prod \
+RESRV_JWT_AUDIENCE=resrv-api \
+RESRV_JWT_EXPIRATION=3600 \
+RESRV_SECURITY_PASSWORD_RESET_PUBLIC_BASE_URL=https://app.example.com \
+RESRV_SECURITY_PASSWORD_RESET_TOKEN_TTL=PT30M \
+java -jar platform/build/libs/resrv-platform-api-0.0.1-SNAPSHOT.jar
+```
+
+Do not use the sample local JWT secret or local PostgreSQL password in deployed environments.
+Missing mandatory `prod` settings fail startup through configuration binding or dependency
+initialization.
 
 ## Timeslot API Local Run
 
@@ -85,6 +113,17 @@ Build the local Jib image:
 ```
 
 The local image name is `resrv-platform-api:latest`.
+
+Smoke-check a running packaged backend:
+
+```bash
+curl -fsS http://localhost:8080/actuator/health/liveness
+curl -fsS http://localhost:8080/actuator/health/readiness
+curl -fsS http://localhost:8080/v3/api-docs >/tmp/resrv-api.json
+```
+
+The health endpoints expose component status only and never expose secrets, credentials, account
+data, business data, or reservation data.
 
 ## Required JWT Configuration
 
@@ -127,12 +166,28 @@ Flyway migrations are stored in bounded-context modules:
 The platform runtime loads `classpath:db/migration`, so platform and timeslot migration resources on
 the runtime classpath are applied through the same startup path.
 
+Migration success can be checked through startup logs and the `flyway_schema_history` table. The
+platform runtime is not ready for traffic when the database is unavailable or required migrations
+cannot complete.
+
+## Health And Readiness
+
+Only health endpoints are exposed through Actuator:
+
+- `/actuator/health/liveness`
+- `/actuator/health/readiness`
+
+Liveness reports whether the process is alive. Readiness includes database availability and should
+be used before sending traffic to the backend. Generated OpenAPI remains the application API
+contract; health endpoints are operational probes, not an endpoint catalog.
+
 ## Troubleshooting
 
 | Symptom | Check |
 |---|---|
 | Tests fail before connecting to PostgreSQL | Docker is running |
 | JWT config validation fails | Secret is at least 32 bytes and issuer/audience/expiration are set |
+| Readiness is down | Check PostgreSQL connectivity and migration success |
 | `timeslot:bootRun` is unavailable | Boot task is disabled by design; run `:platform:bootRun` |
 | Swagger returns 401 for docs | Security config should permit `/swagger-ui/**` and `/v3/api-docs/**` |
 | Coverage verification fails | Inspect module JaCoCo HTML report under `<module>/build/reports/jacoco/test/html` |

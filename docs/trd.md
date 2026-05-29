@@ -37,6 +37,7 @@ Primary ADRs:
 | Database | PostgreSQL 16 |
 | Migrations | Flyway migrations in bounded-context modules |
 | API docs | Springdoc generated OpenAPI and Swagger UI |
+| Operational probes | Actuator health, liveness, and readiness |
 | Container packaging | Jib image for the platform runtime |
 | Tests | JUnit 5, Spring Boot tests, Testcontainers, ArchUnit |
 
@@ -91,6 +92,10 @@ authorization boundaries, and design decisions, but do not maintain a duplicate 
 `bootRun` tasks remain disabled. Booking APIs are served by the platform runtime. ADR-0022 does not
 add a separate timeslot runtime, service-to-service transport, message broker, outbox, events, or
 projections.
+
+The platform runtime exposes liveness and readiness health probes. Readiness includes database
+availability and should be used before sending traffic to the backend. Probe responses expose status
+only and must not expose secrets or private account, business, or reservation data.
 
 ## Security Design
 
@@ -212,6 +217,9 @@ Database configuration can come from Spring Boot Docker Compose support in local
 standard Spring datasource properties in other environments. The platform runtime loads
 `classpath:db/migration`, which includes platform migrations from the platform module and timeslot
 migrations from the timeslot module runtime classpath.
+
+The `prod` profile disables local Docker Compose discovery and expects explicit datasource, JWT, and
+password reset settings from the environment.
 
 Password reset email configuration uses Spring Mail plus feature properties:
 

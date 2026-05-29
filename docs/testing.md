@@ -91,6 +91,10 @@ responses, exposes platform plus booking endpoint groups from generated OpenAPI,
 unsupported capability groups, verifies public/private schema boundaries, and checks that human docs
 do not duplicate a hand-written endpoint catalog.
 
+Operational readiness tests verify public liveness/readiness probes, database-backed readiness,
+Flyway migration history visibility for platform and timeslot migrations, generated OpenAPI
+reachability for smoke checks, and documentation drift around unsupported standalone services.
+
 API contract consistency tests use generated OpenAPI as the source of truth. They assert path/method
 coverage, representative response documentation for success and failure statuses, and boundary
 schemas for public discovery, customer history, business-scoped reservations, and owner-only
@@ -120,6 +124,7 @@ JWT tests use a fixed local test secret and test issuer/audience values.
 
 ```bash
 ./gradlew :platform:test --tests io.resrv.platform.api.PlatformRuntimePackagingIntegrationTest
+./gradlew :platform:test --tests io.resrv.platform.api.PlatformOperationalReadinessIntegrationTest
 ./gradlew :platform:bootJar
 ./gradlew :platform:jibDockerBuild
 ```

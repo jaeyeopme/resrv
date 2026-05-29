@@ -50,7 +50,9 @@ class PlatformSecurityConfig {
                         "/swagger-ui/**",
                         "/v3/api-docs",
                         "/v3/api-docs/**",
-                        "/v3/api-docs.yaml")
+                        "/v3/api-docs.yaml",
+                        "/actuator/health",
+                        "/actuator/health/**")
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(auth -> auth.anyRequest().permitAll())
                 .build();

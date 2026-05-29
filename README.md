@@ -103,9 +103,15 @@ Then open:
 - Swagger UI: <http://localhost:8080/swagger-ui.html>
 - OpenAPI JSON: <http://localhost:8080/v3/api-docs>
 - OpenAPI YAML: <http://localhost:8080/v3/api-docs.yaml>
+- Liveness: <http://localhost:8080/actuator/health/liveness>
+- Readiness: <http://localhost:8080/actuator/health/readiness>
 
 Generated OpenAPI from the platform runtime is the API contract surface. Keep human docs at the
 API-group and policy level; do not maintain a separate hand-written endpoint catalog.
+
+For production-like runs, use `SPRING_PROFILES_ACTIVE=prod` with explicit datasource, JWT, and
+password reset settings. See [Operations](docs/operations.md) for the full configuration and smoke
+check path.
 
 Build the executable runtime package:
 
