@@ -3,6 +3,8 @@ package io.resrv.platform.adapter.in.web.account;
 import io.resrv.platform.application.account.in.RegisterAccountCommand;
 import io.resrv.platform.application.account.in.RegisterAccountResult;
 import io.resrv.platform.application.account.in.RegisterAccountUseCase;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
@@ -26,6 +28,13 @@ class AccountWebAdapter {
     }
 
     @PostMapping
+    @Operation(
+            summary = "Register account",
+            responses = {
+                @ApiResponse(responseCode = "201", description = "Account registered"),
+                @ApiResponse(responseCode = "400", description = "Validation failure"),
+                @ApiResponse(responseCode = "409", description = "Email already registered")
+            })
     ResponseEntity<AccountResponse> register(@Valid @RequestBody final AccountRequest request) {
         final var result =
                 registerAccountUseCase.register(

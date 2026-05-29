@@ -4,6 +4,8 @@ import io.resrv.platform.adapter.in.web.security.AuthenticatedAccount;
 import io.resrv.platform.application.business.in.CreateBusinessCommand;
 import io.resrv.platform.application.business.in.CreateBusinessResult;
 import io.resrv.platform.application.business.in.CreateBusinessUseCase;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
@@ -27,6 +29,15 @@ class BusinessWebAdapter {
     }
 
     @PostMapping
+    @Operation(
+            summary = "Create business",
+            responses = {
+                @ApiResponse(responseCode = "201", description = "Business created"),
+                @ApiResponse(responseCode = "400", description = "Validation failure"),
+                @ApiResponse(responseCode = "401", description = "Authentication is required"),
+                @ApiResponse(responseCode = "403", description = "Active account is required"),
+                @ApiResponse(responseCode = "409", description = "Business slug already exists")
+            })
     ResponseEntity<BusinessResponse> create(
             final JwtAuthenticationToken authentication,
             @Valid @RequestBody final BusinessRequest request) {

@@ -84,6 +84,9 @@ Timeslot API owns booking lifecycle:
 serves both platform and booking API groups, and exposes one generated OpenAPI surface from
 `/v3/api-docs`.
 
+Generated OpenAPI from that runtime is the API contract surface. Narrative docs describe API groups,
+authorization boundaries, and design decisions, but do not maintain a duplicate endpoint catalog.
+
 `timeslot` keeps an application class for module-local testing history, but its `bootJar` and
 `bootRun` tasks remain disabled. Booking APIs are served by the platform runtime. ADR-0022 does not
 add a separate timeslot runtime, service-to-service transport, message broker, outbox, events, or

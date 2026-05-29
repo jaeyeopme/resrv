@@ -87,7 +87,14 @@ and business-slug-scoped authenticated hold creation.
 Platform runtime packaging tests verify that the canonical platform runtime serves booking settings
 and public booking discovery endpoints, applies platform and timeslot schemas, rejects inactive
 accounts for protected booking actions, preserves non-enumerating wrong-business public slot lookup
-responses, and exposes platform plus booking endpoint groups from generated OpenAPI.
+responses, exposes platform plus booking endpoint groups from generated OpenAPI, excludes
+unsupported capability groups, verifies public/private schema boundaries, and checks that human docs
+do not duplicate a hand-written endpoint catalog.
+
+API contract consistency tests use generated OpenAPI as the source of truth. They assert path/method
+coverage, representative response documentation for success and failure statuses, and boundary
+schemas for public discovery, customer history, business-scoped reservations, and owner-only
+membership administration.
 
 Account security hardening tests verify:
 

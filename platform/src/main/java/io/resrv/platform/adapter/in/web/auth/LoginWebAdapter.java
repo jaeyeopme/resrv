@@ -27,6 +27,7 @@ class LoginWebAdapter {
             summary = "Sign in",
             responses = {
                 @ApiResponse(responseCode = "200", description = "Sign-in succeeded"),
+                @ApiResponse(responseCode = "400", description = "Malformed request"),
                 @ApiResponse(
                         responseCode = "401",
                         description =

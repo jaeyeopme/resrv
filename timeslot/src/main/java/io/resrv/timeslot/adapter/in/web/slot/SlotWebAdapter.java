@@ -33,8 +33,12 @@ class SlotWebAdapter {
             responses = {
                 @ApiResponse(
                         responseCode = "200",
-                        description =
-                                "Bookable slots for active business/resource state, or an empty list when not bookable")
+                        description = "Bookable slots returned for active business/resource state"),
+                @ApiResponse(responseCode = "400", description = "Validation failure"),
+                @ApiResponse(
+                        responseCode = "404",
+                        description = "Business settings or resource not available"),
+                @ApiResponse(responseCode = "422", description = "Booking settings are required")
             })
     List<SlotResponse> list(
             @PathVariable final UUID businessId,

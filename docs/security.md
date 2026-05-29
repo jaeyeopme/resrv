@@ -64,6 +64,9 @@ Configuration:
 
 ## Public Endpoints
 
+This section lists security exposure, not the full endpoint contract. Generated OpenAPI from the
+platform runtime remains the canonical endpoint and schema contract.
+
 Generated documentation endpoints are public:
 
 - `/swagger-ui.html`
@@ -90,10 +93,10 @@ Timeslot public booking hold endpoint:
 
 - `POST /api/public/businesses/*/reservations`
 
-The public booking flow uses the business slug only at the HTTP/API boundary. Public responses and
-generated OpenAPI must not expose the internal business UUID. After server-side slug resolution,
-timeslot may use the internal business UUID for owned data relationships, slot binding,
-authorization, and persistence queries.
+The public booking flow uses the business slug only at the HTTP/API boundary. Public response bodies
+and generated OpenAPI schemas must not expose the internal business UUID or customer account id.
+After server-side slug resolution, timeslot may use the internal business UUID for owned data
+relationships, slot binding, authorization, and persistence queries.
 
 Public discovery must collapse syntactically valid missing, inactive, incomplete, and wrong-business
 lookups into the same no-public-bookable-representation response. Non-sensitive denial facts may be

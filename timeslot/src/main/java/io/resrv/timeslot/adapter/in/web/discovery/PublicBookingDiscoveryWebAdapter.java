@@ -121,7 +121,7 @@ class PublicBookingDiscoveryWebAdapter {
             responses = {
                 @ApiResponse(responseCode = "200", description = "Reservation hold created"),
                 @ApiResponse(responseCode = "400", description = "Malformed request"),
-                @ApiResponse(responseCode = "401", description = "Authentication required"),
+                @ApiResponse(responseCode = "401", description = "Authentication is required"),
                 @ApiResponse(
                         responseCode = "404",
                         description = "No public bookable business representation"),

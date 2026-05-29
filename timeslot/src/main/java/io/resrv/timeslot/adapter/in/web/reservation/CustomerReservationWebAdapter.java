@@ -8,6 +8,8 @@ import io.resrv.timeslot.application.reservation.in.CustomerReservationListQuery
 import io.resrv.timeslot.application.reservation.in.CustomerReservationPage;
 import io.resrv.timeslot.application.reservation.in.CustomerReservationResult;
 import io.resrv.timeslot.domain.reservation.ReservationState;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import java.time.OffsetDateTime;
@@ -33,6 +35,13 @@ class CustomerReservationWebAdapter {
     }
 
     @GetMapping
+    @Operation(
+            summary = "List my reservations",
+            responses = {
+                @ApiResponse(responseCode = "200", description = "Customer reservations returned"),
+                @ApiResponse(responseCode = "400", description = "Validation failure"),
+                @ApiResponse(responseCode = "401", description = "Authentication is required")
+            })
     CustomerReservationPageResponse list(
             final JwtAuthenticationToken authentication,
             @RequestParam(defaultValue = CustomerReservationListQuery.DEFAULT_PAGE_VALUE) @Min(0)
@@ -52,6 +61,14 @@ class CustomerReservationWebAdapter {
     }
 
     @GetMapping("/{reservationId}")
+    @Operation(
+            summary = "Get my reservation",
+            responses = {
+                @ApiResponse(responseCode = "200", description = "Customer reservation returned"),
+                @ApiResponse(responseCode = "400", description = "Validation failure"),
+                @ApiResponse(responseCode = "401", description = "Authentication is required"),
+                @ApiResponse(responseCode = "404", description = "Reservation not found")
+            })
     CustomerReservationResponse detail(
             final JwtAuthenticationToken authentication, @PathVariable final UUID reservationId) {
         final var account = AuthenticatedAccount.from(authentication);

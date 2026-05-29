@@ -104,8 +104,8 @@ Then open:
 - OpenAPI JSON: <http://localhost:8080/v3/api-docs>
 - OpenAPI YAML: <http://localhost:8080/v3/api-docs.yaml>
 
-Generated OpenAPI is the API contract surface. Do not maintain a separate hand-written endpoint
-catalog.
+Generated OpenAPI from the platform runtime is the API contract surface. Keep human docs at the
+API-group and policy level; do not maintain a separate hand-written endpoint catalog.
 
 Build the executable runtime package:
 

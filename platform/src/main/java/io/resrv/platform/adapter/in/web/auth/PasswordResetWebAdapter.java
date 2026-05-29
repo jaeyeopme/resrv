@@ -30,7 +30,7 @@ class PasswordResetWebAdapter {
                 @ApiResponse(responseCode = "200", description = "Password reset succeeded"),
                 @ApiResponse(
                         responseCode = "400",
-                        description = "Reset token or password is invalid")
+                        description = "Reset token, password, or request body is invalid")
             })
     @PostMapping
     ResponseEntity<ResetPasswordResponse> resetPassword(

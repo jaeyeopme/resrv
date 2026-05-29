@@ -242,6 +242,54 @@ final class PlatformApiIntegrationTest {
         assertEquals(1, fakePasswordResetEmailPort.deliveries().size());
     }
 
+    @Test
+    void generatedOpenApiDocumentsAccountAuthAndBusinessResponses() throws Exception {
+        mockMvc.perform(get("/v3/api-docs"))
+                .andExpect(status().isOk())
+                .andExpect(
+                        jsonPath("$.paths['/api/accounts'].post.responses['201'].description")
+                                .value("Account registered"))
+                .andExpect(
+                        jsonPath("$.paths['/api/accounts'].post.responses['400'].description")
+                                .value("Validation failure"))
+                .andExpect(
+                        jsonPath("$.paths['/api/accounts'].post.responses['409'].description")
+                                .value("Email already registered"))
+                .andExpect(
+                        jsonPath("$.paths['/api/auth/login'].post.responses['200'].description")
+                                .value("Sign-in succeeded"))
+                .andExpect(
+                        jsonPath("$.paths['/api/auth/login'].post.responses['400'].description")
+                                .value("Malformed request"))
+                .andExpect(
+                        jsonPath("$.paths['/api/auth/login'].post.responses['401'].description")
+                                .value(
+                                        "Sign-in failed or password reset is required without account enumeration"))
+                .andExpect(
+                        jsonPath(
+                                        "$.paths['/api/auth/password-reset'].post.responses['200'].description")
+                                .value("Password reset succeeded"))
+                .andExpect(
+                        jsonPath(
+                                        "$.paths['/api/auth/password-reset'].post.responses['400'].description")
+                                .value("Reset token, password, or request body is invalid"))
+                .andExpect(
+                        jsonPath("$.paths['/api/businesses'].post.responses['201'].description")
+                                .value("Business created"))
+                .andExpect(
+                        jsonPath("$.paths['/api/businesses'].post.responses['400'].description")
+                                .value("Validation failure"))
+                .andExpect(
+                        jsonPath("$.paths['/api/businesses'].post.responses['401'].description")
+                                .value("Authentication is required"))
+                .andExpect(
+                        jsonPath("$.paths['/api/businesses'].post.responses['403'].description")
+                                .value("Active account is required"))
+                .andExpect(
+                        jsonPath("$.paths['/api/businesses'].post.responses['409'].description")
+                                .value("Business slug already exists"));
+    }
+
     private static String tokenFromResetLink(final String resetLink) {
         return resetLink.substring(resetLink.indexOf("token=") + "token=".length());
     }

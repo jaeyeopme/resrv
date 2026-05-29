@@ -756,6 +756,114 @@ final class TimeslotBookingApiIntegrationTest {
     }
 
     @Test
+    void generatedOpenApiDocumentsTimeslotResponseSemantics() throws Exception {
+        final var resourcePath = "/api/businesses/{businessId}/resources/{resourceId}";
+        final var reservationPath = "/api/businesses/{businessId}/reservations";
+
+        mockMvc.perform(get("/v3/api-docs"))
+                .andExpect(status().isOk())
+                .andExpect(
+                        jsonPath(
+                                        "$.paths['/api/businesses/{businessId}/booking-settings']"
+                                                + ".put.responses['200'].description")
+                                .value("Booking settings replaced"))
+                .andExpect(
+                        jsonPath(
+                                        "$.paths['/api/businesses/{businessId}/booking-settings']"
+                                                + ".put.responses['400'].description")
+                                .value("Validation failure"))
+                .andExpect(
+                        jsonPath(
+                                        "$.paths['/api/businesses/{businessId}/resources']"
+                                                + ".post.responses['201'].description")
+                                .value("Resource created"))
+                .andExpect(
+                        jsonPath(
+                                        "$.paths['/api/businesses/{businessId}/resources']"
+                                                + ".post.responses['409'].description")
+                                .value("Duplicate resource slug"))
+                .andExpect(
+                        jsonPath("$.paths['" + resourcePath + "'].put.responses['404'].description")
+                                .value("Resource not found"))
+                .andExpect(
+                        jsonPath(
+                                        "$.paths['"
+                                                + resourcePath
+                                                + "/weekly-schedules/{dayOfWeek}'].put"
+                                                + ".responses['404'].description")
+                                .value("Resource not found"))
+                .andExpect(
+                        jsonPath(
+                                        "$.paths['"
+                                                + resourcePath
+                                                + "/slots'].get.responses['422'].description")
+                                .value("Booking settings are required"))
+                .andExpect(
+                        jsonPath(
+                                        "$.paths['"
+                                                + reservationPath
+                                                + "'].post.responses['200'].description")
+                                .value("Reservation hold created"))
+                .andExpect(
+                        jsonPath(
+                                        "$.paths['"
+                                                + reservationPath
+                                                + "'].post.responses['403'].description")
+                                .value("Business access is required"))
+                .andExpect(
+                        jsonPath(
+                                        "$.paths['"
+                                                + reservationPath
+                                                + "'].post.responses['422'].description")
+                                .value("Slot unavailable"))
+                .andExpect(
+                        jsonPath(
+                                        "$.paths['"
+                                                + reservationPath
+                                                + "'].get.responses['200'].description")
+                                .value("Reservations returned"))
+                .andExpect(
+                        jsonPath(
+                                        "$.paths['"
+                                                + reservationPath
+                                                + "/{reservationId}/confirm'].post"
+                                                + ".responses['422'].description")
+                                .value("Reservation cannot be confirmed"))
+                .andExpect(
+                        jsonPath(
+                                        "$.paths['"
+                                                + reservationPath
+                                                + "/{reservationId}/cancel'].post"
+                                                + ".responses['422'].description")
+                                .value("Reservation cannot be cancelled"))
+                .andExpect(
+                        jsonPath(
+                                        "$.paths['/api/me/reservations'].get.responses['200']"
+                                                + ".description")
+                                .value("Customer reservations returned"))
+                .andExpect(
+                        jsonPath(
+                                        "$.paths['/api/me/reservations/{reservationId}'].get"
+                                                + ".responses['404'].description")
+                                .value("Reservation not found"))
+                .andExpect(
+                        jsonPath(
+                                        "$.paths['/api/public/businesses/{businessSlug}'].get"
+                                                + ".responses['404'].description")
+                                .value("No public bookable business representation"))
+                .andExpect(
+                        jsonPath(
+                                        "$.paths['/api/public/businesses/{businessSlug}/reservations']"
+                                                + ".post.responses['401'].description")
+                                .value("Authentication is required"))
+                .andExpect(
+                        jsonPath(
+                                        "$.paths['/api/public/businesses/{businessSlug}/reservations']"
+                                                + ".post.responses['422'].description")
+                                .value("Slot unavailable"));
+    }
+
+    @Test
     void customerReservationListIsOwnerScopedPagedAndTimezoneRendered() throws Exception {
         final var resourceId = UUID.fromString("00000000-0000-0000-0000-000000000030");
         final var laterReservation = UUID.fromString("00000000-0000-0000-0000-000000000041");

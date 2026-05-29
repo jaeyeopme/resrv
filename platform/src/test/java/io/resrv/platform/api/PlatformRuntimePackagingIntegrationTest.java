@@ -1,6 +1,8 @@
 package io.resrv.platform.api;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -13,11 +15,16 @@ import com.nimbusds.jose.JWSHeader;
 import com.nimbusds.jose.crypto.MACSigner;
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.regex.Pattern;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -48,6 +55,8 @@ final class PlatformRuntimePackagingIntegrationTest {
     private static final String JWT_ISSUER = "resrv-test";
     private static final String JWT_AUDIENCE = "resrv-api";
     private static final Instant NOW = Instant.parse("2026-05-29T00:00:00Z");
+    private static final Pattern ENDPOINT_TABLE =
+            Pattern.compile("(?m)^\\|\\s*(GET|POST|PUT|PATCH|DELETE)\\s+/api");
 
     @Autowired private MockMvc mockMvc;
 
@@ -162,33 +171,191 @@ final class PlatformRuntimePackagingIntegrationTest {
 
     @Test
     void generatedOpenApiIncludesPlatformAndBookingEndpointGroups() throws Exception {
-        mockMvc.perform(get("/v3/api-docs"))
+        final var paths = openApiPaths(generatedOpenApi());
+
+        assertOperation(paths, "/api/accounts", "post");
+        assertOperation(paths, "/api/auth/login", "post");
+        assertOperation(paths, "/api/auth/password-reset", "post");
+        assertOperation(paths, "/api/businesses", "post");
+
+        assertOperation(paths, "/api/businesses/{businessId}/memberships", "post");
+        assertOperation(paths, "/api/businesses/{businessId}/memberships", "get");
+        assertOperation(paths, "/api/businesses/{businessId}/memberships/audit", "get");
+        assertOperation(paths, "/api/businesses/{businessId}/memberships/{membershipId}", "put");
+        assertOperation(
+                paths, "/api/businesses/{businessId}/memberships/{membershipId}/disable", "post");
+
+        assertOperation(paths, "/api/businesses/{businessId}/booking-settings", "put");
+        assertOperation(paths, "/api/businesses/{businessId}/resources", "post");
+        assertOperation(paths, "/api/businesses/{businessId}/resources", "get");
+        assertOperation(paths, "/api/businesses/{businessId}/resources/{resourceId}", "put");
+        assertOperation(
+                paths, "/api/businesses/{businessId}/resources/{resourceId}/activate", "post");
+        assertOperation(
+                paths, "/api/businesses/{businessId}/resources/{resourceId}/deactivate", "post");
+        assertOperation(
+                paths,
+                "/api/businesses/{businessId}/resources/{resourceId}/weekly-schedules/{dayOfWeek}",
+                "put");
+        assertOperation(
+                paths,
+                "/api/businesses/{businessId}/resources/{resourceId}/date-schedule-overrides/{date}",
+                "put");
+        assertOperation(paths, "/api/businesses/{businessId}/resources/{resourceId}/slots", "get");
+
+        assertOperation(paths, "/api/businesses/{businessId}/reservations", "post");
+        assertOperation(paths, "/api/businesses/{businessId}/reservations", "get");
+        assertOperation(
+                paths, "/api/businesses/{businessId}/reservations/{reservationId}/confirm", "post");
+        assertOperation(
+                paths, "/api/businesses/{businessId}/reservations/{reservationId}/release", "post");
+        assertOperation(
+                paths, "/api/businesses/{businessId}/reservations/{reservationId}/cancel", "post");
+        assertOperation(
+                paths,
+                "/api/businesses/{businessId}/reservations/{reservationId}/check-in",
+                "post");
+        assertOperation(
+                paths, "/api/businesses/{businessId}/reservations/{reservationId}/no-show", "post");
+
+        assertOperation(paths, "/api/me/reservations", "get");
+        assertOperation(paths, "/api/me/reservations/{reservationId}", "get");
+
+        assertOperation(paths, "/api/public/businesses/{businessSlug}", "get");
+        assertOperation(paths, "/api/public/businesses/{businessSlug}/resources", "get");
+        assertOperation(
+                paths, "/api/public/businesses/{businessSlug}/resources/{resourceId}/slots", "get");
+        assertOperation(paths, "/api/public/businesses/{businessSlug}/reservations", "post");
+    }
+
+    @Test
+    void generatedOpenApiExcludesUnsupportedCapabilityGroups() throws Exception {
+        final var paths = openApiPaths(generatedOpenApi());
+
+        assertNoPathContaining(paths, "payment");
+        assertNoPathContaining(paths, "notification");
+        assertNoPathContaining(paths, "calendar");
+        assertNoPathContaining(paths, "broker");
+        assertNoPathContaining(paths, "outbox");
+        assertNoPathContaining(paths, "/api/events");
+    }
+
+    @Test
+    void generatedOpenApiDocumentsPublicAndProtectedBoundarySchemas() throws Exception {
+        final var openApi = generatedOpenApi();
+
+        assertSchemaHasProperties(openApi, "PublicBusinessResponse", "slug", "name", "timezone");
+        assertSchemaOmitsProperties(openApi, "PublicBusinessResponse", "id", "businessId");
+        assertSchemaHasProperties(
+                openApi, "PublicResourceResponse", "resourceId", "businessSlug", "name", "slug");
+        assertSchemaOmitsProperties(openApi, "PublicResourceResponse", "businessId");
+        assertSchemaHasProperties(
+                openApi, "PublicReservationResponse", "id", "resourceId", "state");
+        assertSchemaOmitsProperties(
+                openApi, "PublicReservationResponse", "businessId", "customerAccountId");
+
+        assertSchemaHasProperties(
+                openApi, "ReservationResponse", "businessId", "resourceId", "customerAccountId");
+        assertSchemaHasProperties(
+                openApi, "MembershipResponse", "businessId", "account", "role", "active");
+        assertSchemaHasProperties(
+                openApi, "CustomerReservationResponse", "business", "resource", "state");
+    }
+
+    @Test
+    void humanDocsDoNotDuplicateEndpointCatalogs() throws IOException {
+        final var root = projectRoot();
+
+        assertFalse(Files.exists(root.resolve("docs/api.md")), "docs/api.md must not exist");
+        for (final var doc :
+                List.of(
+                        root.resolve("README.md"),
+                        root.resolve("docs/security.md"),
+                        root.resolve("docs/testing.md"),
+                        root.resolve("docs/trd.md"))) {
+            final var content = Files.readString(doc);
+            assertFalse(content.contains("Endpoint Catalog"), () -> doc + " duplicates endpoints");
+            assertFalse(
+                    content.contains("Endpoint Reference"), () -> doc + " duplicates endpoints");
+            assertFalse(content.contains("## API Endpoints"), () -> doc + " duplicates endpoints");
+            assertFalse(ENDPOINT_TABLE.matcher(content).find(), () -> doc + " has endpoint table");
+        }
+    }
+
+    private String generatedOpenApi() throws Exception {
+        return mockMvc.perform(get("/v3/api-docs"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.paths['/api/accounts'].post").exists())
-                .andExpect(jsonPath("$.paths['/api/auth/login'].post").exists())
-                .andExpect(jsonPath("$.paths['/api/businesses'].post").exists())
-                .andExpect(
-                        jsonPath("$.paths['/api/businesses/{businessId}/memberships'].get")
-                                .exists())
-                .andExpect(
-                        jsonPath("$.paths['/api/businesses/{businessId}/booking-settings'].put")
-                                .exists())
-                .andExpect(
-                        jsonPath("$.paths['/api/businesses/{businessId}/resources'].post").exists())
-                .andExpect(
-                        jsonPath(
-                                        "$.paths['/api/businesses/{businessId}/resources/{resourceId}/slots'].get")
-                                .exists())
-                .andExpect(
-                        jsonPath("$.paths['/api/businesses/{businessId}/reservations'].post")
-                                .exists())
-                .andExpect(jsonPath("$.paths['/api/me/reservations'].get").exists())
-                .andExpect(
-                        jsonPath("$.paths['/api/public/businesses/{businessSlug}'].get").exists())
-                .andExpect(
-                        jsonPath(
-                                        "$.paths['/api/public/businesses/{businessSlug}/reservations'].post")
-                                .exists());
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+    }
+
+    @SuppressWarnings("unchecked")
+    private static Map<String, Object> openApiPaths(final String openApi) {
+        return JsonPath.read(openApi, "$.paths");
+    }
+
+    @SuppressWarnings("unchecked")
+    private static void assertOperation(
+            final Map<String, Object> paths, final String path, final String method) {
+        assertTrue(paths.containsKey(path), () -> "Missing OpenAPI path: " + path);
+        final var operations = (Map<String, Object>) paths.get(path);
+        assertTrue(
+                operations.containsKey(method),
+                () -> "Missing OpenAPI operation: " + method.toUpperCase() + " " + path);
+    }
+
+    private static void assertNoPathContaining(
+            final Map<String, Object> paths, final String fragment) {
+        assertTrue(
+                paths.keySet().stream().noneMatch(path -> path.contains(fragment)),
+                () -> "Unsupported OpenAPI path contains: " + fragment);
+    }
+
+    private static void assertSchemaHasProperties(
+            final String openApi, final String schemaName, final String... propertyNames) {
+        final var properties = schemaProperties(openApi, schemaName);
+        for (final var propertyName : propertyNames) {
+            assertTrue(
+                    properties.containsKey(propertyName),
+                    () -> schemaName + " is missing property " + propertyName);
+        }
+    }
+
+    private static void assertSchemaOmitsProperties(
+            final String openApi, final String schemaName, final String... propertyNames) {
+        final var properties = schemaProperties(openApi, schemaName);
+        for (final var propertyName : propertyNames) {
+            assertFalse(
+                    properties.containsKey(propertyName),
+                    () -> schemaName + " exposes property " + propertyName);
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    private static Map<String, Object> schemaProperties(
+            final String openApi, final String schemaName) {
+        final Map<String, Object> schemas = JsonPath.read(openApi, "$.components.schemas");
+        final var schemaEntry =
+                schemas.entrySet().stream()
+                        .filter(
+                                entry ->
+                                        entry.getKey().equals(schemaName)
+                                                || entry.getKey().endsWith("." + schemaName))
+                        .findFirst()
+                        .orElseThrow(() -> new AssertionError("Missing schema: " + schemaName));
+        final var schema = (Map<String, Object>) schemaEntry.getValue();
+        final var properties = schema.get("properties");
+        assertTrue(properties instanceof Map, () -> schemaName + " has no properties");
+        return (Map<String, Object>) properties;
+    }
+
+    private static Path projectRoot() {
+        final var userDir = Path.of(System.getProperty("user.dir")).toAbsolutePath().normalize();
+        if (Files.exists(userDir.resolve("settings.gradle.kts"))) {
+            return userDir;
+        }
+        return userDir.getParent();
     }
 
     private String regclass(final String qualifiedName) {
