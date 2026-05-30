@@ -179,6 +179,17 @@ acceptance UI, password reset UI, production deployment infrastructure, and
 notification workflows are outside the current scope. Owner-managed staff
 membership administration is implemented in the platform API.
 
+## Review Checklist
+
+Use these checkpoints when reviewing the backend:
+
+1. Confirm CI is passing on `main`.
+2. Run `./gradlew spotlessApply`, `./gradlew rewriteDryRun`, and `./gradlew check`.
+3. Start the API with `./gradlew :platform:bootRun`.
+4. Review Swagger UI at <http://localhost:8080/swagger-ui.html> and generated OpenAPI at
+   <http://localhost:8080/v3/api-docs>.
+5. Compare implemented scope with the `Project Status` and `Non-Goals` sections below.
+
 ## Non-Goals
 
 These are not implemented in the current backend:
