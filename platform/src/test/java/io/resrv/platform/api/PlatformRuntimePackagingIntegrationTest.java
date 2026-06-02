@@ -115,6 +115,7 @@ final class PlatformRuntimePackagingIntegrationTest {
         assertEquals(
                 "timeslot.business_booking_settings",
                 regclass("timeslot.business_booking_settings"));
+        assertEquals("ticketing.ticket_event", regclass("ticketing.ticket_event"));
     }
 
     @Test
@@ -238,6 +239,7 @@ final class PlatformRuntimePackagingIntegrationTest {
         assertNoPathContaining(paths, "broker");
         assertNoPathContaining(paths, "outbox");
         assertNoPathContaining(paths, "/api/events");
+        assertNoPathContaining(paths, "ticket");
     }
 
     @Test

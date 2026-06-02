@@ -9,6 +9,7 @@
 | Platform | Account identity, login, business creation, business membership |
 | Platform exchange | Published platform-owned lookup and decision APIs for other contexts |
 | Timeslot | Booking settings, resources, schedules, virtual slots, reservations |
+| Ticketing | Ticket sale events, sale windows, and tiered inventory baseline |
 | Shared kernel | Stable identity and time primitives shared by contexts |
 
 ## Current Module State
@@ -22,6 +23,7 @@ and the dedicated exchange module is recorded in
 shared-kernel
 platform-exchange
 platform
+ticketing
 timeslot
 ```
 
@@ -42,10 +44,10 @@ Rules:
 - Application code defines ports and use cases.
 - Adapters implement ports.
 - API packages assemble web, persistence, security, and configuration.
-- Timeslot code must not depend on platform domain, adapters, API runtime, repositories, entities,
-  or persistence schema. Its outbound platform adapter may depend only on explicit
-  `platform-exchange` APIs. Platform application services implement those APIs inside the platform
-  module.
+- Timeslot and ticketing code must not depend on platform domain, adapters, API runtime,
+  repositories, entities, or persistence schema. Their outbound platform adapters may depend only on
+  explicit `platform-exchange` APIs. Platform application services implement those APIs inside the
+  platform module.
 - Direct database access primitives are limited to outbound adapters.
 
 ## Persistence Access Policy
@@ -115,6 +117,24 @@ policy, and current time before persistence.
 
 Public booking discovery remains reachable for anonymous callers, but inactive businesses or
 resources produce no bookable resource or slot results.
+
+## Ticketing Context
+
+Ticketing owns the baseline model for future ticket sale flows:
+
+- `TicketEvent` for a sale opportunity owned by a platform business id.
+- `TicketEventProfile` for display title and event occurrence timing.
+- `TicketSaleWindow` for sale start/end boundaries.
+- `TicketInventory` and `TicketInventoryTier` for tiered capacity counters.
+
+Ticketing stores platform `businessId` references locally and resolves platform business facts only
+through `platform-exchange`. It does not add cross-schema foreign keys to platform tables and does
+not read platform persistence directly.
+
+Ticketing IDs are the external identity strategy for future ticketing APIs. Slugs, handles, event
+keys, title uniqueness, and separate public opaque identifiers are intentionally excluded from this
+baseline. Public ticketing endpoints, claim/hold flows, payment, queueing, waitlists, and recurring
+or multi-session events are future scope.
 
 ## Reservation Correctness
 

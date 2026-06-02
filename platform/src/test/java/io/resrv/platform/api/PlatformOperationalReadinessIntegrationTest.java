@@ -78,8 +78,10 @@ final class PlatformOperationalReadinessIntegrationTest {
 
         assertThat(scripts).contains("V9__create_platform_schema.sql");
         assertThat(scripts).contains("V10__create_timeslot_schema.sql");
+        assertThat(scripts).contains("V20__create_ticketing_schema.sql");
         assertThat(regclass("platform.account")).isEqualTo("platform.account");
         assertThat(regclass("timeslot.reservation")).isEqualTo("timeslot.reservation");
+        assertThat(regclass("ticketing.ticket_event")).isEqualTo("ticketing.ticket_event");
     }
 
     @Test

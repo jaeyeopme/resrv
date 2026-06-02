@@ -10,8 +10,8 @@ and reservations.
 
 ## Highlights
 
-- The backend is split into four Gradle modules: `platform`, `timeslot`,
-  `platform-exchange`, and `shared-kernel`.
+- The backend is split into five Gradle modules: `platform`, `timeslot`,
+  `ticketing`, `platform-exchange`, and `shared-kernel`.
 - JWTs identify the account only. Business access and reservation ownership are
   checked on the server.
 - Sensitive lookups do not reveal whether an object is missing or belongs to
@@ -38,13 +38,18 @@ and reservations.
 - **Reservations**: hold, confirm, release, customer cancel, business cancel,
   check in, mark no-show, view customer history, and search business
   reservations.
+- **Ticketing baseline**: model ticket events, event timing, sale windows, and
+  tiered inventory for future ticket sale flows without exposing public ticket
+  endpoints yet.
 - **Runtime and API docs**: run one platform backend, serve generated
   OpenAPI/Swagger UI, expose liveness/readiness probes, and build a Jib image.
 
 ## Architecture
 
 The app runs as one Spring Boot process from the `platform` module. The
-`timeslot` module adds booking behavior to that same process.
+`timeslot` module adds booking behavior to that same process. The `ticketing`
+module adds the ticket event and inventory baseline to the same process without
+public ticketing endpoints.
 `platform-exchange` contains plain Java types used between modules. It is not
 HTTP, messaging, or an outbox layer.
 
@@ -54,17 +59,21 @@ flowchart LR
         app[platform Spring Boot app]
         platform[accounts, businesses, staff access]
         timeslot[booking and reservations]
+        ticketing[ticket events and inventory]
         exchange[platform-exchange Java APIs]
 
         app --> platform
         app --> timeslot
+        app --> ticketing
         timeslot --> exchange
+        ticketing --> exchange
         exchange --> platform
     end
 
     client[API client] --> app
     platform --> db[(PostgreSQL)]
     timeslot --> db
+    ticketing --> db
 ```
 
 Module roles:
@@ -76,11 +85,13 @@ Module roles:
   Boot app.
 - `timeslot`: booking settings, resources, schedules, generated slots, and
   reservations.
+- `ticketing`: ticket sale event and inventory baseline, assembled into the
+  platform runtime with no public endpoints in the current scope.
 
-`platform` serves both platform and booking API groups. `timeslot` depends on
-`platform-exchange`, not on platform implementation packages. `timeslot`
-`bootJar` and `bootRun` stay disabled so there is only one supported backend
-runtime.
+`platform` serves platform and booking API groups. `timeslot` and `ticketing`
+depend on `platform-exchange`, not on platform implementation packages.
+`timeslot` and `ticketing` `bootJar` and `bootRun` stay disabled so there is
+only one supported backend runtime.
 
 ## Core Flows
 
@@ -201,6 +212,7 @@ These are not implemented in the current backend:
 - Notifications and reminders, except SMTP for password reset delivery.
 - External calendar sync.
 - A separate `timeslot` runtime.
+- A separate `ticketing` runtime or public ticketing endpoint group.
 - Message broker, outbox, and projections. The current cross-module path is
   synchronous `platform-exchange` APIs.
 

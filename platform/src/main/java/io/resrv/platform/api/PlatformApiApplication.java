@@ -11,13 +11,14 @@ import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 
 @SpringBootApplication
 @ComponentScan(
-        basePackages = {"io.resrv.platform", "io.resrv.timeslot"},
+        basePackages = {"io.resrv.platform", "io.resrv.ticketing", "io.resrv.timeslot"},
         excludeFilters =
                 @ComponentScan.Filter(
                         type = FilterType.REGEX,
                         pattern = "io\\.resrv\\.timeslot\\.api\\..*"))
-@EnableJpaRepositories(basePackages = {"io.resrv.platform", "io.resrv.timeslot"})
-@EntityScan(basePackages = {"io.resrv.platform", "io.resrv.timeslot"})
+@EnableJpaRepositories(
+        basePackages = {"io.resrv.platform", "io.resrv.ticketing", "io.resrv.timeslot"})
+@EntityScan(basePackages = {"io.resrv.platform", "io.resrv.ticketing", "io.resrv.timeslot"})
 public class PlatformApiApplication {
 
     public static void main(final String[] args) {

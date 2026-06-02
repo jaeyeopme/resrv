@@ -7,6 +7,7 @@ val jacocoLineCoverageMinimums =
     mapOf(
         "shared-kernel" to "0.85".toBigDecimal(),
         "platform" to "0.80".toBigDecimal(),
+        "ticketing" to "0.80".toBigDecimal(),
         "timeslot" to "0.80".toBigDecimal(),
     )
 

@@ -26,6 +26,8 @@ Primary ADRs:
   administration with append-only audit.
 - [ADR-0022](adr/0022-platform-runtime-packaging.md): platform runtime packages platform and booking
   APIs.
+- [ADR-0023](adr/0023-ticketing-bounded-context.md): ticketing bounded context assembled into the
+  platform runtime.
 
 ## Runtime And Build
 
@@ -43,19 +45,20 @@ Primary ADRs:
 
 ## Current Module Baseline
 
-The backend has 4 Gradle modules:
+The backend has 5 Gradle modules:
 
 | Module | Responsibility |
 |---|---|
 | `shared-kernel` | Shared IDs and timezone value object |
 | `platform-exchange` | Pure Java platform-owned exchange APIs for cross-context lookup/check decisions |
 | `platform` | Platform domain, use cases, adapters, Flyway migration, canonical Spring Boot runtime, security, and Jib packaging |
+| `ticketing` | Ticketing domain, use cases, adapters, Flyway migration, and platform exchange adapter contributed to the platform runtime |
 | `timeslot` | Timeslot domain, use cases, adapters, Flyway migration, booking API assembly, and platform exchange adapter contributed to the platform runtime |
 
-Hexagonal layers remain as Java package boundaries inside `platform` and `timeslot`. ArchUnit
+Hexagonal layers remain as Java package boundaries inside `platform`, `ticketing`, and `timeslot`. ArchUnit
 enforces dependency direction, keeps direct database access in outbound adapter packages, and limits
-timeslot-to-platform dependencies to the explicit `platform-exchange` APIs consumed by the timeslot
-outbound platform adapter.
+timeslot/ticketing-to-platform dependencies to the explicit `platform-exchange` APIs consumed by
+outbound platform adapters.
 
 ## API Boundary
 
@@ -81,16 +84,24 @@ Timeslot API owns booking lifecycle:
 - List business reservations for a business-local date, with optional resource, customer account,
   and derived-state filters.
 
-`platform` is the canonical backend runtime. It scans platform and timeslot bounded-context packages,
-serves both platform and booking API groups, and exposes one generated OpenAPI surface from
-`/v3/api-docs`.
+Ticketing currently owns internal baseline model and persistence only:
+
+- Ticket sale events tied to platform business ids.
+- Event occurrence windows and sale windows.
+- Tiered inventory totals, reserved counts, confirmed counts, soft-reserved counts, and derived
+  available counts.
+
+`platform` is the canonical backend runtime. It scans platform, timeslot, and ticketing
+bounded-context packages, serves platform and booking API groups, and exposes one generated OpenAPI
+surface from `/v3/api-docs`. Ticketing contributes no public endpoint group in the current scope.
 
 Generated OpenAPI from that runtime is the API contract surface. Narrative docs describe API groups,
 authorization boundaries, and design decisions, but do not maintain a duplicate endpoint catalog.
 
 `timeslot` keeps an application class for module-local testing history, but its `bootJar` and
-`bootRun` tasks remain disabled. Booking APIs are served by the platform runtime. ADR-0022 does not
-add a separate timeslot runtime, service-to-service transport, message broker, outbox, events, or
+`bootRun` tasks remain disabled. `ticketing` is also a non-executable module. Booking APIs and
+ticketing beans are served by the platform runtime. ADR-0022 and ADR-0023 do not add separate
+timeslot or ticketing runtimes, service-to-service transport, message broker, outbox, events, or
 projections.
 
 The platform runtime exposes liveness and readiness health probes. Readiness includes database
@@ -118,8 +129,8 @@ as digests.
 
 Protected platform requests pass through an active-account check after JWT authentication.
 Business-scoped owner/staff authorization requires active account, active business, and active
-membership through `BusinessAccessCheck`. Timeslot obtains those decisions through explicit
-`platform-exchange` APIs and must not read platform tables directly.
+membership through `BusinessAccessCheck`. Timeslot and ticketing obtain those decisions through
+explicit `platform-exchange` APIs and must not read platform tables directly.
 
 Membership administration is stricter than generic business access: grant, list, audit, role update,
 and disable operations require active owner membership. JWTs still carry only account identity.
@@ -155,10 +166,19 @@ Timeslot schema:
 Timeslot records reference `business_id` and `customer_account_id` by UUID. The current migrations
 do not add cross-schema foreign keys from timeslot to platform.
 
+Ticketing schema:
+
+- `ticketing.ticket_event`
+- `ticketing.ticket_inventory`
+- `ticketing.ticket_inventory_tier`
+
+Ticketing records reference platform `business_id` by UUID and ticketing-owned ids by UUID. The
+current migration does not add cross-schema foreign keys from ticketing to platform.
+
 Production persistence code defaults to Spring Data JPA for owned tables. Native SQL or JDBC is
 reserved for outbound adapters where database-specific behavior is required, such as PostgreSQL
-advisory locks. Timeslot obtains platform business and membership data through platform application
-exchange APIs rather than reading platform tables directly.
+advisory locks. Timeslot and ticketing obtain platform business and membership data through platform
+application exchange APIs rather than reading platform tables directly.
 
 ## Reservation Correctness
 

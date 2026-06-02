@@ -39,6 +39,7 @@ jib {
 dependencies {
     implementation(project(":shared-kernel"))
     implementation(project(":platform-exchange"))
+    implementation(project(":ticketing"))
     implementation(project(":timeslot"))
 
     implementation(libs.spring.tx)

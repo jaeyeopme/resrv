@@ -8,5 +8,6 @@ include(
     "shared-kernel",
     "platform-exchange",
     "platform",
+    "ticketing",
     "timeslot",
 )
