@@ -169,3 +169,11 @@ Do not include AI attribution, generated-by footers, model names, or AI co-autho
 When working from a Spec Kit plan, read the active plan before implementation.
 Active plan: none
 <!-- SPECKIT END -->
+
+<!-- SPEC-KIT-KOREAN-RESPONSES START -->
+## Spec Kit response language
+
+- When using any Spec Kit skill, command, workflow, or extension-generated skill (`speckit-*`), write conversational replies, progress updates, summaries, reports, questions, findings, recommendations, and verification results in Korean by default.
+- Use another language only when the user explicitly asks for it.
+- Preserve code, commands, file paths, identifiers, commit messages, quoted output, and user-requested artifacts in the language or format appropriate for that artifact.
+<!-- SPEC-KIT-KOREAN-RESPONSES END -->
