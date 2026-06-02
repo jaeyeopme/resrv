@@ -58,7 +58,8 @@ interface PublicBookingDiscoveryApiDocs {
                 @ApiResponse(
                         responseCode = "404",
                         description = "No public bookable business representation"),
-                @ApiResponse(responseCode = "422", description = "Slot unavailable")
+                @ApiResponse(responseCode = "422", description = "Slot unavailable"),
+                @ApiResponse(responseCode = "409", description = "Slot is blocked")
             })
     PublicBookingDiscoveryWebAdapter.PublicReservationResponse hold(
             @Pattern(regexp = "^[a-z0-9][a-z0-9-]{1,61}[a-z0-9]$") String businessSlug,

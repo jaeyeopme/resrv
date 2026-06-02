@@ -39,6 +39,14 @@ final class ReservationTest {
     }
 
     @Test
+    void cannotReleaseExpiredHold() {
+        final var reservation = hold();
+
+        assertThrows(
+                ReservationHoldExpiredException.class, () -> reservation.release(HOLD_EXPIRES_AT));
+    }
+
+    @Test
     void confirmChangesStateWithoutClearingHoldExpiryFact() {
         final var confirmed = hold().confirm(Instant.parse("2026-05-25T00:09:59Z"));
 
@@ -59,6 +67,26 @@ final class ReservationTest {
                 () ->
                         hold().confirm(Instant.parse("2026-05-25T00:09:59Z"))
                                 .release(Instant.parse("2026-05-25T00:10:00Z")));
+    }
+
+    @Test
+    void cancelledOrReleasedReservationsRejectLaterTransitions() {
+        final var released = hold().release(Instant.parse("2026-05-25T00:09:59Z"));
+        final var cancelled =
+                hold().confirm(Instant.parse("2026-05-25T00:09:59Z"))
+                        .cancelByCustomer(
+                                Instant.parse("2026-05-25T00:19:59Z"),
+                                Instant.parse("2026-05-25T00:20:00Z"));
+
+        assertThrows(
+                ReservationInvalidStateException.class,
+                () -> released.cancelByBusiness(Instant.parse("2026-05-25T00:10:00Z")));
+        assertThrows(
+                ReservationInvalidStateException.class,
+                () -> released.confirm(Instant.parse("2026-05-25T00:10:00Z")));
+        assertThrows(
+                ReservationInvalidStateException.class,
+                () -> cancelled.release(Instant.parse("2026-05-25T00:20:00Z")));
     }
 
     @Test

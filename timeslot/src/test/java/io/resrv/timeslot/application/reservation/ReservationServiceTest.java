@@ -7,6 +7,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
@@ -58,8 +59,10 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.ZoneOffset;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.function.Executable;
@@ -143,6 +146,41 @@ final class ReservationServiceTest {
     }
 
     @Test
+    void holdRejectsPolicyDriftedSlotBeforePersistence() {
+        givenHoldableSlot(new ResourceBookingOverrides(new SlotDuration(15), null, null));
+
+        assertThrows(SlotUnavailableException.class, () -> service.hold(validHoldCommand()));
+
+        verify(slotLockPort, never()).lockSlot(RESOURCE_ID, SLOT_START_AT);
+        verify(reservationCommandPort, never()).save(any());
+    }
+
+    @Test
+    void holdRejectsBlockedSlot() {
+        givenHoldableSlot(ResourceBookingOverrides.none());
+        when(reservationQueryPort.findActiveBlockers(
+                        BUSINESS_ID, RESOURCE_ID, SLOT_START_AT, SLOT_END_AT, NOW))
+                .thenReturn(
+                        List.of(
+                                Reservation.hold(
+                                        BUSINESS_ID,
+                                        RESOURCE_ID,
+                                        CUSTOMER_ACCOUNT_ID,
+                                        SLOT_START_AT,
+                                        SLOT_END_AT,
+                                        NOW.plusSeconds(600),
+                                        NOW)));
+
+        assertThrows(SlotBlockedException.class, () -> service.hold(validHoldCommand()));
+
+        final var inOrder = inOrder(slotLockPort, reservationQueryPort, reservationCommandPort);
+        inOrder.verify(slotLockPort).lockSlot(RESOURCE_ID, SLOT_START_AT);
+        inOrder.verify(reservationQueryPort)
+                .findActiveBlockers(BUSINESS_ID, RESOURCE_ID, SLOT_START_AT, SLOT_END_AT, NOW);
+        inOrder.verify(reservationCommandPort, times(0)).save(any());
+    }
+
+    @Test
     void holdLocksSlotBeforeActiveBlockerQuery() {
         givenHoldableSlot(ResourceBookingOverrides.none());
         when(reservationQueryPort.findActiveBlockers(
@@ -161,6 +199,38 @@ final class ReservationServiceTest {
         final var captor = ArgumentCaptor.forClass(Reservation.class);
         verify(reservationCommandPort).save(captor.capture());
         assertEquals(CUSTOMER_ACCOUNT_ID, captor.getValue().customerAccountId());
+    }
+
+    @Test
+    void repeatedSameSlotHoldAttemptsLockSameIdentityAndProduceOneWinner() {
+        givenHoldableSlot(ResourceBookingOverrides.none());
+        final var blocker =
+                Reservation.hold(
+                        BUSINESS_ID,
+                        RESOURCE_ID,
+                        STAFF_ACCOUNT_ID,
+                        SLOT_START_AT,
+                        SLOT_END_AT,
+                        NOW.plusSeconds(600),
+                        NOW);
+        final var attempt = new AtomicInteger();
+        when(reservationQueryPort.findActiveBlockers(
+                        BUSINESS_ID, RESOURCE_ID, SLOT_START_AT, SLOT_END_AT, NOW))
+                .thenAnswer(
+                        invocation ->
+                                attempt.getAndIncrement() % 2 == 0
+                                        ? List.<Reservation>of()
+                                        : List.of(blocker));
+
+        for (var i = 0; i < 20; i++) {
+            final var winner = service.hold(validHoldCommand());
+
+            assertEquals(ReservationState.HELD, winner.state());
+            assertThrows(SlotBlockedException.class, () -> service.hold(validHoldCommand()));
+        }
+
+        verify(slotLockPort, times(40)).lockSlot(RESOURCE_ID, SLOT_START_AT);
+        verify(reservationCommandPort, times(20)).save(any());
     }
 
     @Test
@@ -368,6 +438,103 @@ final class ReservationServiceTest {
                                         BUSINESS_ID, reservation.id(), STAFF_ACCOUNT_ID)));
 
         verify(reservationCommandPort, never()).save(any());
+    }
+
+    @Test
+    void lifecycleMutationsLoadReservationForUpdateBeforeChangingState() {
+        final var heldForConfirm =
+                Reservation.hold(
+                        BUSINESS_ID,
+                        RESOURCE_ID,
+                        CUSTOMER_ACCOUNT_ID,
+                        SLOT_START_AT,
+                        SLOT_END_AT,
+                        NOW.plusSeconds(60),
+                        NOW.minusSeconds(60));
+        final var heldForRelease =
+                Reservation.hold(
+                        BUSINESS_ID,
+                        RESOURCE_ID,
+                        CUSTOMER_ACCOUNT_ID,
+                        SLOT_START_AT.plusSeconds(3600),
+                        SLOT_END_AT.plusSeconds(3600),
+                        NOW.plusSeconds(60),
+                        NOW.minusSeconds(60));
+        final var confirmed = confirmedReservation();
+        when(businessAccessPort.hasBusinessAccess(STAFF_ACCOUNT_ID, BUSINESS_ID)).thenReturn(true);
+        when(reservationCommandPort.findByBusinessIdAndIdForUpdate(
+                        BUSINESS_ID, heldForConfirm.id()))
+                .thenReturn(Optional.of(heldForConfirm));
+        when(reservationCommandPort.findByBusinessIdAndIdForUpdate(
+                        BUSINESS_ID, heldForRelease.id()))
+                .thenReturn(Optional.of(heldForRelease));
+        when(reservationCommandPort.findByBusinessIdAndIdForUpdate(BUSINESS_ID, confirmed.id()))
+                .thenReturn(Optional.of(confirmed));
+
+        service.confirm(
+                new ConfirmReservationCommand(
+                        BUSINESS_ID, heldForConfirm.id(), CUSTOMER_ACCOUNT_ID));
+        service.release(
+                new ReleaseReservationCommand(
+                        BUSINESS_ID, heldForRelease.id(), CUSTOMER_ACCOUNT_ID));
+        service.cancel(
+                new CancelReservationCommand(
+                        BUSINESS_ID,
+                        confirmed.id(),
+                        STAFF_ACCOUNT_ID,
+                        ReservationCancellationActor.BUSINESS));
+        serviceAt(SLOT_START_AT);
+        when(businessAccessPort.hasBusinessAccess(STAFF_ACCOUNT_ID, BUSINESS_ID)).thenReturn(true);
+        when(reservationCommandPort.findByBusinessIdAndIdForUpdate(BUSINESS_ID, confirmed.id()))
+                .thenReturn(Optional.of(confirmed));
+        service.checkIn(
+                new CheckInReservationCommand(BUSINESS_ID, confirmed.id(), STAFF_ACCOUNT_ID));
+        serviceAt(SLOT_END_AT);
+        when(businessAccessPort.hasBusinessAccess(STAFF_ACCOUNT_ID, BUSINESS_ID)).thenReturn(true);
+        when(reservationCommandPort.findByBusinessIdAndIdForUpdate(BUSINESS_ID, confirmed.id()))
+                .thenReturn(Optional.of(confirmed));
+        service.markNoShow(
+                new MarkNoShowReservationCommand(BUSINESS_ID, confirmed.id(), STAFF_ACCOUNT_ID));
+
+        verify(reservationCommandPort, times(5)).findByBusinessIdAndIdForUpdate(any(), any());
+    }
+
+    @Test
+    void repeatedConflictingTransitionsAllowOnlyFirstStateChange() {
+        final var reservations = new ArrayList<Reservation>();
+        for (var i = 0; i < 20; i++) {
+            final var startAt = SLOT_START_AT.plusSeconds(i * 3600L);
+            final var held =
+                    Reservation.hold(
+                            BUSINESS_ID,
+                            RESOURCE_ID,
+                            CUSTOMER_ACCOUNT_ID,
+                            startAt,
+                            startAt.plusSeconds(1800),
+                            NOW.plusSeconds(60),
+                            NOW.minusSeconds(60));
+            reservations.add(held);
+            when(reservationCommandPort.findByBusinessIdAndIdForUpdate(BUSINESS_ID, held.id()))
+                    .thenReturn(Optional.of(held), Optional.of(held.confirm(NOW)));
+        }
+
+        for (final var reservation : reservations) {
+            final var confirmed =
+                    service.confirm(
+                            new ConfirmReservationCommand(
+                                    BUSINESS_ID, reservation.id(), CUSTOMER_ACCOUNT_ID));
+
+            assertEquals(ReservationState.CONFIRMED, confirmed.state());
+            assertThrows(
+                    ReservationInvalidStateException.class,
+                    () ->
+                            service.release(
+                                    new ReleaseReservationCommand(
+                                            BUSINESS_ID, reservation.id(), CUSTOMER_ACCOUNT_ID)));
+        }
+
+        verify(reservationCommandPort, times(20)).save(any());
+        verify(reservationCommandPort, times(40)).findByBusinessIdAndIdForUpdate(any(), any());
     }
 
     @Test

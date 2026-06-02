@@ -4,6 +4,7 @@ import io.resrv.timeslot.application.business.BusinessNotAvailableException;
 import io.resrv.timeslot.application.discovery.PublicDiscoveryNotFoundException;
 import io.resrv.timeslot.application.reservation.ReservationAccessDeniedException;
 import io.resrv.timeslot.application.reservation.ReservationNotFoundException;
+import io.resrv.timeslot.application.reservation.SlotBlockedException;
 import io.resrv.timeslot.application.reservation.SlotUnavailableException;
 import io.resrv.timeslot.application.resource.ResourceNotAvailableException;
 import io.resrv.timeslot.application.resource.ResourceSlugAlreadyExistsException;
@@ -59,7 +60,7 @@ class TimeslotExceptionHandler {
     }
 
     @ExceptionHandler(ResourceSlugAlreadyExistsException.class)
-    ProblemDetail handleConflict(
+    ProblemDetail handleReservationConflict(
             final RuntimeException exception, final HttpServletRequest request) {
         return problem(HttpStatus.CONFLICT, exception.getMessage(), request);
     }
@@ -90,13 +91,21 @@ class TimeslotExceptionHandler {
 
     @ExceptionHandler({
         SlotUnavailableException.class,
-        ReservationHoldExpiredException.class,
-        ReservationInvalidStateException.class,
         BookingSettingsRequiredException.class,
     })
     ProblemDetail handleUnprocessable(
             final RuntimeException exception, final HttpServletRequest request) {
         return problem(HttpStatus.UNPROCESSABLE_ENTITY, exception.getMessage(), request);
+    }
+
+    @ExceptionHandler({
+        SlotBlockedException.class,
+        ReservationHoldExpiredException.class,
+        ReservationInvalidStateException.class,
+    })
+    ProblemDetail handleConflict(
+            final RuntimeException exception, final HttpServletRequest request) {
+        return problem(HttpStatus.CONFLICT, exception.getMessage(), request);
     }
 
     @ExceptionHandler({IllegalArgumentException.class, DateTimeException.class})

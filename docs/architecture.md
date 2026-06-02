@@ -109,6 +109,10 @@ Timeslot uses:
 Slots are not persisted. `SlotGenerator` creates them from business timezone, effective booking
 policy, and schedule windows.
 
+Generated slots for one resource do not overlap under the effective policy. Hold requests still
+decode and revalidate the opaque `slotId` against current business, resource, timezone, schedule,
+policy, and current time before persistence.
+
 Public booking discovery remains reachable for anonymous callers, but inactive businesses or
 resources produce no bookable resource or slot results.
 
@@ -124,6 +128,20 @@ Active blockers:
 - Holds whose `holdExpiresAt` is still in the future.
 
 Released, cancelled, no-show, and expired holds do not block capacity.
+
+Reservation lifecycle mutations load the reservation row with a pessimistic write lock before
+confirm, release, cancel, check-in, or no-show facts are written. Public API behavior treats blocked
+holds, expired-hold confirmation, and conflicting lifecycle transitions as `409 Conflict` while
+keeping IDOR-sensitive customer reservation probes as not-found style responses.
+
+Reservation error responses distinguish invalid request shape, unavailable slot identity, and
+runtime state conflicts:
+
+- `400 Bad Request`: malformed JSON, missing required fields, invalid UUIDs, or invalid enum values.
+- `409 Conflict`: a valid request conflicts with current capacity or lifecycle state, such as an
+  already blocked slot, expired hold confirmation, or a conflicting reservation transition.
+- `422 Unprocessable Entity`: a syntactically valid hold request references a slot identity that is
+  stale, policy-drifted, outside booking range, unavailable, or otherwise not currently bookable.
 
 ## Decision Log
 

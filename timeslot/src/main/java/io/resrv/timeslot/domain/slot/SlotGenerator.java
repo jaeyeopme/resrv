@@ -9,6 +9,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 public final class SlotGenerator {
 
@@ -27,14 +28,14 @@ public final class SlotGenerator {
             final var localEnd = date.atTime(window.endTime());
             while (!slotStart.plusMinutes(slotDuration.minutes()).isAfter(localEnd)) {
                 final var slotEnd = slotStart.plusMinutes(slotDuration.minutes());
-                slots.add(toSlot(businessId, resourceId, timezone, slotStart, slotEnd));
+                toSlot(businessId, resourceId, timezone, slotStart, slotEnd).ifPresent(slots::add);
                 slotStart = slotEnd;
             }
         }
         return List.copyOf(slots);
     }
 
-    private static Slot toSlot(
+    private static Optional<Slot> toSlot(
             final BusinessId businessId,
             final ResourceId resourceId,
             final Timezone timezone,
@@ -44,13 +45,17 @@ public final class SlotGenerator {
         final var endAtBusinessTime = localEnd.atZone(timezone.value()).toOffsetDateTime();
         final var startAt = startAtBusinessTime.toInstant();
         final var endAt = endAtBusinessTime.toInstant();
-        return new Slot(
-                SlotId.of(businessId, resourceId, startAt, endAt),
-                businessId,
-                resourceId,
-                startAt,
-                endAt,
-                startAtBusinessTime,
-                endAtBusinessTime);
+        if (!startAt.isBefore(endAt)) {
+            return Optional.empty();
+        }
+        return Optional.of(
+                new Slot(
+                        SlotId.of(businessId, resourceId, startAt, endAt),
+                        businessId,
+                        resourceId,
+                        startAt,
+                        endAt,
+                        startAtBusinessTime,
+                        endAtBusinessTime));
     }
 }

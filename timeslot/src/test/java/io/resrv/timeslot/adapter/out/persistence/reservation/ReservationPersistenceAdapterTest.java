@@ -148,6 +148,59 @@ class ReservationPersistenceAdapterTest {
     }
 
     @Test
+    void activeBlockerQueryUsesTimeRangeOverlapAndKeepsExpiredRowsStored() {
+        final var businessId = BusinessId.create();
+        final var resourceId = ResourceId.create();
+        final var overlapping =
+                Reservation.hold(
+                        businessId,
+                        resourceId,
+                        AccountId.create(),
+                        START_AT.minusSeconds(60),
+                        START_AT.plusSeconds(60),
+                        NOW.plusSeconds(60),
+                        NOW);
+        final var adjacentBefore =
+                Reservation.hold(
+                        businessId,
+                        resourceId,
+                        AccountId.create(),
+                        START_AT.minusSeconds(1800),
+                        START_AT,
+                        NOW.plusSeconds(60),
+                        NOW);
+        final var adjacentAfter =
+                Reservation.hold(
+                        businessId,
+                        resourceId,
+                        AccountId.create(),
+                        END_AT,
+                        END_AT.plusSeconds(1800),
+                        NOW.plusSeconds(60),
+                        NOW);
+        final var expiredOverlapping =
+                Reservation.hold(
+                        businessId,
+                        resourceId,
+                        AccountId.create(),
+                        START_AT,
+                        END_AT,
+                        NOW.minusSeconds(1),
+                        NOW.minusSeconds(60));
+        commandPort.save(overlapping);
+        commandPort.save(adjacentBefore);
+        commandPort.save(adjacentAfter);
+        commandPort.save(expiredOverlapping);
+
+        final var blockers =
+                queryPort.findActiveBlockers(businessId, resourceId, START_AT, END_AT, NOW);
+
+        assertEquals(List.of(overlapping.id()), blockers.stream().map(Reservation::id).toList());
+        final var storedExpired = queryPort.findById(expiredOverlapping.id()).orElseThrow();
+        assertEquals(ReservationState.EXPIRED, storedExpired.stateAt(NOW));
+    }
+
+    @Test
     void businessDateWindowQueryFiltersAndSortsReservations() {
         final var businessId = BusinessId.create();
         final var otherBusinessId = BusinessId.create();

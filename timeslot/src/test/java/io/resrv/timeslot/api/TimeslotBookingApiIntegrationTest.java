@@ -22,10 +22,15 @@ import java.sql.Timestamp;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.Callable;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -546,7 +551,7 @@ final class TimeslotBookingApiIntegrationTest {
                                         BUSINESS_ID,
                                         reservationId)
                                 .header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
-                .andExpect(status().isUnprocessableEntity());
+                .andExpect(status().isConflict());
     }
 
     @Test
@@ -894,6 +899,12 @@ final class TimeslotBookingApiIntegrationTest {
                         jsonPath(
                                         "$.paths['"
                                                 + reservationPath
+                                                + "'].post.responses['409'].description")
+                                .value("Slot is blocked"))
+                .andExpect(
+                        jsonPath(
+                                        "$.paths['"
+                                                + reservationPath
                                                 + "'].get.responses['200'].description")
                                 .value("Reservations returned"))
                 .andExpect(
@@ -908,7 +919,7 @@ final class TimeslotBookingApiIntegrationTest {
                                         "$.paths['"
                                                 + reservationPath
                                                 + "/{reservationId}/confirm'].post"
-                                                + ".responses['422'].description")
+                                                + ".responses['409'].description")
                                 .value("Reservation cannot be confirmed"))
                 .andExpect(
                         jsonPath(
@@ -917,6 +928,13 @@ final class TimeslotBookingApiIntegrationTest {
                                                 + "/{reservationId}/release'].post"
                                                 + ".responses['404'].description")
                                 .value("Reservation not found"))
+                .andExpect(
+                        jsonPath(
+                                        "$.paths['"
+                                                + reservationPath
+                                                + "/{reservationId}/release'].post"
+                                                + ".responses['409'].description")
+                                .value("Reservation cannot be released"))
                 .andExpect(
                         jsonPath(
                                         "$.paths['"
@@ -936,8 +954,22 @@ final class TimeslotBookingApiIntegrationTest {
                                         "$.paths['"
                                                 + reservationPath
                                                 + "/{reservationId}/cancel'].post"
-                                                + ".responses['422'].description")
+                                                + ".responses['409'].description")
                                 .value("Reservation cannot be cancelled"))
+                .andExpect(
+                        jsonPath(
+                                        "$.paths['"
+                                                + reservationPath
+                                                + "/{reservationId}/check-in'].post"
+                                                + ".responses['409'].description")
+                                .value("Reservation cannot be checked in"))
+                .andExpect(
+                        jsonPath(
+                                        "$.paths['"
+                                                + reservationPath
+                                                + "/{reservationId}/no-show'].post"
+                                                + ".responses['409'].description")
+                                .value("Reservation cannot be marked no-show"))
                 .andExpect(
                         jsonPath(
                                         "$.paths['/api/me/reservations'].get.responses['200']"
@@ -962,7 +994,12 @@ final class TimeslotBookingApiIntegrationTest {
                         jsonPath(
                                         "$.paths['/api/public/businesses/{businessSlug}/reservations']"
                                                 + ".post.responses['422'].description")
-                                .value("Slot unavailable"));
+                                .value("Slot unavailable"))
+                .andExpect(
+                        jsonPath(
+                                        "$.paths['/api/public/businesses/{businessSlug}/reservations']"
+                                                + ".post.responses['409'].description")
+                                .value("Slot is blocked"));
     }
 
     @Test
@@ -1278,6 +1315,42 @@ final class TimeslotBookingApiIntegrationTest {
     }
 
     @Test
+    void reservationValidationRejectsMalformedHoldPayloadsAndInvalidStateFilters()
+            throws Exception {
+        final var token = signedToken(ACCOUNT_ID);
+
+        mockMvc.perform(
+                        post("/api/businesses/{businessId}/reservations", BUSINESS_ID)
+                                .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content("{"))
+                .andExpect(status().isBadRequest());
+        mockMvc.perform(
+                        post("/api/businesses/{businessId}/reservations", BUSINESS_ID)
+                                .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(
+                                        """
+                                        {
+                                          "resourceId": "%s"
+                                        }
+                                        """
+                                                .formatted(UUID.randomUUID())))
+                .andExpect(status().isBadRequest());
+        mockMvc.perform(
+                        get("/api/businesses/{businessId}/reservations", BUSINESS_ID)
+                                .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+                                .param("date", "2026-05-25")
+                                .param("state", "BOGUS"))
+                .andExpect(status().isBadRequest());
+        mockMvc.perform(
+                        get("/api/me/reservations")
+                                .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+                                .param("state", "BOGUS"))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
     void generatedOpenApiIncludesCustomerReservationOperations() throws Exception {
         mockMvc.perform(get("/v3/api-docs"))
                 .andExpect(status().isOk())
@@ -1453,6 +1526,240 @@ final class TimeslotBookingApiIntegrationTest {
                 .andExpect(status().isOk());
     }
 
+    @Test
+    void holdCollisionReturnsConflict() throws Exception {
+        final var token = signedToken(ACCOUNT_ID);
+
+        mockMvc.perform(
+                        put("/api/businesses/{businessId}/booking-settings", BUSINESS_ID)
+                                .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(
+                                        """
+                                        {
+                                          "slotDurationMinutes": 30,
+                                          "holdTtlMinutes": 10,
+                                          "cancellationWindowMinutes": 60,
+                                          "maxAdvanceBookingDays": 30
+                                        }
+                                        """))
+                .andExpect(status().isOk());
+
+        final var resourceJson =
+                mockMvc.perform(
+                                post("/api/businesses/{businessId}/resources", BUSINESS_ID)
+                                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+                                        .contentType(MediaType.APPLICATION_JSON)
+                                        .content(
+                                                """
+                                                {
+                                                  "name": "Room B",
+                                                  "slug": "room-b",
+                                                  "description": "Window side"
+                                                }
+                                                """))
+                        .andExpect(status().isCreated())
+                        .andExpect(jsonPath("$.id", notNullValue()))
+                        .andReturn()
+                        .getResponse()
+                        .getContentAsString();
+        final String resourceId = JsonPath.read(resourceJson, "$.id");
+
+        mockMvc.perform(
+                        put(
+                                        "/api/businesses/{businessId}/resources/{resourceId}"
+                                                + "/weekly-schedules/{dayOfWeek}",
+                                        BUSINESS_ID,
+                                        resourceId,
+                                        "MONDAY")
+                                .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(
+                                        """
+                                        {
+                                          "windows": [
+                                            {
+                                              "startTime": "10:00:00",
+                                              "endTime": "11:00:00"
+                                            }
+                                          ]
+                                        }
+                                        """))
+                .andExpect(status().isOk());
+
+        final String slotId = firstSlotId(resourceId, "2026-05-25");
+
+        holdReservation(token, resourceId, slotId).andExpect(status().isOk());
+
+        holdReservation(token, resourceId, slotId)
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.status").value(409));
+    }
+
+    @Test
+    void concurrentHoldAttemptsAcceptExactlyOneAcrossRepeatedSlots() throws Exception {
+        platformExchangeFixture.grantAccess(
+                AccountId.of(OTHER_ACCOUNT_ID), BusinessId.of(BUSINESS_ID));
+        final var token = signedToken(ACCOUNT_ID);
+        final var otherToken = signedToken(OTHER_ACCOUNT_ID);
+        putSettings(token, 30, 10, 60, 30);
+        final var resourceId = createResource(token, "Concurrency Room", "concurrency-room");
+        replaceWeeklySchedule(token, resourceId, "MONDAY", "10:00:00", "20:00:00");
+
+        final List<String> slotIds = slotIds(resourceId, "2026-05-25");
+
+        for (var i = 0; i < 20; i++) {
+            final var slotId = slotIds.get(i);
+            final var statuses =
+                    runConcurrentRequests(
+                            List.of(
+                                    () -> holdReservationStatus(token, resourceId, slotId),
+                                    () -> holdReservationStatus(otherToken, resourceId, slotId)));
+
+            assertStatusCount(statuses, 200, 1);
+            assertStatusCount(statuses, 409, 1);
+        }
+    }
+
+    @Test
+    void expiredHoldConfirmReturnsConflict() throws Exception {
+        final var resourceId = UUID.fromString("00000000-0000-0000-0000-000000000060");
+        final var reservationId = UUID.fromString("00000000-0000-0000-0000-000000000061");
+        insertResource(resourceId, "Room C", "room-c", "ACTIVE");
+        insertReservation(
+                reservationId,
+                ACCOUNT_ID,
+                resourceId,
+                "2026-05-25T01:00:00Z",
+                "2026-05-25T01:30:00Z",
+                "2026-05-24T23:59:00Z",
+                "2026-05-24T23:00:00Z",
+                null);
+
+        mockMvc.perform(
+                        post(
+                                        "/api/businesses/{businessId}/reservations/{reservationId}/confirm",
+                                        BUSINESS_ID,
+                                        reservationId)
+                                .header(
+                                        HttpHeaders.AUTHORIZATION,
+                                        "Bearer " + signedToken(ACCOUNT_ID)))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.status").value(409));
+    }
+
+    @Test
+    void expiredHoldRowsDoNotBlockLaterHolds() throws Exception {
+        final var token = signedToken(ACCOUNT_ID);
+        putSettings(token, 30, 10, 60, 30);
+        final var resourceId = createResource(token, "Expired Row Room", "expired-row-room");
+        replaceWeeklySchedule(token, resourceId, "MONDAY", "10:00:00", "11:00:00");
+        insertReservation(
+                UUID.fromString("00000000-0000-0000-0000-000000000062"),
+                ACCOUNT_ID,
+                UUID.fromString(resourceId),
+                "2026-05-25T01:00:00Z",
+                "2026-05-25T01:30:00Z",
+                "2026-05-24T23:59:00Z",
+                "2026-05-24T23:00:00Z",
+                null);
+
+        holdReservation(token, resourceId, firstSlotId(resourceId, "2026-05-25"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.state").value("HELD"));
+    }
+
+    @Test
+    void lifecycleConflictResponsesReturnConflict() throws Exception {
+        final var resourceId = UUID.fromString("00000000-0000-0000-0000-000000000063");
+        final var confirmedId = UUID.fromString("00000000-0000-0000-0000-000000000064");
+        final var expiredId = UUID.fromString("00000000-0000-0000-0000-000000000065");
+        final var token = signedToken(ACCOUNT_ID);
+        insertResource(resourceId, "Lifecycle Room", "lifecycle-room", "ACTIVE");
+        insertReservation(
+                confirmedId,
+                ACCOUNT_ID,
+                resourceId,
+                "2026-05-25T01:00:00Z",
+                "2026-05-25T01:30:00Z",
+                "2026-05-25T00:10:00Z",
+                "2026-05-25T00:00:00Z",
+                "2026-05-25T00:00:00Z");
+        insertReservation(
+                expiredId,
+                ACCOUNT_ID,
+                resourceId,
+                "2026-05-25T02:00:00Z",
+                "2026-05-25T02:30:00Z",
+                "2026-05-24T23:59:00Z",
+                "2026-05-24T23:00:00Z",
+                null);
+
+        mockMvc.perform(
+                        post(
+                                        "/api/businesses/{businessId}/reservations/{reservationId}/release",
+                                        BUSINESS_ID,
+                                        confirmedId)
+                                .header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.status").value(409));
+        mockMvc.perform(
+                        post(
+                                        "/api/businesses/{businessId}/reservations/{reservationId}/release",
+                                        BUSINESS_ID,
+                                        expiredId)
+                                .header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.status").value(409));
+        mockMvc.perform(
+                        post(
+                                        "/api/businesses/{businessId}/reservations/{reservationId}/check-in",
+                                        BUSINESS_ID,
+                                        confirmedId)
+                                .header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.status").value(409));
+        mockMvc.perform(
+                        post(
+                                        "/api/businesses/{businessId}/reservations/{reservationId}/no-show",
+                                        BUSINESS_ID,
+                                        confirmedId)
+                                .header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.status").value(409));
+    }
+
+    @Test
+    void concurrentConfirmAndReleaseAttemptsAcceptExactlyOneAcrossRepeatedReservations()
+            throws Exception {
+        final var token = signedToken(ACCOUNT_ID);
+        final var resourceId = UUID.fromString("00000000-0000-0000-0000-000000000066");
+        insertResource(resourceId, "Transition Room", "transition-room", "ACTIVE");
+
+        for (var i = 0; i < 20; i++) {
+            final var reservationId =
+                    UUID.fromString("00000000-0000-0000-0000-%012d".formatted(2000 + i));
+            insertReservation(
+                    reservationId,
+                    ACCOUNT_ID,
+                    resourceId,
+                    "2026-05-25T01:00:00Z",
+                    "2026-05-25T01:30:00Z",
+                    "2026-05-25T00:10:00Z",
+                    "2026-05-25T00:00:00Z",
+                    null);
+
+            final var statuses =
+                    runConcurrentRequests(
+                            List.of(
+                                    () -> confirmReservationStatus(token, reservationId),
+                                    () -> releaseReservationStatus(token, reservationId)));
+
+            assertStatusCount(statuses, 200, 1);
+            assertStatusCount(statuses, 409, 1);
+        }
+    }
+
     private void assertSettings(
             final int slotDurationMinutes,
             final int holdTtlMinutes,
@@ -1542,6 +1849,21 @@ final class TimeslotBookingApiIntegrationTest {
         return JsonPath.read(slotsJson, "$[0].slotId");
     }
 
+    private List<String> slotIds(final String resourceId, final String date) throws Exception {
+        final var slotsJson =
+                mockMvc.perform(
+                                get(
+                                                "/api/businesses/{businessId}/resources/{resourceId}/slots",
+                                                BUSINESS_ID,
+                                                resourceId)
+                                        .param("date", date))
+                        .andExpect(status().isOk())
+                        .andReturn()
+                        .getResponse()
+                        .getContentAsString();
+        return JsonPath.read(slotsJson, "$[*].slotId");
+    }
+
     private ResultActions holdReservation(
             final String token, final String resourceId, final String slotId) throws Exception {
         return mockMvc.perform(
@@ -1556,6 +1878,69 @@ final class TimeslotBookingApiIntegrationTest {
                                 }
                                 """
                                         .formatted(resourceId, slotId)));
+    }
+
+    private int holdReservationStatus(
+            final String token, final String resourceId, final String slotId) throws Exception {
+        return holdReservation(token, resourceId, slotId).andReturn().getResponse().getStatus();
+    }
+
+    private int confirmReservationStatus(final String token, final UUID reservationId)
+            throws Exception {
+        return mockMvc.perform(
+                        post(
+                                        "/api/businesses/{businessId}/reservations/{reservationId}/confirm",
+                                        BUSINESS_ID,
+                                        reservationId)
+                                .header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
+                .andReturn()
+                .getResponse()
+                .getStatus();
+    }
+
+    private int releaseReservationStatus(final String token, final UUID reservationId)
+            throws Exception {
+        return mockMvc.perform(
+                        post(
+                                        "/api/businesses/{businessId}/reservations/{reservationId}/release",
+                                        BUSINESS_ID,
+                                        reservationId)
+                                .header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
+                .andReturn()
+                .getResponse()
+                .getStatus();
+    }
+
+    private static List<Integer> runConcurrentRequests(final List<Callable<Integer>> requests)
+            throws Exception {
+        final var start = new CountDownLatch(1);
+        final var executor = Executors.newFixedThreadPool(requests.size());
+        try {
+            final var futures =
+                    requests.stream()
+                            .map(
+                                    request ->
+                                            executor.submit(
+                                                    () -> {
+                                                        start.await();
+                                                        return request.call();
+                                                    }))
+                            .toList();
+            start.countDown();
+            final var statuses = new ArrayList<Integer>();
+            for (final var future : futures) {
+                statuses.add(future.get(10, TimeUnit.SECONDS));
+            }
+            return statuses;
+        } finally {
+            executor.shutdownNow();
+        }
+    }
+
+    private static void assertStatusCount(
+            final List<Integer> statuses, final int status, final long expectedCount) {
+        final var count = statuses.stream().filter(value -> value == status).count();
+        Assertions.assertEquals(expectedCount, count, () -> "statuses=" + statuses);
     }
 
     private void insertResource(

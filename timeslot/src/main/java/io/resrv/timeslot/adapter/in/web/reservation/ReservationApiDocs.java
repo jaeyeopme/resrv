@@ -18,7 +18,8 @@ interface ReservationApiDocs {
                 @ApiResponse(responseCode = "401", description = "Authentication is required"),
                 @ApiResponse(responseCode = "403", description = "Business access is required"),
                 @ApiResponse(responseCode = "404", description = "Business or resource not found"),
-                @ApiResponse(responseCode = "422", description = "Slot unavailable")
+                @ApiResponse(responseCode = "422", description = "Slot unavailable"),
+                @ApiResponse(responseCode = "409", description = "Slot is blocked")
             })
     ReservationWebAdapter.ReservationResponse hold(
             UUID businessId,
@@ -49,7 +50,7 @@ interface ReservationApiDocs {
                 @ApiResponse(responseCode = "400", description = "Validation failure"),
                 @ApiResponse(responseCode = "401", description = "Authentication is required"),
                 @ApiResponse(responseCode = "404", description = "Reservation not found"),
-                @ApiResponse(responseCode = "422", description = "Reservation cannot be confirmed")
+                @ApiResponse(responseCode = "409", description = "Reservation cannot be confirmed")
             })
     ReservationWebAdapter.ReservationResponse confirm(
             UUID businessId, UUID reservationId, JwtAuthenticationToken authentication);
@@ -61,7 +62,7 @@ interface ReservationApiDocs {
                 @ApiResponse(responseCode = "400", description = "Validation failure"),
                 @ApiResponse(responseCode = "401", description = "Authentication is required"),
                 @ApiResponse(responseCode = "404", description = "Reservation not found"),
-                @ApiResponse(responseCode = "422", description = "Reservation cannot be released")
+                @ApiResponse(responseCode = "409", description = "Reservation cannot be released")
             })
     ReservationWebAdapter.ReservationResponse release(
             UUID businessId, UUID reservationId, JwtAuthenticationToken authentication);
@@ -74,7 +75,7 @@ interface ReservationApiDocs {
                 @ApiResponse(responseCode = "401", description = "Authentication is required"),
                 @ApiResponse(responseCode = "403", description = "Reservation access is required"),
                 @ApiResponse(responseCode = "404", description = "Reservation not found"),
-                @ApiResponse(responseCode = "422", description = "Reservation cannot be cancelled")
+                @ApiResponse(responseCode = "409", description = "Reservation cannot be cancelled")
             })
     ReservationWebAdapter.ReservationResponse cancel(
             UUID businessId,
@@ -90,7 +91,7 @@ interface ReservationApiDocs {
                 @ApiResponse(responseCode = "401", description = "Authentication is required"),
                 @ApiResponse(responseCode = "403", description = "Reservation access is required"),
                 @ApiResponse(responseCode = "404", description = "Reservation not found"),
-                @ApiResponse(responseCode = "422", description = "Reservation cannot be checked in")
+                @ApiResponse(responseCode = "409", description = "Reservation cannot be checked in")
             })
     ReservationWebAdapter.ReservationResponse checkIn(
             UUID businessId, UUID reservationId, JwtAuthenticationToken authentication);
@@ -104,7 +105,7 @@ interface ReservationApiDocs {
                 @ApiResponse(responseCode = "403", description = "Reservation access is required"),
                 @ApiResponse(responseCode = "404", description = "Reservation not found"),
                 @ApiResponse(
-                        responseCode = "422",
+                        responseCode = "409",
                         description = "Reservation cannot be marked no-show")
             })
     ReservationWebAdapter.ReservationResponse noShow(

@@ -94,6 +94,14 @@ schedule-derived slots with `available` state, malformed-input validation, colla
 for valid missing/inactive/not-bookable/wrong-business lookups, no public business UUID exposure,
 and business-slug-scoped authenticated hold creation.
 
+Timeslot reservation traffic tests verify generated-slot non-overlap, DST/midnight timezone
+boundaries, stale or policy-drifted slot rejection before persistence, advisory-lock ordering before
+blocker checks, active blocker overlap semantics, expired hold rows remaining stored while
+non-blocking, blocked hold `409 Conflict`, expired-hold confirmation `409 Conflict`, malformed hold
+payload `400`, IDOR-safe customer reservation not-found responses, business-access `403`, and
+same-slot/same-reservation contention with exactly one successful transition across repeated
+attempts.
+
 Platform runtime packaging tests verify that the canonical platform runtime serves booking settings
 and public booking discovery endpoints, applies platform and timeslot schemas, rejects inactive
 accounts for protected booking actions, preserves non-enumerating wrong-business public slot lookup

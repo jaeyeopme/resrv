@@ -26,9 +26,13 @@ Use:
 
 - `SlotLockPort` for hold-path locking.
 - PostgreSQL advisory transaction lock keyed by resource ID and slot start instant.
-- Active blocker query for overlapping resource/time ranges.
+- Active blocker query for overlapping resource/time ranges after slot-id revalidation.
 - Pessimistic row lock for mutation of an existing reservation.
 - Domain-level blocker semantics through `Reservation.blocksSlotAt(now)`.
+
+Generated virtual slots for the same resource are non-overlapping under the effective schedule and
+policy. The overlap query remains a defensive backend check for stale, invalid, or policy-drifted
+slot identities.
 
 ## Alternatives
 
@@ -49,3 +53,5 @@ Concurrent hold attempts could both observe no blocker and insert conflicting ho
 - Lock key stability is critical.
 - Active blocker query must stay aligned with derived reservation state and
   `Reservation.blocksSlotAt(now)`.
+- Blocked hold creation, expired-hold confirmation, and conflicting lifecycle transitions surface as
+  public `409 Conflict` responses.

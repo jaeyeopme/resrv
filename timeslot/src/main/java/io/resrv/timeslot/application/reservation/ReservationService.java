@@ -99,7 +99,7 @@ public class ReservationService {
                         slot.endAt(),
                         now)
                 .isEmpty()) {
-            throw new SlotUnavailableException(command.resourceId(), slot.startAt());
+            throw new SlotBlockedException(command.resourceId(), slot.startAt());
         }
 
         final var reservation =
