@@ -26,90 +26,83 @@ import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
 
-final class TicketPurchaseConfirmationServiceTest {
+final class TicketPurchaseConfirmationIdempotencyServiceTest {
 
     private static final Instant NOW = Instant.parse("2026-06-03T00:00:00Z");
 
     @Test
-    void confirmsPurchaseAndMarksAllSeatsPurchased() {
+    void replaysSuccessfulPurchaseForSameKeyAndRequest() {
         final var fixture = Fixture.create();
-        final var seatIds = fixture.seats.stream().map(TicketSeat::id).toList();
+        final var command = fixture.command("purchase-key", fixture.firstSeatId());
 
-        final var result =
-                fixture.service.confirm(
-                        new ConfirmTicketPurchaseCommand(
-                                fixture.event.id(),
-                                fixture.customerId,
-                                seatIds,
-                                PurchaseConfirmationIdempotencyKey.of("purchase-key")));
+        final var first = fixture.service.confirm(command);
+        final var replay = fixture.service.confirm(command);
 
-        assertThat(result.seatIds())
-                .containsExactlyElementsOf(seatIds.stream().map(TicketSeatId::value).toList());
-        assertThat(fixture.savedPurchase).isNotNull();
-        assertThat(fixture.seats).allSatisfy(seat -> assertThat(seat.purchaseId()).isNotNull());
+        assertThat(replay.id()).isEqualTo(first.id());
+        assertThat(fixture.claimAttempts).isEqualTo(1);
     }
 
     @Test
-    void rejectsUnavailableSeatsWithoutSavingAttempt() {
+    void replaysUnavailableOutcomeForSameKeyAndRequest() {
         final var fixture = Fixture.create();
-        final var soldSeat =
-                fixture.seats.getFirst().purchase(TicketPurchaseId.create(), NOW.minusSeconds(60));
-        fixture.seats.set(0, soldSeat);
+        fixture.claimSucceeds = false;
+        final var command = fixture.command("purchase-key", fixture.firstSeatId());
 
-        final var result =
-                fixture.service.confirm(
-                        new ConfirmTicketPurchaseCommand(
-                                fixture.event.id(),
-                                fixture.customerId,
-                                fixture.seats.stream().map(TicketSeat::id).toList(),
-                                PurchaseConfirmationIdempotencyKey.of("purchase-key")));
+        final var first = fixture.service.confirm(command);
+        final var replay = fixture.service.confirm(command);
 
-        assertThat(result.purchased()).isFalse();
-        assertThat(fixture.savedPurchase).isNull();
+        assertThat(first.outcome()).isEqualTo(replay.outcome());
+        assertThat(replay.purchased()).isFalse();
+        assertThat(fixture.claimAttempts).isEqualTo(1);
     }
 
     @Test
-    void rejectsPurchaseBeforeSaleWindowOpens() {
-        final var fixture =
-                Fixture.create(Clock.fixed(Instant.parse("2026-05-31T23:59:59Z"), ZoneOffset.UTC));
+    void rejectsChangedPayloadAndExpiredKey() {
+        final var fixture = Fixture.create();
+        fixture.service.confirm(fixture.command("purchase-key", fixture.firstSeatId()));
 
-        assertConfirmRejected(fixture, "Ticket event is not available for sale");
-    }
-
-    @Test
-    void rejectsPurchaseAfterSaleWindowCloses() {
-        final var fixture =
-                Fixture.create(Clock.fixed(Instant.parse("2026-06-03T01:00:00Z"), ZoneOffset.UTC));
-
-        assertConfirmRejected(fixture, "Ticket event is not available for sale");
-    }
-
-    private static void assertConfirmRejected(final Fixture fixture, final String message) {
         assertThatThrownBy(
                         () ->
                                 fixture.service.confirm(
-                                        new ConfirmTicketPurchaseCommand(
-                                                fixture.event.id(),
-                                                fixture.customerId,
-                                                fixture.seats.stream().map(TicketSeat::id).toList(),
-                                                PurchaseConfirmationIdempotencyKey.of(
-                                                        "purchase-key"))))
-                .isInstanceOf(TicketPurchaseValidationException.class)
-                .hasMessage(message);
-        assertThat(fixture.savedPurchase).isNull();
+                                        fixture.command("purchase-key", fixture.secondSeatId())))
+                .isInstanceOf(TicketPurchaseIdempotencyException.class)
+                .hasMessage("Idempotency key was already used with different purchase details");
+
+        final var expiredFixture =
+                Fixture.create(
+                        Clock.fixed(
+                                NOW.plus(PurchaseConfirmationIdempotency.REPLAY_WINDOW),
+                                ZoneOffset.UTC));
+        expiredFixture.idempotencies.add(
+                PurchaseConfirmationIdempotency.pending(
+                        PurchaseConfirmationIdempotencyKey.of("expired-key"),
+                        expiredFixture.customerId,
+                        expiredFixture.event.id(),
+                        List.of(expiredFixture.firstSeatId()),
+                        NOW));
+
+        assertThatThrownBy(
+                        () ->
+                                expiredFixture.service.confirm(
+                                        expiredFixture.command(
+                                                "expired-key", expiredFixture.firstSeatId())))
+                .isInstanceOf(TicketPurchaseIdempotencyException.class)
+                .hasMessage("Idempotency key replay window has expired");
     }
 
     private static final class Fixture {
 
-        final TicketEvent event = event();
+        final TicketEvent event =
+                TicketingTestFixtures.event("Concert", Instant.parse("2026-06-03T01:00:00Z"), NOW);
         final AccountId customerId = AccountId.create();
-        PurchaseConfirmationIdempotency savedIdempotency;
         final List<TicketSeat> seats =
-                new ArrayList<>(
-                        List.of(
-                                TicketSeat.createAvailable(event.id(), "A-1"),
-                                TicketSeat.createAvailable(event.id(), "A-2")));
-        TicketPurchase savedPurchase;
+                List.of(
+                        TicketSeat.createAvailable(event.id(), "A-1"),
+                        TicketSeat.createAvailable(event.id(), "A-2"));
+        final List<PurchaseConfirmationIdempotency> idempotencies = new ArrayList<>();
+        TicketPurchase purchase;
+        int claimAttempts;
+        boolean claimSucceeds = true;
         TicketPurchaseConfirmationService service;
 
         static Fixture create() {
@@ -141,38 +134,24 @@ final class TicketPurchaseConfirmationServiceTest {
                                 @Override
                                 public List<TicketSeat> findAllByEventId(
                                         final TicketEventId ticketEventId) {
-                                    return fixture.seats.stream()
-                                            .filter(
-                                                    seat ->
-                                                            seat.ticketEventId()
-                                                                    .equals(ticketEventId))
-                                            .toList();
+                                    return fixture.seats;
                                 }
                             },
                             new TicketSeatClaimPort() {
                                 @Override
                                 public boolean claimAvailableSeats(final TicketPurchase purchase) {
-                                    final var claimed = new ArrayList<TicketSeat>();
-                                    for (final var seat : fixture.seats) {
-                                        if (purchase.seatIds().contains(seat.id())
-                                                && seat.isAvailableFor(purchase.ticketEventId())) {
-                                            claimed.add(seat.purchase(purchase.id(), NOW));
-                                        }
+                                    fixture.claimAttempts++;
+                                    if (fixture.claimSucceeds) {
+                                        fixture.purchase = purchase;
                                     }
-                                    if (claimed.size() != purchase.seatIds().size()) {
-                                        return false;
-                                    }
-                                    fixture.savedPurchase = purchase;
-                                    fixture.seats.clear();
-                                    fixture.seats.addAll(claimed);
-                                    return true;
+                                    return fixture.claimSucceeds;
                                 }
                             },
                             new TicketPurchaseQueryPort() {
                                 @Override
                                 public Optional<TicketPurchase> findById(
                                         final TicketPurchaseId ticketPurchaseId) {
-                                    return Optional.ofNullable(fixture.savedPurchase)
+                                    return Optional.ofNullable(fixture.purchase)
                                             .filter(
                                                     purchase ->
                                                             purchase.id().equals(ticketPurchaseId));
@@ -184,7 +163,7 @@ final class TicketPurchaseConfirmationServiceTest {
                                                 final TicketEventId ticketEventId,
                                                 final AccountId customerAccountId,
                                                 final List<TicketSeatId> seatIds) {
-                                    return Optional.ofNullable(fixture.savedPurchase)
+                                    return Optional.ofNullable(fixture.purchase)
                                             .filter(
                                                     purchase ->
                                                             purchase.ownsSameSelection(
@@ -196,7 +175,7 @@ final class TicketPurchaseConfirmationServiceTest {
                                 public Optional<PurchaseConfirmationIdempotency> findForCustomerKey(
                                         final AccountId customerAccountId,
                                         final PurchaseConfirmationIdempotencyKey idempotencyKey) {
-                                    return Optional.ofNullable(fixture.savedIdempotency)
+                                    return fixture.idempotencies.stream()
                                             .filter(
                                                     idempotency ->
                                                             idempotency
@@ -205,8 +184,8 @@ final class TicketPurchaseConfirmationServiceTest {
                                                                                     customerAccountId)
                                                                     && idempotency
                                                                             .idempotencyKey()
-                                                                            .equals(
-                                                                                    idempotencyKey));
+                                                                            .equals(idempotencyKey))
+                                            .findFirst();
                                 }
 
                                 @Override
@@ -218,7 +197,17 @@ final class TicketPurchaseConfirmationServiceTest {
                                 @Override
                                 public PurchaseConfirmationIdempotency save(
                                         final PurchaseConfirmationIdempotency idempotency) {
-                                    fixture.savedIdempotency = idempotency;
+                                    fixture.idempotencies.removeIf(
+                                            existing ->
+                                                    existing.customerAccountId()
+                                                                    .equals(
+                                                                            idempotency
+                                                                                    .customerAccountId())
+                                                            && existing.idempotencyKey()
+                                                                    .equals(
+                                                                            idempotency
+                                                                                    .idempotencyKey()));
+                                    fixture.idempotencies.add(idempotency);
                                     return idempotency;
                                 }
                             },
@@ -226,9 +215,20 @@ final class TicketPurchaseConfirmationServiceTest {
             return fixture;
         }
 
-        private static TicketEvent event() {
-            return TicketingTestFixtures.event(
-                    "Concert", Instant.parse("2026-06-03T01:00:00Z"), NOW);
+        ConfirmTicketPurchaseCommand command(final String key, final TicketSeatId seatId) {
+            return new ConfirmTicketPurchaseCommand(
+                    event.id(),
+                    customerId,
+                    List.of(seatId),
+                    PurchaseConfirmationIdempotencyKey.of(key));
+        }
+
+        TicketSeatId firstSeatId() {
+            return seats.getFirst().id();
+        }
+
+        TicketSeatId secondSeatId() {
+            return seats.get(1).id();
         }
     }
 }

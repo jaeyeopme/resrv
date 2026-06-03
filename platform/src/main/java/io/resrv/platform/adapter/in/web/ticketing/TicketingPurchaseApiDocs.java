@@ -18,7 +18,9 @@ interface TicketingPurchaseApiDocs {
                         description = "Existing ticket purchase returned"),
                 @ApiResponse(
                         responseCode = "400",
-                        description = "Selected seats are invalid or unavailable"),
+                        description =
+                                "Selected seats are invalid or unavailable, idempotency key is"
+                                        + " missing, invalid retry, or expired"),
                 @ApiResponse(responseCode = "401", description = "Authentication is required")
             })
     ResponseEntity<TicketPurchaseResponse> confirm(

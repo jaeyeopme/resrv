@@ -44,6 +44,15 @@ final class TicketPurchaseAttemptAbsenceIntegrationTest {
                         "ticket_purchase_attempt",
                         "ticket_purchase_failure",
                         "ticket_cancellation",
-                        "ticket_expiration");
+                        "ticket_expiration",
+                        "ticket_payment",
+                        "ticket_refund",
+                        "ticket_invoice",
+                        "ticket_tax",
+                        "ticket_waitlist",
+                        "ticket_transfer",
+                        "ticket_resale",
+                        "ticket_queue");
+        assertThat(tableNames).contains("ticket_purchase_idempotency");
     }
 }

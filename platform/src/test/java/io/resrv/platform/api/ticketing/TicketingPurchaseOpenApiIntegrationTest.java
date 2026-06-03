@@ -4,6 +4,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -26,6 +27,11 @@ import org.springframework.test.web.servlet.MockMvc;
 @Import(FakePasswordResetEmailAdapter.class)
 final class TicketingPurchaseOpenApiIntegrationTest {
 
+    private static final String CONFIRM_PURCHASE_PATH =
+            "$.paths['/api/ticketing/events/{ticketEventId}/purchases'].post";
+    private static final String CONFIRM_PURCHASE_REQUEST_SCHEMA =
+            "$.components.schemas.ConfirmTicketPurchaseRequest";
+
     @Autowired private MockMvc mockMvc;
 
     @Test
@@ -34,9 +40,25 @@ final class TicketingPurchaseOpenApiIntegrationTest {
         mockMvc.perform(get("/v3/api-docs"))
                 .andExpect(status().isOk())
                 .andExpect(
-                        jsonPath(
-                                        "$.paths['/api/ticketing/events/{ticketEventId}/purchases'].post.summary")
+                        jsonPath(CONFIRM_PURCHASE_PATH + ".summary")
                                 .value("Confirm selected-seat ticket purchase"))
+                .andExpect(
+                        jsonPath(CONFIRM_PURCHASE_REQUEST_SCHEMA + ".required")
+                                .value(Matchers.hasItem("idempotencyKey")))
+                .andExpect(
+                        jsonPath(
+                                        CONFIRM_PURCHASE_REQUEST_SCHEMA
+                                                + ".properties.idempotencyKey.maxLength")
+                                .value(120))
+                .andExpect(
+                        jsonPath(CONFIRM_PURCHASE_PATH + ".responses.400.description")
+                                .value(Matchers.containsString("invalid retry")))
+                .andExpect(
+                        jsonPath(CONFIRM_PURCHASE_PATH + ".responses.400.description")
+                                .value(Matchers.containsString("expired")))
+                .andExpect(
+                        jsonPath("$.components.schemas.TicketPurchaseResponse.properties.outcome")
+                                .exists())
                 .andExpect(
                         jsonPath("$.paths['/api/ticketing/customers/me/purchases'].get.summary")
                                 .value("List customer ticket history"))

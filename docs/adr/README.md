@@ -34,3 +34,4 @@ introduced or hardened the decision so future readers can inspect the implementa
 | [0023](0023-ticketing-bounded-context.md) | Accepted | Add ticketing as a bounded context assembled into the platform runtime |
 | [0024](0024-timeslot-resource-id-only.md) | Accepted | Use resource IDs as the only timeslot resource identity |
 | [0025](0025-selected-seat-ticket-purchase.md) | Accepted | Selected-seat ticket purchase confirmation claims seats on first success |
+| [0026](0026-ticket-purchase-concurrency-idempotency.md) | Accepted | Harden ticket purchase confirmation with concurrency-safe claims and idempotency-key replay |

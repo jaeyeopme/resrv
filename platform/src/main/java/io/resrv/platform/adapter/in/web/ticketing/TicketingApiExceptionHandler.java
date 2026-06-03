@@ -1,6 +1,7 @@
 package io.resrv.platform.adapter.in.web.ticketing;
 
 import io.resrv.ticketing.application.purchase.TicketPurchaseAccessDeniedException;
+import io.resrv.ticketing.application.purchase.TicketPurchaseIdempotencyException;
 import io.resrv.ticketing.application.purchase.TicketPurchaseValidationException;
 import jakarta.servlet.http.HttpServletRequest;
 import java.net.URI;
@@ -25,6 +26,14 @@ class TicketingApiExceptionHandler {
     ProblemDetail handleAccessDenied(
             final TicketPurchaseAccessDeniedException exception, final HttpServletRequest request) {
         return problem(HttpStatus.NOT_FOUND, exception.getMessage(), request);
+    }
+
+    @ExceptionHandler(TicketPurchaseIdempotencyException.class)
+    ProblemDetail handleIdempotency(
+            final TicketPurchaseIdempotencyException exception, final HttpServletRequest request) {
+        final var problem = problem(HttpStatus.BAD_REQUEST, exception.getMessage(), request);
+        problem.setProperty("reason", exception.reason().name());
+        return problem;
     }
 
     private static ProblemDetail problem(

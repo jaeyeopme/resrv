@@ -7,6 +7,7 @@ import static io.resrv.platform.api.TicketingApiTestSupport.insertBusiness;
 import static io.resrv.platform.api.TicketingApiTestSupport.insertEvent;
 import static io.resrv.platform.api.TicketingApiTestSupport.insertMembership;
 import static io.resrv.platform.api.TicketingApiTestSupport.insertSeat;
+import static io.resrv.platform.api.TicketingApiTestSupport.purchaseBody;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -61,7 +62,7 @@ final class BusinessTicketActivityApiIntegrationTest {
                         post("/api/ticketing/events/{ticketEventId}/purchases", eventId)
                                 .header(HttpHeaders.AUTHORIZATION, bearer(customerId))
                                 .contentType(MediaType.APPLICATION_JSON)
-                                .content("{\"seatIds\":[\"%s\"]}".formatted(seatId)))
+                                .content(purchaseBody("business-activity-key", seatId)))
                 .andExpect(status().isCreated());
 
         mockMvc.perform(

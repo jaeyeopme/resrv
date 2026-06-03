@@ -30,6 +30,8 @@ Primary ADRs:
   platform runtime.
 - [ADR-0025](adr/0025-selected-seat-ticket-purchase.md): selected-seat first-successful purchase
   semantics.
+- [ADR-0026](adr/0026-ticket-purchase-concurrency-idempotency.md): concurrency-safe ticket purchase
+  confirmation and idempotency-key replay semantics.
 
 ## Runtime And Build
 
@@ -190,6 +192,7 @@ Ticketing schema:
 - `ticketing.ticket_seat`
 - `ticketing.ticket_purchase`
 - `ticketing.ticket_purchase_seat`
+- `ticketing.ticket_purchase_idempotency`
 
 Ticketing records reference platform `business_id` by UUID and ticketing-owned ids by UUID. The
 current migration does not add cross-schema foreign keys from ticketing to platform.
@@ -203,14 +206,26 @@ directly.
 ## Ticket Purchase Correctness
 
 Selected-seat purchase confirmation validates the authenticated customer, active event, non-empty
-seat selection, duplicate seat ids, event ownership for each seat, and current seat availability.
-All selected seats are purchased together or none are. The first successful confirmation creates one
-`ticket_purchase` row and marks selected `ticket_seat` rows as `PURCHASED`.
+seat selection, duplicate seat ids, event ownership for each seat, current seat availability, and a
+required customer-scoped `idempotencyKey`. All selected seats are purchased together or none are.
+The first successful confirmation creates one `ticket_purchase` row and marks selected
+`ticket_seat` rows as `PURCHASED`.
 
-The feature deliberately does not store checkout attempts, failed attempts, cancellations, or
-expirations. Retrying an already successful same-customer/same-seat selection returns the existing
-purchase response without creating duplicate ownership. Business purchase activity uses current
-server-side business access checks and keeps unauthorized or missing event probes non-enumerating.
+The contention-sensitive claim is executed in a ticketing outbound persistence adapter with
+database row coordination and deterministic seat ordering. Losing concurrent confirmations return
+an unavailable-seats outcome without creating a purchase or partial seat ownership.
+
+Idempotency records bind the authenticated customer, idempotency key, event, and selected seat set.
+The same key and request replay the original purchased or unavailable public outcome for 24 hours.
+The same key with different purchase details is rejected as an invalid retry during that window.
+After the replay window, retained records reject reuse as an expired key. Cleanup eligibility is
+stored as a timestamp 30 days after replay expiry; purchase correctness does not depend on a cleanup
+job running.
+
+Ticketing deliberately does not store checkout attempts, general failed attempts, cancellations, or
+expirations. The idempotency table is the minimal customer-scoped replay record, not a general
+failed-attempt ledger. Business purchase activity uses current server-side business access checks
+and keeps unauthorized or missing event probes non-enumerating.
 
 ## Reservation Correctness
 

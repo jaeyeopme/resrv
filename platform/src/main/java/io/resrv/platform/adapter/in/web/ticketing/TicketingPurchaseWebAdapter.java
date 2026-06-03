@@ -8,6 +8,7 @@ import io.resrv.ticketing.application.activity.in.CustomerTicketHistoryQuery;
 import io.resrv.ticketing.application.purchase.TicketPurchaseConfirmationService;
 import io.resrv.ticketing.application.purchase.in.ConfirmTicketPurchaseCommand;
 import io.resrv.ticketing.domain.event.TicketEventId;
+import io.resrv.ticketing.domain.purchase.PurchaseConfirmationIdempotencyKey;
 import io.resrv.ticketing.domain.seat.TicketSeatId;
 import jakarta.validation.Valid;
 import java.net.URI;
@@ -50,7 +51,11 @@ class TicketingPurchaseWebAdapter implements TicketingPurchaseApiDocs {
                         new ConfirmTicketPurchaseCommand(
                                 TicketEventId.of(ticketEventId),
                                 account.accountId(),
-                                request.seatIds().stream().map(TicketSeatId::of).toList()));
+                                request.seatIds().stream().map(TicketSeatId::of).toList(),
+                                PurchaseConfirmationIdempotencyKey.of(request.idempotencyKey())));
+        if (!result.purchased()) {
+            return ResponseEntity.badRequest().body(TicketPurchaseResponse.from(result));
+        }
         return ResponseEntity.created(URI.create("/api/ticketing/purchases/" + result.id()))
                 .body(TicketPurchaseResponse.from(result));
     }

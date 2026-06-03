@@ -3,14 +3,16 @@ package io.resrv.ticketing.application.purchase;
 import io.resrv.ticketing.application.event.out.TicketEventQueryPort;
 import io.resrv.ticketing.application.purchase.in.ConfirmTicketPurchaseCommand;
 import io.resrv.ticketing.application.purchase.in.TicketPurchaseResult;
-import io.resrv.ticketing.application.purchase.out.TicketPurchaseCommandPort;
+import io.resrv.ticketing.application.purchase.out.PurchaseConfirmationIdempotencyPort;
 import io.resrv.ticketing.application.purchase.out.TicketPurchaseQueryPort;
-import io.resrv.ticketing.application.seat.out.TicketSeatCommandPort;
+import io.resrv.ticketing.application.seat.out.TicketSeatClaimPort;
 import io.resrv.ticketing.application.seat.out.TicketSeatQueryPort;
+import io.resrv.ticketing.domain.purchase.PurchaseConfirmationIdempotency;
+import io.resrv.ticketing.domain.purchase.PurchaseConfirmationIdempotencyStatus;
 import io.resrv.ticketing.domain.purchase.TicketPurchase;
-import io.resrv.ticketing.domain.seat.TicketSeat;
 import io.resrv.ticketing.domain.seat.TicketSeatId;
 import java.time.Clock;
+import java.time.Instant;
 import java.util.LinkedHashSet;
 import java.util.List;
 import org.springframework.stereotype.Service;
@@ -21,29 +23,47 @@ public class TicketPurchaseConfirmationService {
 
     private final TicketEventQueryPort eventQueryPort;
     private final TicketSeatQueryPort seatQueryPort;
-    private final TicketSeatCommandPort seatCommandPort;
-    private final TicketPurchaseCommandPort purchaseCommandPort;
+    private final TicketSeatClaimPort seatClaimPort;
     private final TicketPurchaseQueryPort purchaseQueryPort;
+    private final PurchaseConfirmationIdempotencyPort idempotencyPort;
     private final Clock clock;
 
     public TicketPurchaseConfirmationService(
             final TicketEventQueryPort eventQueryPort,
             final TicketSeatQueryPort seatQueryPort,
-            final TicketSeatCommandPort seatCommandPort,
-            final TicketPurchaseCommandPort purchaseCommandPort,
+            final TicketSeatClaimPort seatClaimPort,
             final TicketPurchaseQueryPort purchaseQueryPort,
+            final PurchaseConfirmationIdempotencyPort idempotencyPort,
             final Clock clock) {
         this.eventQueryPort = eventQueryPort;
         this.seatQueryPort = seatQueryPort;
-        this.seatCommandPort = seatCommandPort;
-        this.purchaseCommandPort = purchaseCommandPort;
+        this.seatClaimPort = seatClaimPort;
         this.purchaseQueryPort = purchaseQueryPort;
+        this.idempotencyPort = idempotencyPort;
         this.clock = clock;
     }
 
     @Transactional
     public TicketPurchaseResult confirm(final ConfirmTicketPurchaseCommand command) {
         final var uniqueSeatIds = uniqueSeatIds(command.seatIds());
+        final var now = clock.instant();
+        final var existingIdempotency =
+                idempotencyPort.findForCustomerKey(
+                        command.customerAccountId(), command.idempotencyKey());
+        if (existingIdempotency.isPresent()) {
+            return replay(existingIdempotency.orElseThrow(), command, uniqueSeatIds, now);
+        }
+        final var idempotency =
+                idempotencyPort.createPendingOrFindExisting(
+                        PurchaseConfirmationIdempotency.pending(
+                                command.idempotencyKey(),
+                                command.customerAccountId(),
+                                command.ticketEventId(),
+                                uniqueSeatIds,
+                                now));
+        if (idempotency.status() != PurchaseConfirmationIdempotencyStatus.PENDING) {
+            return replay(idempotency, command, uniqueSeatIds, now);
+        }
         final var event =
                 eventQueryPort
                         .findById(command.ticketEventId())
@@ -52,7 +72,6 @@ public class TicketPurchaseConfirmationService {
                                 () ->
                                         new TicketPurchaseValidationException(
                                                 "Ticket event is not available"));
-        final var now = clock.instant();
         if (now.isBefore(event.saleWindow().startAt())
                 || !now.isBefore(event.saleWindow().endAt())) {
             throw new TicketPurchaseValidationException("Ticket event is not available for sale");
@@ -61,23 +80,62 @@ public class TicketPurchaseConfirmationService {
                 purchaseQueryPort.findCustomerPurchaseForSeatSelection(
                         command.ticketEventId(), command.customerAccountId(), uniqueSeatIds);
         if (existing.isPresent()) {
-            return TicketPurchaseResult.from(existing.orElseThrow());
+            final var purchase = existing.orElseThrow();
+            idempotencyPort.save(
+                    idempotency.complete(
+                            PurchaseConfirmationIdempotencyStatus.PURCHASED, purchase.id(), now));
+            return TicketPurchaseResult.from(purchase);
         }
         final var seats = seatQueryPort.findAllByIds(uniqueSeatIds);
         if (seats.size() != uniqueSeatIds.size()
                 || seats.stream().anyMatch(seat -> !seat.isAvailableFor(event.id()))) {
-            throw new TicketPurchaseValidationException("Selected seats are unavailable");
+            idempotencyPort.save(
+                    idempotency.complete(
+                            PurchaseConfirmationIdempotencyStatus.UNAVAILABLE_SEATS, null, now));
+            return TicketPurchaseResult.unavailable(
+                    command.ticketEventId().value(),
+                    command.customerAccountId().value(),
+                    uniqueSeatIds.stream().map(TicketSeatId::value).toList());
         }
         final var purchase =
                 TicketPurchase.create(event.id(), command.customerAccountId(), uniqueSeatIds, now);
-        final var purchasedSeats =
-                seats.stream()
-                        .map(seat -> seat.purchase(purchase.id(), now))
-                        .sorted((left, right) -> compareBySelection(uniqueSeatIds, left, right))
-                        .toList();
-        purchaseCommandPort.save(purchase);
-        seatCommandPort.saveAll(purchasedSeats);
+        if (!seatClaimPort.claimAvailableSeats(purchase)) {
+            idempotencyPort.save(
+                    idempotency.complete(
+                            PurchaseConfirmationIdempotencyStatus.UNAVAILABLE_SEATS, null, now));
+            return TicketPurchaseResult.unavailable(
+                    command.ticketEventId().value(),
+                    command.customerAccountId().value(),
+                    uniqueSeatIds.stream().map(TicketSeatId::value).toList());
+        }
+        idempotencyPort.save(
+                idempotency.complete(
+                        PurchaseConfirmationIdempotencyStatus.PURCHASED, purchase.id(), now));
         return TicketPurchaseResult.from(purchase);
+    }
+
+    private TicketPurchaseResult replay(
+            final PurchaseConfirmationIdempotency idempotency,
+            final ConfirmTicketPurchaseCommand command,
+            final List<TicketSeatId> uniqueSeatIds,
+            final Instant now) {
+        if (idempotency.expiredAt(now)) {
+            throw TicketPurchaseIdempotencyException.expiredKey();
+        }
+        if (!idempotency.matches(command.ticketEventId(), uniqueSeatIds)) {
+            throw TicketPurchaseIdempotencyException.invalidRetry();
+        }
+        if (idempotency.status() == PurchaseConfirmationIdempotencyStatus.PURCHASED) {
+            return TicketPurchaseResult.from(
+                    purchaseQueryPort.findById(idempotency.ticketPurchaseId()).orElseThrow());
+        }
+        if (idempotency.status() == PurchaseConfirmationIdempotencyStatus.UNAVAILABLE_SEATS) {
+            return TicketPurchaseResult.replayUnavailable(
+                    command.ticketEventId().value(),
+                    command.customerAccountId().value(),
+                    uniqueSeatIds.stream().map(TicketSeatId::value).toList());
+        }
+        throw new TicketPurchaseValidationException("Purchase confirmation is not complete");
     }
 
     private static List<TicketSeatId> uniqueSeatIds(final List<TicketSeatId> seatIds) {
@@ -89,13 +147,5 @@ public class TicketPurchaseConfirmationService {
             throw new TicketPurchaseValidationException("Duplicate ticket seats are not allowed");
         }
         return List.copyOf(unique);
-    }
-
-    private static int compareBySelection(
-            final List<TicketSeatId> selectedSeatIds,
-            final TicketSeat left,
-            final TicketSeat right) {
-        return Integer.compare(
-                selectedSeatIds.indexOf(left.id()), selectedSeatIds.indexOf(right.id()));
     }
 }

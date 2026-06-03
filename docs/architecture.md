@@ -133,6 +133,8 @@ Ticketing owns ticket sale and purchase lifecycle data:
 - `TicketInventory` and `TicketInventoryTier` for tiered capacity counters.
 - `TicketSeat` for event-owned selected seats and purchase status.
 - `TicketPurchase` for durable customer ownership of purchased seats.
+- Purchase confirmation idempotency records for customer-scoped replay of the original public
+  outcome.
 
 Ticketing stores platform `businessId` references locally and resolves platform business facts only
 through `platform-exchange`. It does not add cross-schema foreign keys to platform tables and does
@@ -141,8 +143,13 @@ not read platform persistence directly.
 Ticketing exposes selected-seat purchase confirmation, customer ticket history, and authorized
 business purchase activity through the platform runtime. Purchase confirmation is the first durable
 ticket lifecycle action: it creates no pre-purchase checkout attempt, hold, cancellation,
-expiration, or failed-attempt record. Same-customer retries for the same purchased seats return the
-existing purchase; later attempts by other customers fail as unavailable.
+expiration, or general failed-attempt record. Customer purchase confirmation requires an
+idempotency key, replays the original public outcome for 24 hours, rejects changed same-key requests,
+and rejects retained expired keys after the replay window.
+
+Seat claiming is concurrency-safe in ticketing outbound persistence. Multi-seat claims use
+deterministic seat ordering and all-or-nothing ownership so competing confirmations cannot oversell
+or leave partial purchases.
 
 Business purchase activity access is resolved server-side through `platform-exchange` membership
 checks. Missing events and events outside the caller's business authority return the same public

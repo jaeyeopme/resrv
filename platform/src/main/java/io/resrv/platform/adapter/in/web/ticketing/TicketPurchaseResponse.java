@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.UUID;
 
 record TicketPurchaseResponse(
+        String outcome,
         UUID id,
         UUID ticketEventId,
         UUID customerAccountId,
@@ -14,6 +15,7 @@ record TicketPurchaseResponse(
 
     static TicketPurchaseResponse from(final TicketPurchaseResult result) {
         return new TicketPurchaseResponse(
+                result.outcome().name(),
                 result.id(),
                 result.ticketEventId(),
                 result.customerAccountId(),

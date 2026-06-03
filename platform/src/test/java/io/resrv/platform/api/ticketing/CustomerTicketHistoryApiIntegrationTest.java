@@ -6,6 +6,7 @@ import static io.resrv.platform.api.TicketingApiTestSupport.insertAccount;
 import static io.resrv.platform.api.TicketingApiTestSupport.insertBusiness;
 import static io.resrv.platform.api.TicketingApiTestSupport.insertEvent;
 import static io.resrv.platform.api.TicketingApiTestSupport.insertSeat;
+import static io.resrv.platform.api.TicketingApiTestSupport.purchaseBody;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -60,13 +61,13 @@ final class CustomerTicketHistoryApiIntegrationTest {
                         post("/api/ticketing/events/{ticketEventId}/purchases", eventId)
                                 .header(HttpHeaders.AUTHORIZATION, bearer(customerId))
                                 .contentType(MediaType.APPLICATION_JSON)
-                                .content("{\"seatIds\":[\"%s\"]}".formatted(customerSeatId)))
+                                .content(purchaseBody("customer-history-key", customerSeatId)))
                 .andExpect(status().isCreated());
         mockMvc.perform(
                         post("/api/ticketing/events/{ticketEventId}/purchases", eventId)
                                 .header(HttpHeaders.AUTHORIZATION, bearer(otherCustomerId))
                                 .contentType(MediaType.APPLICATION_JSON)
-                                .content("{\"seatIds\":[\"%s\"]}".formatted(otherSeatId)))
+                                .content(purchaseBody("other-history-key", otherSeatId)))
                 .andExpect(status().isCreated());
 
         mockMvc.perform(

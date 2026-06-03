@@ -105,6 +105,8 @@ historical checkpoint list, not as the next work queue.
 | `018-timeslot-traffic-hardening` | Timeslot reservation traffic hardening | Hold creation, lifecycle transitions, expiration behavior, and conflict responses are concurrency-safe and covered by API tests. |
 | `019-timeslot-resource-id-only` | Timeslot resource identity cleanup | Removed resource slug/handle semantics from domain, persistence, API contracts, generated OpenAPI coverage, and docs/ADR references. |
 | `020-ticket-event-inventory-model` | Ticket event and inventory baseline | Implemented ticketing bounded context, event/inventory persistence baseline, and no public ticketing endpoint surface. |
+| `021-ticket-purchase-hold-lifecycle` | Selected-seat purchase lifecycle | Implemented purchase confirmation as the first durable ticket lifecycle action, customer history, and business purchase activity without checkout attempts or ticket holds. |
+| `023-ticket-concurrency-hardening` | Ticket purchase concurrency hardening | Implemented concurrency-safe selected-seat claims, required idempotency keys, replay/invalid/expired-key behavior, and high-contention API verification. |
 
 Current `Pending` feature specs:
 
@@ -118,8 +120,6 @@ artifacts only when the feature becomes the next implementation target.
 
 | Candidate | Phase | Focus | Start After | Notes |
 |---|---|---|---|---|
-| `021-ticket-purchase-hold-lifecycle` | Phase 2 | Ticket hold, purchase/confirm, release, expiration, customer ownership, and business access. | `020-ticket-event-inventory-model` implemented | Proves ticket traffic has an actual mutable lifecycle, not only static event inventory. |
-| `023-ticket-concurrency-hardening` | Phase 2 | Oversell prevention, high-contention hold/purchase behavior, idempotency key, retry-safe commands, and concurrency tests. | Ticket lifecycle endpoints and persistence exist | This is the main evidence that the backend handles a second traffic-sensitive flow. |
 | `024-ticket-api-contract-and-operations` | Phase 2 | Ticket API contract, OpenAPI coverage, integration tests, operational notes, and failure response consistency. | Ticket lifecycle and concurrency behavior stabilized | Keep generated OpenAPI authoritative; avoid hand-written endpoint catalogs. |
 | `025-traffic-pattern-extraction` | Phase 3 | Cross-flow backend patterns for capacity allocation, hold expiration, retry safety, lock/claim strategy, queue/backpressure, and lifecycle/state machine design. | Timeslot and ticket traffic both implemented and tested | Extract patterns from working flows; do not introduce speculative shared abstractions before this point. |
 

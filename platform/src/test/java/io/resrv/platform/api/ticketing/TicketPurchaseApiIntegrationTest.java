@@ -6,6 +6,7 @@ import static io.resrv.platform.api.TicketingApiTestSupport.insertAccount;
 import static io.resrv.platform.api.TicketingApiTestSupport.insertBusiness;
 import static io.resrv.platform.api.TicketingApiTestSupport.insertEvent;
 import static io.resrv.platform.api.TicketingApiTestSupport.insertSeat;
+import static io.resrv.platform.api.TicketingApiTestSupport.purchaseBody;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -56,7 +57,7 @@ final class TicketPurchaseApiIntegrationTest {
         final var eventId = insertEvent(jdbcTemplate, businessId);
         final var firstSeatId = insertSeat(jdbcTemplate, eventId, "A-1");
         final var secondSeatId = insertSeat(jdbcTemplate, eventId, "A-2");
-        final var body = "{\"seatIds\":[\"%s\",\"%s\"]}".formatted(firstSeatId, secondSeatId);
+        final var body = purchaseBody("purchase-key", firstSeatId, secondSeatId);
 
         final var purchaseResponse =
                 mockMvc.perform(
@@ -65,6 +66,7 @@ final class TicketPurchaseApiIntegrationTest {
                                         .contentType(MediaType.APPLICATION_JSON)
                                         .content(body))
                         .andExpect(status().isCreated())
+                        .andExpect(jsonPath("$.outcome").value("PURCHASED"))
                         .andExpect(jsonPath("$.customerAccountId").value(customerId.toString()))
                         .andExpect(jsonPath("$.seatIds[0]").value(firstSeatId.toString()))
                         .andReturn()
@@ -78,14 +80,18 @@ final class TicketPurchaseApiIntegrationTest {
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(body))
                 .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.outcome").value("PURCHASED"))
                 .andExpect(jsonPath("$.id").value(purchaseId));
 
         mockMvc.perform(
                         post("/api/ticketing/events/{ticketEventId}/purchases", eventId)
                                 .header(HttpHeaders.AUTHORIZATION, bearer(otherCustomerId))
                                 .contentType(MediaType.APPLICATION_JSON)
-                                .content(body))
-                .andExpect(status().isBadRequest());
+                                .content(
+                                        purchaseBody(
+                                                "other-purchase-key", firstSeatId, secondSeatId)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.outcome").value("UNAVAILABLE_SEATS"));
 
         assertThat(
                         jdbcTemplate.queryForObject(

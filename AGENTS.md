@@ -167,7 +167,7 @@ Do not include AI attribution, generated-by footers, model names, or AI co-autho
 
 <!-- SPECKIT START -->
 When working from a Spec Kit plan, read the active plan before implementation.
-Active plan: none
+Active plan: specs/023-ticket-concurrency-hardening/plan.md
 <!-- SPECKIT END -->
 
 <!-- SPEC-KIT-KOREAN-RESPONSES START -->

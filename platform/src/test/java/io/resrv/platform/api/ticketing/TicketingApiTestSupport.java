@@ -1,5 +1,7 @@
 package io.resrv.platform.api;
 
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+
 import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jose.JWSAlgorithm;
 import com.nimbusds.jose.JWSHeader;
@@ -8,10 +10,14 @@ import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
 import java.sql.Timestamp;
 import java.time.Instant;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 import java.util.UUID;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.test.web.servlet.MockMvc;
 
 final class TicketingApiTestSupport {
 
@@ -23,6 +29,7 @@ final class TicketingApiTestSupport {
     private TicketingApiTestSupport() {}
 
     static void clean(final JdbcTemplate jdbcTemplate) {
+        jdbcTemplate.update("DELETE FROM ticketing.ticket_purchase_idempotency");
         jdbcTemplate.update("DELETE FROM ticketing.ticket_purchase_seat");
         jdbcTemplate.update("DELETE FROM ticketing.ticket_seat");
         jdbcTemplate.update("DELETE FROM ticketing.ticket_purchase");
@@ -119,6 +126,32 @@ final class TicketingApiTestSupport {
                 eventId,
                 label);
         return seatId;
+    }
+
+    static String purchaseBody(final String idempotencyKey, final UUID... seatIds) {
+        final var seats =
+                Arrays.stream(seatIds)
+                        .map(seatId -> "\"" + seatId + "\"")
+                        .reduce((left, right) -> left + "," + right)
+                        .orElse("");
+        return "{\"seatIds\":[%s],\"idempotencyKey\":\"%s\"}".formatted(seats, idempotencyKey);
+    }
+
+    static int submitPurchase(
+            final MockMvc mockMvc,
+            final UUID customerId,
+            final UUID eventId,
+            final String idempotencyKey,
+            final UUID... seatIds)
+            throws Exception {
+        return mockMvc.perform(
+                        post("/api/ticketing/events/{ticketEventId}/purchases", eventId)
+                                .header(HttpHeaders.AUTHORIZATION, bearer(customerId))
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(purchaseBody(idempotencyKey, seatIds)))
+                .andReturn()
+                .getResponse()
+                .getStatus();
     }
 
     static String bearer(final UUID accountId) throws JOSEException {
