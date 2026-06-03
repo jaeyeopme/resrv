@@ -100,9 +100,9 @@ Ticketing owns selected-seat purchase lifecycle behavior:
 - Business purchase activity for authorized owner/staff actors.
 
 `platform` is the canonical backend runtime. It scans platform, timeslot, and ticketing
-bounded-context packages, serves platform and booking API groups, and exposes one generated OpenAPI
-surface from `/v3/api-docs`. Ticketing contributes purchase confirmation, customer history, and
-business purchase activity endpoints through platform web adapters.
+bounded-context packages, serves platform, booking, and ticketing API groups, and exposes one
+generated OpenAPI surface from `/v3/api-docs`. Ticketing contributes purchase confirmation,
+customer history, and business purchase activity endpoints through platform web adapters.
 
 Generated OpenAPI from that runtime is the API contract surface. Narrative docs describe API groups,
 authorization boundaries, and design decisions, but do not maintain a duplicate endpoint catalog.
@@ -213,7 +213,8 @@ The first successful confirmation creates one `ticket_purchase` row and marks se
 
 The contention-sensitive claim is executed in a ticketing outbound persistence adapter with
 database row coordination and deterministic seat ordering. Losing concurrent confirmations return
-an unavailable-seats outcome without creating a purchase or partial seat ownership.
+an unavailable-seats outcome as `409 Conflict` without creating a purchase, exposing another
+customer, or leaving partial seat ownership.
 
 Idempotency records bind the authenticated customer, idempotency key, event, and selected seat set.
 The same key and request replay the original purchased or unavailable public outcome for 24 hours.
@@ -221,6 +222,10 @@ The same key with different purchase details is rejected as an invalid retry dur
 After the replay window, retained records reject reuse as an expired key. Cleanup eligibility is
 stored as a timestamp 30 days after replay expiry; purchase correctness does not depend on a cleanup
 job running.
+
+The ticketing web boundary maps idempotency problems to stable public reasons `invalid_retry` and
+`expired_key`. Generated OpenAPI documents these public values; internal enum names are not part of
+the API contract.
 
 Ticketing deliberately does not store checkout attempts, general failed attempts, cancellations, or
 expirations. The idempotency table is the minimal customer-scoped replay record, not a general
@@ -288,8 +293,8 @@ RESRV_JWT_EXPIRATION
 
 Database configuration can come from Spring Boot Docker Compose support in local development or
 standard Spring datasource properties in other environments. The platform runtime loads
-`classpath:db/migration`, which includes platform migrations from the platform module and timeslot
-migrations from the timeslot module runtime classpath.
+`classpath:db/migration`, which includes platform migrations from the platform module plus timeslot
+and ticketing migrations from module runtime classpaths.
 
 The `prod` profile disables local Docker Compose discovery and expects explicit datasource, JWT, and
 password reset settings from the environment.

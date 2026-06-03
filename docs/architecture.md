@@ -145,7 +145,9 @@ business purchase activity through the platform runtime. Purchase confirmation i
 ticket lifecycle action: it creates no pre-purchase checkout attempt, hold, cancellation,
 expiration, or general failed-attempt record. Customer purchase confirmation requires an
 idempotency key, replays the original public outcome for 24 hours, rejects changed same-key requests,
-and rejects retained expired keys after the replay window.
+and rejects retained expired keys after the replay window. Unavailable selected seats are reported
+as `409 Conflict`; idempotency problems expose stable public reasons `invalid_retry` and
+`expired_key`.
 
 Seat claiming is concurrency-safe in ticketing outbound persistence. Multi-seat claims use
 deterministic seat ordering and all-or-nothing ownership so competing confirmations cannot oversell

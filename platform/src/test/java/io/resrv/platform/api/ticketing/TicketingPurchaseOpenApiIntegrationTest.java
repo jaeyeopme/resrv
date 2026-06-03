@@ -31,6 +31,12 @@ final class TicketingPurchaseOpenApiIntegrationTest {
             "$.paths['/api/ticketing/events/{ticketEventId}/purchases'].post";
     private static final String CONFIRM_PURCHASE_REQUEST_SCHEMA =
             "$.components.schemas.ConfirmTicketPurchaseRequest";
+    private static final String PURCHASE_RESPONSE_SCHEMA =
+            "$.components.schemas.TicketPurchaseResponse";
+    private static final String CUSTOMER_HISTORY_SCHEMA =
+            "$.components.schemas.CustomerTicketHistoryResponse";
+    private static final String BUSINESS_ACTIVITY_SCHEMA =
+            "$.components.schemas.BusinessTicketActivityResponse";
 
     @Autowired private MockMvc mockMvc;
 
@@ -44,30 +50,58 @@ final class TicketingPurchaseOpenApiIntegrationTest {
                                 .value("Confirm selected-seat ticket purchase"))
                 .andExpect(
                         jsonPath(CONFIRM_PURCHASE_REQUEST_SCHEMA + ".required")
+                                .value(Matchers.hasItem("seatIds")))
+                .andExpect(
+                        jsonPath(CONFIRM_PURCHASE_REQUEST_SCHEMA + ".required")
                                 .value(Matchers.hasItem("idempotencyKey")))
+                .andExpect(
+                        jsonPath(CONFIRM_PURCHASE_REQUEST_SCHEMA + ".properties.seatIds.minItems")
+                                .value(1))
                 .andExpect(
                         jsonPath(
                                         CONFIRM_PURCHASE_REQUEST_SCHEMA
                                                 + ".properties.idempotencyKey.maxLength")
                                 .value(120))
                 .andExpect(
-                        jsonPath(CONFIRM_PURCHASE_PATH + ".responses.400.description")
-                                .value(Matchers.containsString("invalid retry")))
+                        jsonPath(CONFIRM_PURCHASE_PATH + ".responses.409.description")
+                                .value(Matchers.containsString("Unavailable selected seats")))
                 .andExpect(
                         jsonPath(CONFIRM_PURCHASE_PATH + ".responses.400.description")
-                                .value(Matchers.containsString("expired")))
+                                .value(Matchers.containsString("invalid_retry")))
                 .andExpect(
-                        jsonPath("$.components.schemas.TicketPurchaseResponse.properties.outcome")
+                        jsonPath(CONFIRM_PURCHASE_PATH + ".responses.400.description")
+                                .value(Matchers.containsString("expired_key")))
+                .andExpect(jsonPath(PURCHASE_RESPONSE_SCHEMA + ".properties.outcome").exists())
+                .andExpect(jsonPath(PURCHASE_RESPONSE_SCHEMA + ".properties.id").exists())
+                .andExpect(
+                        jsonPath(PURCHASE_RESPONSE_SCHEMA + ".properties.ticketEventId").exists())
+                .andExpect(
+                        jsonPath(PURCHASE_RESPONSE_SCHEMA + ".properties.customerAccountId")
                                 .exists())
+                .andExpect(jsonPath(PURCHASE_RESPONSE_SCHEMA + ".properties.seatIds").exists())
+                .andExpect(jsonPath(PURCHASE_RESPONSE_SCHEMA + ".properties.confirmedAt").exists())
                 .andExpect(
                         jsonPath("$.paths['/api/ticketing/customers/me/purchases'].get.summary")
                                 .value("List customer ticket history"))
+                .andExpect(jsonPath(CUSTOMER_HISTORY_SCHEMA + ".properties.items").exists())
+                .andExpect(
+                        jsonPath("$.components.schemas.CustomerTicketHistoryResponseItem").exists())
+                .andExpect(jsonPath("$.components.schemas.TicketSeatResponse").exists())
                 .andExpect(
                         jsonPath(
                                         "$.paths['/api/ticketing/business/events/"
                                                 + "{ticketEventId}/purchases'].get.summary")
                                 .value("List business ticket purchase activity"))
+                .andExpect(
+                        jsonPath(BUSINESS_ACTIVITY_SCHEMA + ".properties.ticketEventId").exists())
+                .andExpect(jsonPath(BUSINESS_ACTIVITY_SCHEMA + ".properties.items").exists())
                 .andExpect(jsonPath("$.paths['/api/ticketing/checkout']").doesNotExist())
-                .andExpect(jsonPath("$.paths['/api/ticketing/attempts']").doesNotExist());
+                .andExpect(jsonPath("$.paths['/api/ticketing/attempts']").doesNotExist())
+                .andExpect(jsonPath("$.paths['/api/ticketing/holds']").doesNotExist())
+                .andExpect(jsonPath("$.paths['/api/ticketing/payments']").doesNotExist())
+                .andExpect(jsonPath("$.paths['/api/ticketing/queues']").doesNotExist())
+                .andExpect(jsonPath("$.paths['/api/ticketing/waitlist']").doesNotExist())
+                .andExpect(jsonPath("$.paths['/api/ticketing/transfers']").doesNotExist())
+                .andExpect(jsonPath("$.paths['/api/ticketing/resale']").doesNotExist());
     }
 }

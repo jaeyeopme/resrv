@@ -78,7 +78,8 @@ final class TicketPurchaseConcurrencyApiIntegrationTest {
             }
 
             assertThat(statuses.stream().filter(status -> status == 201).count()).isEqualTo(1);
-            assertThat(statuses.stream().filter(status -> status == 400).count()).isEqualTo(49);
+            assertThat(statuses.stream().filter(status -> status == 409).count()).isEqualTo(49);
+            assertThat(statuses).allMatch(status -> status == 201 || status == 409);
             assertThat(
                             jdbcTemplate.queryForObject(
                                     """

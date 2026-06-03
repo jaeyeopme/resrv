@@ -8,11 +8,14 @@ import static io.resrv.platform.api.TicketingApiTestSupport.insertEvent;
 import static io.resrv.platform.api.TicketingApiTestSupport.insertMembership;
 import static io.resrv.platform.api.TicketingApiTestSupport.insertSeat;
 import static io.resrv.platform.api.TicketingApiTestSupport.purchaseBody;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.jayway.jsonpath.JsonPath;
+import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -76,5 +79,29 @@ final class BusinessTicketActivityApiIntegrationTest {
                         get("/api/ticketing/business/events/{ticketEventId}/purchases", eventId)
                                 .header(HttpHeaders.AUTHORIZATION, bearer(outsiderId)))
                 .andExpect(status().isNotFound());
+
+        final var unauthorizedResponse =
+                mockMvc.perform(
+                                get(
+                                                "/api/ticketing/business/events/{ticketEventId}/purchases",
+                                                eventId)
+                                        .header(HttpHeaders.AUTHORIZATION, bearer(outsiderId)))
+                        .andExpect(status().isNotFound())
+                        .andReturn()
+                        .getResponse()
+                        .getContentAsString();
+        final var missingResponse =
+                mockMvc.perform(
+                                get(
+                                                "/api/ticketing/business/events/{ticketEventId}/purchases",
+                                                UUID.randomUUID())
+                                        .header(HttpHeaders.AUTHORIZATION, bearer(ownerId)))
+                        .andExpect(status().isNotFound())
+                        .andReturn()
+                        .getResponse()
+                        .getContentAsString();
+        final String unauthorizedDetail = JsonPath.read(unauthorizedResponse, "$.detail");
+        final String missingDetail = JsonPath.read(missingResponse, "$.detail");
+        assertThat(unauthorizedDetail).isEqualTo(missingDetail);
     }
 }

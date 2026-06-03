@@ -40,8 +40,8 @@ runs from the repository root.
 
 ## Platform API Local Run
 
-`platform` is the canonical backend runtime. It serves both platform and booking API groups from one
-process.
+`platform` is the canonical backend runtime. It serves platform, booking, and ticketing API groups
+from one process.
 
 ```bash
 ./gradlew :platform:bootRun
@@ -97,6 +97,25 @@ execution is not a supported operation. Timeslot API behavior is verified throug
 ```bash
 ./gradlew :timeslot:test
 ```
+
+## Ticketing API Local Run
+
+Ticketing is assembled into the platform runtime. There is no separate ticketing backend runtime,
+`bootRun`, health endpoint, deployment unit, or service-to-service API in the current architecture.
+
+Use the platform runtime for ticketing API probes:
+
+```bash
+./gradlew :platform:bootRun
+```
+
+Endpoint and schema details come from generated OpenAPI at `/v3/api-docs` and
+`/v3/api-docs.yaml`; this document intentionally does not duplicate a ticket endpoint catalog.
+
+Ticket purchase confirmation idempotency replays the original public outcome for 24 hours. Expired
+idempotency records remain eligible for retention until 30 days after replay expiry. Cleanup may
+delete retained expired records after that point, but purchase correctness does not depend on
+cleanup.
 
 ## Runtime Packaging
 
@@ -166,7 +185,9 @@ Flyway migrations are stored in bounded-context modules:
 | `timeslot/src/main/resources/db/migration/V21__remove_timeslot_resource_slug.sql` | Timeslot resource slug removal |
 
 The platform runtime loads `classpath:db/migration`, so platform, timeslot, and ticketing migration
-resources on the runtime classpath are applied through the same startup path.
+resources on the runtime classpath are applied through the same startup path. Ticketing migrations
+therefore participate in platform runtime startup and checks; there is no separate ticketing
+migration command for normal local operation.
 
 Migration success can be checked through startup logs and the `flyway_schema_history` table. The
 platform runtime is not ready for traffic when the database is unavailable or required migrations
@@ -191,5 +212,6 @@ contract; health endpoints are operational probes, not an endpoint catalog.
 | JWT config validation fails | Secret is at least 32 bytes and issuer/audience/expiration are set |
 | Readiness is down | Check PostgreSQL connectivity and migration success |
 | `timeslot:bootRun` is unavailable | Boot task is disabled by design; run `:platform:bootRun` |
+| Ticketing runtime command is unclear | Ticketing is served by `:platform:bootRun`; there is no standalone ticketing runtime |
 | Swagger returns 401 for docs | Security config should permit `/swagger-ui/**` and `/v3/api-docs/**` |
 | Coverage verification fails | Inspect module JaCoCo HTML report under `<module>/build/reports/jacoco/test/html` |

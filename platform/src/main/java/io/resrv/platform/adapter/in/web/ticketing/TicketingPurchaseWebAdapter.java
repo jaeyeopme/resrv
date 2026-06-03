@@ -13,6 +13,7 @@ import io.resrv.ticketing.domain.seat.TicketSeatId;
 import jakarta.validation.Valid;
 import java.net.URI;
 import java.util.UUID;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -54,7 +55,8 @@ class TicketingPurchaseWebAdapter implements TicketingPurchaseApiDocs {
                                 request.seatIds().stream().map(TicketSeatId::of).toList(),
                                 PurchaseConfirmationIdempotencyKey.of(request.idempotencyKey())));
         if (!result.purchased()) {
-            return ResponseEntity.badRequest().body(TicketPurchaseResponse.from(result));
+            return ResponseEntity.status(HttpStatus.CONFLICT)
+                    .body(TicketPurchaseResponse.from(result));
         }
         return ResponseEntity.created(URI.create("/api/ticketing/purchases/" + result.id()))
                 .body(TicketPurchaseResponse.from(result));

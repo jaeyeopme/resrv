@@ -110,7 +110,9 @@ historical checkpoint list, not as the next work queue.
 
 Current `Pending` feature specs:
 
-None.
+| Spec | Focus | Completion Bar |
+|---|---|---|
+| `024-ticket-api-contract-and-operations` | Ticket API contract and operations | Generated OpenAPI, API integration tests, failure responses, and operational notes match stabilized ticket lifecycle and concurrency behavior. |
 
 ## Future Feature Roadmap
 
@@ -120,7 +122,6 @@ artifacts only when the feature becomes the next implementation target.
 
 | Candidate | Phase | Focus | Start After | Notes |
 |---|---|---|---|---|
-| `024-ticket-api-contract-and-operations` | Phase 2 | Ticket API contract, OpenAPI coverage, integration tests, operational notes, and failure response consistency. | Ticket lifecycle and concurrency behavior stabilized | Keep generated OpenAPI authoritative; avoid hand-written endpoint catalogs. |
 | `025-traffic-pattern-extraction` | Phase 3 | Cross-flow backend patterns for capacity allocation, hold expiration, retry safety, lock/claim strategy, queue/backpressure, and lifecycle/state machine design. | Timeslot and ticket traffic both implemented and tested | Extract patterns from working flows; do not introduce speculative shared abstractions before this point. |
 
 Future runtime-split, outbox/message-broker, payments, notifications, external

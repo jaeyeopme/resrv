@@ -32,8 +32,15 @@ class TicketingApiExceptionHandler {
     ProblemDetail handleIdempotency(
             final TicketPurchaseIdempotencyException exception, final HttpServletRequest request) {
         final var problem = problem(HttpStatus.BAD_REQUEST, exception.getMessage(), request);
-        problem.setProperty("reason", exception.reason().name());
+        problem.setProperty("reason", publicReason(exception.reason()));
         return problem;
+    }
+
+    private static String publicReason(final TicketPurchaseIdempotencyException.Reason reason) {
+        return switch (reason) {
+            case INVALID_RETRY -> "invalid_retry";
+            case EXPIRED_KEY -> "expired_key";
+        };
     }
 
     private static ProblemDetail problem(

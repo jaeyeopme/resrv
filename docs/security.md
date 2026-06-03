@@ -98,6 +98,11 @@ Timeslot public booking hold endpoint:
 
 - `POST /api/public/businesses/*/reservations`
 
+Ticketing protected endpoints are served by the platform runtime. Generated OpenAPI remains the
+source of truth for exact paths and schemas; at a high level, ticketing exposes authenticated
+selected-seat purchase confirmation, customer ticket history, and owner/staff business purchase
+activity.
+
 The public booking flow uses the business slug only at the HTTP/API boundary. Public response bodies
 and generated OpenAPI schemas must not expose the internal business UUID or customer account id.
 After server-side slug resolution, timeslot may use the internal business UUID for owned data
@@ -159,11 +164,31 @@ Business reservation operations keep business-membership authorization semantics
 active owner/staff access receives `403`; a reservation id outside the addressed business is treated
 as not found for that route.
 
+## Ticketing Authorization
+
+Ticket purchase confirmation requires an authenticated customer account. Unavailable selected seats
+return `409 Conflict` without exposing the customer who owns the seats.
+
+Customer ticket history is scoped to the authenticated customer and includes only completed
+successful purchases for that account.
+
+Business ticket activity requires active owner/staff access to the organizing business through
+server-side membership checks. Missing ticket events and existing events outside caller authority
+return the same not-found style public response. Internal handling may distinguish the causes, but
+public problem details must not reveal whether an IDOR-sensitive ticket event exists.
+
+Ticket purchase idempotency keys are customer-scoped. Invalid same-key retries and expired keys use
+public problem reasons `invalid_retry` and `expired_key`. The replay window is 24 hours; expired
+records remain retained until 30 days after replay expiry. Cleanup after retention must not be a
+precondition for purchase correctness.
+
 ## Data Boundary
 
-Timeslot rows carry `business_id` and `customer_account_id` UUIDs. Business existence and active
-status are resolved through platform lookup ports. The current migrations do not use cross-schema
-foreign keys from timeslot to platform.
+Timeslot rows carry `business_id` and `customer_account_id` UUIDs. Ticketing rows carry
+`business_id`, ticketing-owned ids, customer account ids, purchased seat ids, and customer-scoped
+idempotency keys. Business existence, active status, and access decisions are resolved through
+platform lookup or access ports. The current migrations do not use cross-schema foreign keys from
+timeslot or ticketing to platform.
 
 ## Deferred Hardening
 

@@ -103,13 +103,12 @@ payload `400`, IDOR-safe customer reservation not-found responses, business-acce
 same-slot/same-reservation contention with exactly one successful transition across repeated
 attempts.
 
-Platform runtime packaging tests verify that the canonical platform runtime serves booking settings
-and public booking discovery endpoints, assembles ticketing beans without public endpoints, applies
-platform, timeslot, and ticketing schemas, rejects inactive accounts for protected booking actions,
-preserves non-enumerating wrong-business public slot lookup responses, exposes platform plus booking
-endpoint groups from generated OpenAPI, excludes unsupported capability groups, verifies
-public/private schema boundaries, and checks that human docs do not duplicate a hand-written
-endpoint catalog.
+Platform runtime packaging tests verify that the canonical platform runtime serves booking settings,
+public booking discovery, and ticketing API groups; applies platform, timeslot, and ticketing
+schemas; rejects inactive accounts for protected booking actions; preserves non-enumerating
+wrong-business public slot lookup responses; exposes platform, booking, and ticketing endpoint
+groups from generated OpenAPI; excludes unsupported capability groups; verifies public/private
+schema boundaries; and checks that human docs do not duplicate a hand-written endpoint catalog.
 
 Operational readiness tests verify public liveness/readiness probes, database-backed readiness,
 Flyway migration history visibility for platform, timeslot, and ticketing migrations, generated
@@ -121,6 +120,23 @@ coverage, representative response documentation for success and failure statuses
 schemas for public discovery, customer history, business-scoped reservations, and owner-only
 membership administration. When endpoint documentation changes, tests should verify generated
 summaries or response descriptions rather than inspecting controller annotations directly.
+
+Ticketing API tests run through the platform runtime because ticketing has no standalone backend
+runtime. Focused ticketing verification is:
+
+```bash
+./gradlew :platform:test --tests '*Ticketing*'
+```
+
+Those tests cover generated OpenAPI for purchase confirmation, customer ticket history, and business
+ticket activity; unavailable selected seats as `409 Conflict`; idempotency problem reasons
+`invalid_retry` and `expired_key`; and non-enumerating not-found responses for missing versus
+unauthorized business activity probes. Run `./gradlew :ticketing:test` only when ticketing
+application, domain, or persistence behavior changes.
+
+Ticket purchase idempotency uses a 24-hour replay window. Expired idempotency records remain retained
+until 30 days after replay expiry and may be cleaned later, but cleanup is not required for purchase
+correctness.
 
 Account security hardening tests verify:
 

@@ -99,7 +99,7 @@ final class TicketPurchaseIdempotencyApiIntegrationTest {
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(purchaseBody("purchase-key", secondSeatId)))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.reason").value("INVALID_RETRY"));
+                .andExpect(jsonPath("$.reason").value("invalid_retry"));
 
         jdbcTemplate.update(
                 """
@@ -118,7 +118,7 @@ final class TicketPurchaseIdempotencyApiIntegrationTest {
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(purchaseBody("purchase-key", firstSeatId)))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.reason").value("EXPIRED_KEY"));
+                .andExpect(jsonPath("$.reason").value("expired_key"));
 
         mockMvc.perform(
                         post("/api/ticketing/events/{ticketEventId}/purchases", eventId)

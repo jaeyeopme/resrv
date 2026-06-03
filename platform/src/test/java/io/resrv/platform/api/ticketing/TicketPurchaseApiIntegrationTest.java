@@ -90,7 +90,7 @@ final class TicketPurchaseApiIntegrationTest {
                                 .content(
                                         purchaseBody(
                                                 "other-purchase-key", firstSeatId, secondSeatId)))
-                .andExpect(status().isBadRequest())
+                .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.outcome").value("UNAVAILABLE_SEATS"));
 
         assertThat(
