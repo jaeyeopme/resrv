@@ -6,6 +6,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import io.resrv.shared.kernel.Timezone;
 import io.resrv.ticketing.domain.event.TicketEventProfile;
 import io.resrv.ticketing.domain.event.TicketSaleWindow;
+import io.resrv.ticketing.support.TicketingTestFixtures;
 import java.time.Instant;
 import org.junit.jupiter.api.Test;
 
@@ -45,17 +46,10 @@ final class TicketEventValidationServiceTest {
     }
 
     private static TicketEventProfile profile() {
-        return new TicketEventProfile(
-                "Concert",
-                Instant.parse("2026-06-04T00:00:00Z"),
-                Instant.parse("2026-06-04T02:00:00Z"),
-                SEOUL);
+        return TicketingTestFixtures.eventProfile("Concert");
     }
 
     private static TicketSaleWindow saleWindow() {
-        return new TicketSaleWindow(
-                Instant.parse("2026-06-01T00:00:00Z"),
-                Instant.parse("2026-06-03T00:00:00Z"),
-                SEOUL);
+        return TicketingTestFixtures.saleWindow();
     }
 }

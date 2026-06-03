@@ -3,8 +3,6 @@ package io.resrv.ticketing.application.inventory;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import io.resrv.shared.kernel.BusinessId;
-import io.resrv.shared.kernel.Timezone;
 import io.resrv.ticketing.application.event.out.TicketEventQueryPort;
 import io.resrv.ticketing.application.inventory.in.CreateTicketInventoryCommand;
 import io.resrv.ticketing.application.inventory.in.GetTicketInventoryQuery;
@@ -12,10 +10,9 @@ import io.resrv.ticketing.application.inventory.out.TicketInventoryCommandPort;
 import io.resrv.ticketing.application.inventory.out.TicketInventoryQueryPort;
 import io.resrv.ticketing.domain.event.TicketEvent;
 import io.resrv.ticketing.domain.event.TicketEventId;
-import io.resrv.ticketing.domain.event.TicketEventProfile;
-import io.resrv.ticketing.domain.event.TicketSaleWindow;
 import io.resrv.ticketing.domain.inventory.TicketInventory;
 import io.resrv.ticketing.domain.inventory.TicketInventoryId;
+import io.resrv.ticketing.support.TicketingTestFixtures;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
@@ -28,7 +25,6 @@ import org.junit.jupiter.api.Test;
 final class TicketInventorySetupServiceTest {
 
     private static final Instant NOW = Instant.parse("2026-06-03T00:00:00Z");
-    private static final Timezone SEOUL = Timezone.of("Asia/Seoul");
 
     private final InMemoryEventPort eventPort = new InMemoryEventPort();
     private final InMemoryInventoryPort inventoryPort = new InMemoryInventoryPort();
@@ -73,18 +69,7 @@ final class TicketInventorySetupServiceTest {
     }
 
     private static TicketEvent activeEvent() {
-        return TicketEvent.create(
-                BusinessId.create(),
-                new TicketEventProfile(
-                        "Concert",
-                        Instant.parse("2026-06-04T00:00:00Z"),
-                        Instant.parse("2026-06-04T02:00:00Z"),
-                        SEOUL),
-                new TicketSaleWindow(
-                        Instant.parse("2026-06-01T00:00:00Z"),
-                        Instant.parse("2026-06-03T00:00:00Z"),
-                        SEOUL),
-                NOW);
+        return TicketingTestFixtures.event(NOW);
     }
 
     private static final class InMemoryEventPort implements TicketEventQueryPort {

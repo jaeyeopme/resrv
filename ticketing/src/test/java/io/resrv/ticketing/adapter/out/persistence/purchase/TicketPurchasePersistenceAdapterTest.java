@@ -3,18 +3,15 @@ package io.resrv.ticketing.adapter.out.persistence.purchase;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import io.resrv.shared.kernel.AccountId;
-import io.resrv.shared.kernel.BusinessId;
-import io.resrv.shared.kernel.Timezone;
 import io.resrv.ticketing.application.event.out.TicketEventCommandPort;
 import io.resrv.ticketing.application.purchase.out.TicketPurchaseCommandPort;
 import io.resrv.ticketing.application.purchase.out.TicketPurchaseQueryPort;
 import io.resrv.ticketing.application.seat.out.TicketSeatCommandPort;
 import io.resrv.ticketing.application.seat.out.TicketSeatQueryPort;
 import io.resrv.ticketing.domain.event.TicketEvent;
-import io.resrv.ticketing.domain.event.TicketEventProfile;
-import io.resrv.ticketing.domain.event.TicketSaleWindow;
 import io.resrv.ticketing.domain.purchase.TicketPurchase;
 import io.resrv.ticketing.domain.seat.TicketSeat;
+import io.resrv.ticketing.support.TicketingTestFixtures;
 import java.time.Instant;
 import java.util.List;
 import org.junit.jupiter.api.Test;
@@ -80,18 +77,6 @@ class TicketPurchasePersistenceAdapterTest {
     }
 
     private static TicketEvent event() {
-        final var timezone = Timezone.of("Asia/Seoul");
-        return TicketEvent.create(
-                BusinessId.create(),
-                new TicketEventProfile(
-                        "Concert",
-                        Instant.parse("2026-06-04T00:00:00Z"),
-                        Instant.parse("2026-06-04T02:00:00Z"),
-                        timezone),
-                new TicketSaleWindow(
-                        Instant.parse("2026-06-01T00:00:00Z"),
-                        Instant.parse("2026-06-03T01:00:00Z"),
-                        timezone),
-                NOW);
+        return TicketingTestFixtures.event("Concert", Instant.parse("2026-06-03T01:00:00Z"), NOW);
     }
 }

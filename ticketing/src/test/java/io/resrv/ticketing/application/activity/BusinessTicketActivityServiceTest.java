@@ -5,15 +5,13 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import io.resrv.shared.kernel.AccountId;
 import io.resrv.shared.kernel.BusinessId;
-import io.resrv.shared.kernel.Timezone;
 import io.resrv.ticketing.application.activity.in.BusinessTicketActivityQuery;
 import io.resrv.ticketing.application.activity.out.TicketPurchaseActivityQueryPort;
 import io.resrv.ticketing.application.platform.out.TicketingBusinessAccessPort;
 import io.resrv.ticketing.application.purchase.TicketPurchaseAccessDeniedException;
 import io.resrv.ticketing.domain.event.TicketEvent;
 import io.resrv.ticketing.domain.event.TicketEventId;
-import io.resrv.ticketing.domain.event.TicketEventProfile;
-import io.resrv.ticketing.domain.event.TicketSaleWindow;
+import io.resrv.ticketing.support.TicketingTestFixtures;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
@@ -95,18 +93,9 @@ final class BusinessTicketActivityServiceTest {
     }
 
     private static TicketEvent event() {
-        final var timezone = Timezone.of("Asia/Seoul");
-        return TicketEvent.create(
-                BusinessId.create(),
-                new TicketEventProfile(
-                        "Concert",
-                        Instant.parse("2026-06-04T00:00:00Z"),
-                        Instant.parse("2026-06-04T02:00:00Z"),
-                        timezone),
-                new TicketSaleWindow(
-                        Instant.parse("2026-06-01T00:00:00Z"),
-                        Instant.parse("2026-06-03T01:00:00Z"),
-                        timezone),
+        return TicketingTestFixtures.event(
+                "Concert",
+                Instant.parse("2026-06-03T01:00:00Z"),
                 Instant.parse("2026-06-03T00:00:00Z"));
     }
 }

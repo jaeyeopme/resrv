@@ -2,16 +2,13 @@ package io.resrv.ticketing.adapter.out.persistence.inventory;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import io.resrv.shared.kernel.BusinessId;
-import io.resrv.shared.kernel.Timezone;
 import io.resrv.ticketing.application.event.out.TicketEventCommandPort;
 import io.resrv.ticketing.application.inventory.out.TicketInventoryCommandPort;
 import io.resrv.ticketing.application.inventory.out.TicketInventoryQueryPort;
 import io.resrv.ticketing.domain.event.TicketEvent;
-import io.resrv.ticketing.domain.event.TicketEventProfile;
-import io.resrv.ticketing.domain.event.TicketSaleWindow;
 import io.resrv.ticketing.domain.inventory.TicketInventory;
 import io.resrv.ticketing.domain.inventory.TicketInventoryTier;
+import io.resrv.ticketing.support.TicketingTestFixtures;
 import java.time.Instant;
 import java.util.List;
 import org.junit.jupiter.api.Test;
@@ -31,7 +28,6 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
 class TicketInventoryPersistenceAdapterTest {
 
     private static final Instant NOW = Instant.parse("2026-06-03T00:00:00Z");
-    private static final Timezone SEOUL = Timezone.of("Asia/Seoul");
 
     @Container @ServiceConnection
     static final PostgreSQLContainer postgres = new PostgreSQLContainer("postgres:16-alpine");
@@ -65,17 +61,6 @@ class TicketInventoryPersistenceAdapterTest {
     }
 
     private static TicketEvent event() {
-        return TicketEvent.create(
-                BusinessId.create(),
-                new TicketEventProfile(
-                        "Concert",
-                        Instant.parse("2026-06-04T00:00:00Z"),
-                        Instant.parse("2026-06-04T02:00:00Z"),
-                        SEOUL),
-                new TicketSaleWindow(
-                        Instant.parse("2026-06-01T00:00:00Z"),
-                        Instant.parse("2026-06-03T00:00:00Z"),
-                        SEOUL),
-                NOW);
+        return TicketingTestFixtures.event(NOW);
     }
 }

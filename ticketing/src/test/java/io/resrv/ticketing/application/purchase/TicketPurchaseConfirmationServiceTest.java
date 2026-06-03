@@ -4,20 +4,17 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import io.resrv.shared.kernel.AccountId;
-import io.resrv.shared.kernel.BusinessId;
-import io.resrv.shared.kernel.Timezone;
 import io.resrv.ticketing.application.purchase.in.ConfirmTicketPurchaseCommand;
 import io.resrv.ticketing.application.purchase.out.TicketPurchaseQueryPort;
 import io.resrv.ticketing.application.seat.out.TicketSeatCommandPort;
 import io.resrv.ticketing.application.seat.out.TicketSeatQueryPort;
 import io.resrv.ticketing.domain.event.TicketEvent;
 import io.resrv.ticketing.domain.event.TicketEventId;
-import io.resrv.ticketing.domain.event.TicketEventProfile;
-import io.resrv.ticketing.domain.event.TicketSaleWindow;
 import io.resrv.ticketing.domain.purchase.TicketPurchase;
 import io.resrv.ticketing.domain.purchase.TicketPurchaseId;
 import io.resrv.ticketing.domain.seat.TicketSeat;
 import io.resrv.ticketing.domain.seat.TicketSeatId;
+import io.resrv.ticketing.support.TicketingTestFixtures;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
@@ -54,18 +51,7 @@ final class TicketPurchaseConfirmationServiceTest {
                 fixture.seats.getFirst().purchase(TicketPurchaseId.create(), NOW.minusSeconds(60));
         fixture.seats.set(0, soldSeat);
 
-        assertThatThrownBy(
-                        () ->
-                                fixture.service.confirm(
-                                        new ConfirmTicketPurchaseCommand(
-                                                fixture.event.id(),
-                                                fixture.customerId,
-                                                fixture.seats.stream()
-                                                        .map(TicketSeat::id)
-                                                        .toList())))
-                .isInstanceOf(TicketPurchaseValidationException.class)
-                .hasMessage("Selected seats are unavailable");
-        assertThat(fixture.savedPurchase).isNull();
+        assertConfirmRejected(fixture, "Selected seats are unavailable");
     }
 
     @Test
@@ -73,18 +59,7 @@ final class TicketPurchaseConfirmationServiceTest {
         final var fixture =
                 Fixture.create(Clock.fixed(Instant.parse("2026-05-31T23:59:59Z"), ZoneOffset.UTC));
 
-        assertThatThrownBy(
-                        () ->
-                                fixture.service.confirm(
-                                        new ConfirmTicketPurchaseCommand(
-                                                fixture.event.id(),
-                                                fixture.customerId,
-                                                fixture.seats.stream()
-                                                        .map(TicketSeat::id)
-                                                        .toList())))
-                .isInstanceOf(TicketPurchaseValidationException.class)
-                .hasMessage("Ticket event is not available for sale");
-        assertThat(fixture.savedPurchase).isNull();
+        assertConfirmRejected(fixture, "Ticket event is not available for sale");
     }
 
     @Test
@@ -92,6 +67,10 @@ final class TicketPurchaseConfirmationServiceTest {
         final var fixture =
                 Fixture.create(Clock.fixed(Instant.parse("2026-06-03T01:00:00Z"), ZoneOffset.UTC));
 
+        assertConfirmRejected(fixture, "Ticket event is not available for sale");
+    }
+
+    private static void assertConfirmRejected(final Fixture fixture, final String message) {
         assertThatThrownBy(
                         () ->
                                 fixture.service.confirm(
@@ -102,7 +81,7 @@ final class TicketPurchaseConfirmationServiceTest {
                                                         .map(TicketSeat::id)
                                                         .toList())))
                 .isInstanceOf(TicketPurchaseValidationException.class)
-                .hasMessage("Ticket event is not available for sale");
+                .hasMessage(message);
         assertThat(fixture.savedPurchase).isNull();
     }
 
@@ -196,19 +175,8 @@ final class TicketPurchaseConfirmationServiceTest {
         }
 
         private static TicketEvent event() {
-            final var timezone = Timezone.of("Asia/Seoul");
-            return TicketEvent.create(
-                    BusinessId.create(),
-                    new TicketEventProfile(
-                            "Concert",
-                            Instant.parse("2026-06-04T00:00:00Z"),
-                            Instant.parse("2026-06-04T02:00:00Z"),
-                            timezone),
-                    new TicketSaleWindow(
-                            Instant.parse("2026-06-01T00:00:00Z"),
-                            Instant.parse("2026-06-03T01:00:00Z"),
-                            timezone),
-                    NOW);
+            return TicketingTestFixtures.event(
+                    "Concert", Instant.parse("2026-06-03T01:00:00Z"), NOW);
         }
     }
 }

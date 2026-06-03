@@ -2,13 +2,10 @@ package io.resrv.ticketing.adapter.out.persistence.event;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import io.resrv.shared.kernel.BusinessId;
-import io.resrv.shared.kernel.Timezone;
 import io.resrv.ticketing.application.event.out.TicketEventCommandPort;
 import io.resrv.ticketing.application.event.out.TicketEventQueryPort;
 import io.resrv.ticketing.domain.event.TicketEvent;
-import io.resrv.ticketing.domain.event.TicketEventProfile;
-import io.resrv.ticketing.domain.event.TicketSaleWindow;
+import io.resrv.ticketing.support.TicketingTestFixtures;
 import java.time.Instant;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -27,7 +24,6 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
 class TicketEventPersistenceAdapterTest {
 
     private static final Instant NOW = Instant.parse("2026-06-03T00:00:00Z");
-    private static final Timezone SEOUL = Timezone.of("Asia/Seoul");
 
     @Container @ServiceConnection
     static final PostgreSQLContainer postgres = new PostgreSQLContainer("postgres:16-alpine");
@@ -46,7 +42,7 @@ class TicketEventPersistenceAdapterTest {
         assertThat(found.id()).isEqualTo(event.id());
         assertThat(found.businessId()).isEqualTo(event.businessId());
         assertThat(found.profile().title()).isEqualTo("Concert");
-        assertThat(found.profile().timezone()).isEqualTo(SEOUL);
+        assertThat(found.profile().timezone()).isEqualTo(TicketingTestFixtures.SEOUL);
         assertThat(found.saleWindow().startAt()).isEqualTo(event.saleWindow().startAt());
         assertThat(found.createdAt()).isEqualTo(NOW);
     }
@@ -64,17 +60,6 @@ class TicketEventPersistenceAdapterTest {
     }
 
     private static TicketEvent event(final String title) {
-        return TicketEvent.create(
-                BusinessId.create(),
-                new TicketEventProfile(
-                        title,
-                        Instant.parse("2026-06-04T00:00:00Z"),
-                        Instant.parse("2026-06-04T02:00:00Z"),
-                        SEOUL),
-                new TicketSaleWindow(
-                        Instant.parse("2026-06-01T00:00:00Z"),
-                        Instant.parse("2026-06-03T00:00:00Z"),
-                        SEOUL),
-                NOW);
+        return TicketingTestFixtures.event(title, NOW);
     }
 }
