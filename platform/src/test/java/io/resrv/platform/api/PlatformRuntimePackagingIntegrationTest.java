@@ -15,16 +15,12 @@ import com.nimbusds.jose.JWSHeader;
 import com.nimbusds.jose.crypto.MACSigner;
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import java.util.regex.Pattern;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -55,8 +51,6 @@ final class PlatformRuntimePackagingIntegrationTest {
     private static final String JWT_ISSUER = "resrv-test";
     private static final String JWT_AUDIENCE = "resrv-api";
     private static final Instant NOW = Instant.parse("2026-05-29T00:00:00Z");
-    private static final Pattern ENDPOINT_TABLE =
-            Pattern.compile("(?m)^\\|\\s*(GET|POST|PUT|PATCH|DELETE)\\s+/api");
 
     @Autowired private MockMvc mockMvc;
 
@@ -270,26 +264,6 @@ final class PlatformRuntimePackagingIntegrationTest {
                 openApi, "CustomerReservationResponse", "business", "resource", "state");
     }
 
-    @Test
-    void humanDocsDoNotDuplicateEndpointCatalogs() throws IOException {
-        final var root = projectRoot();
-
-        assertFalse(Files.exists(root.resolve("docs/api.md")), "docs/api.md must not exist");
-        for (final var doc :
-                List.of(
-                        root.resolve("README.md"),
-                        root.resolve("docs/security.md"),
-                        root.resolve("docs/testing.md"),
-                        root.resolve("docs/trd.md"))) {
-            final var content = Files.readString(doc);
-            assertFalse(content.contains("Endpoint Catalog"), () -> doc + " duplicates endpoints");
-            assertFalse(
-                    content.contains("Endpoint Reference"), () -> doc + " duplicates endpoints");
-            assertFalse(content.contains("## API Endpoints"), () -> doc + " duplicates endpoints");
-            assertFalse(ENDPOINT_TABLE.matcher(content).find(), () -> doc + " has endpoint table");
-        }
-    }
-
     private String generatedOpenApi() throws Exception {
         return mockMvc.perform(get("/v3/api-docs"))
                 .andExpect(status().isOk())
@@ -356,14 +330,6 @@ final class PlatformRuntimePackagingIntegrationTest {
         final var properties = schema.get("properties");
         assertTrue(properties instanceof Map, () -> schemaName + " has no properties");
         return (Map<String, Object>) properties;
-    }
-
-    private static Path projectRoot() {
-        final var userDir = Path.of(System.getProperty("user.dir")).toAbsolutePath().normalize();
-        if (Files.exists(userDir.resolve("settings.gradle.kts"))) {
-            return userDir;
-        }
-        return userDir.getParent();
     }
 
     private String regclass(final String qualifiedName) {

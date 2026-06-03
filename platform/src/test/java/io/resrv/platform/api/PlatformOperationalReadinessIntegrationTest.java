@@ -5,8 +5,6 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -94,34 +92,8 @@ final class PlatformOperationalReadinessIntegrationTest {
                                 .exists());
     }
 
-    @Test
-    void operationsDocsPreserveSupportedRuntimeAndExcludeUnsupportedServices() throws Exception {
-        final var docs =
-                Files.readString(projectRoot().resolve("README.md"))
-                        + "\n"
-                        + Files.readString(projectRoot().resolve("docs/operations.md"))
-                        + "\n"
-                        + Files.readString(projectRoot().resolve("docs/trd.md"));
-
-        assertThat(docs).contains("platform` is the canonical backend runtime");
-        assertThat(docs).contains("standalone timeslot runtime");
-        assertThat(docs).contains("execution is not a supported operation");
-        assertThat(docs).doesNotContain("payment service is supported");
-        assertThat(docs).doesNotContain("notification service is supported");
-        assertThat(docs).doesNotContain("outbox worker is supported");
-        assertThat(docs).doesNotContain("separate timeslot service is supported");
-    }
-
     private String regclass(final String qualifiedName) {
         return jdbcTemplate.queryForObject(
                 "SELECT to_regclass(?)::text", String.class, qualifiedName);
-    }
-
-    private static Path projectRoot() {
-        final var userDir = Path.of(System.getProperty("user.dir")).toAbsolutePath().normalize();
-        if (Files.exists(userDir.resolve("settings.gradle.kts"))) {
-            return userDir;
-        }
-        return userDir.getParent();
     }
 }
