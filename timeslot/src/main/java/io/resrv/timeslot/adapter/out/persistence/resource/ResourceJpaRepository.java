@@ -10,7 +10,5 @@ interface ResourceJpaRepository extends CrudRepository<ResourceJpaEntity, UUID> 
 
     Optional<ResourceJpaEntity> findByBusinessIdAndId(UUID businessId, UUID id);
 
-    Optional<ResourceJpaEntity> findByBusinessIdAndSlug(UUID businessId, String slug);
-
     List<ResourceJpaEntity> findByBusinessIdAndStatus(UUID businessId, ResourceStatus status);
 }

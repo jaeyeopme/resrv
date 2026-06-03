@@ -102,7 +102,7 @@ module boundary that keeps those APIs out of the platform implementation module.
 Timeslot uses:
 
 - `BusinessBookingSettings` for defaults.
-- `Resource` for bookable capacity.
+- `Resource` for bookable capacity, identified externally and internally by stable resource ID.
 - `EffectiveBookingPolicy` to resolve business defaults and resource overrides.
 - Weekly schedules and date override schedules.
 - Virtual slots encoded as opaque `slotId`.
@@ -117,6 +117,11 @@ policy, and current time before persistence.
 
 Public booking discovery remains reachable for anonymous callers, but inactive businesses or
 resources produce no bookable resource or slot results.
+
+Resource names are display/search metadata and are not unique within a business. Timeslot does not
+expose resource slugs, handles, or URL-safe resource keys. Business slug remains platform-owned and
+continues to scope public booking discovery; resource-scoped public discovery uses business slug
+plus resource ID.
 
 ## Ticketing Context
 

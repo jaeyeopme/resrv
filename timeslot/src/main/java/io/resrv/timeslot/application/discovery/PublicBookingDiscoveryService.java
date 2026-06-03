@@ -186,7 +186,6 @@ public class PublicBookingDiscoveryService
                 resource.id().value(),
                 businessSlug,
                 resource.name().value(),
-                resource.description(),
-                resource.slug().value());
+                resource.description());
     }
 }

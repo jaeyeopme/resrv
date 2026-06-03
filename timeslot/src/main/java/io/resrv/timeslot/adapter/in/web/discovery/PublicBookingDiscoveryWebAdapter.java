@@ -115,15 +115,14 @@ class PublicBookingDiscoveryWebAdapter implements PublicBookingDiscoveryApiDocs 
     }
 
     record PublicResourceResponse(
-            UUID resourceId, String businessSlug, String name, String description, String slug) {
+            UUID resourceId, String businessSlug, String name, String description) {
 
         static PublicResourceResponse from(final PublicResourceDiscoveryResult result) {
             return new PublicResourceResponse(
                     result.resourceId(),
                     result.businessSlug(),
                     result.name(),
-                    result.description(),
-                    result.slug());
+                    result.description());
         }
     }
 

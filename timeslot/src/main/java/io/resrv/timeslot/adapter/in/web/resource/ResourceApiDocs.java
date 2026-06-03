@@ -16,8 +16,7 @@ interface ResourceApiDocs {
                 @ApiResponse(responseCode = "201", description = "Resource created"),
                 @ApiResponse(responseCode = "400", description = "Validation failure"),
                 @ApiResponse(responseCode = "401", description = "Unauthorized"),
-                @ApiResponse(responseCode = "403", description = "Forbidden"),
-                @ApiResponse(responseCode = "409", description = "Duplicate resource slug")
+                @ApiResponse(responseCode = "403", description = "Forbidden")
             })
     ResponseEntity<ResourceWebAdapter.ResourceResponse> create(
             UUID businessId,
@@ -31,8 +30,7 @@ interface ResourceApiDocs {
                 @ApiResponse(responseCode = "400", description = "Validation failure"),
                 @ApiResponse(responseCode = "401", description = "Unauthorized"),
                 @ApiResponse(responseCode = "403", description = "Forbidden"),
-                @ApiResponse(responseCode = "404", description = "Resource not found"),
-                @ApiResponse(responseCode = "409", description = "Duplicate resource slug")
+                @ApiResponse(responseCode = "404", description = "Resource not found")
             })
     ResourceWebAdapter.ResourceResponse replace(
             UUID businessId,

@@ -26,7 +26,6 @@ import io.resrv.timeslot.application.settings.out.BusinessBookingSettingsQueryPo
 import io.resrv.timeslot.domain.resource.Resource;
 import io.resrv.timeslot.domain.resource.ResourceBookingOverrides;
 import io.resrv.timeslot.domain.resource.ResourceName;
-import io.resrv.timeslot.domain.resource.ResourceSlug;
 import io.resrv.timeslot.domain.resource.ResourceStatus;
 import io.resrv.timeslot.domain.settings.BusinessBookingSettings;
 import io.resrv.timeslot.domain.settings.CancellationWindow;
@@ -46,7 +45,6 @@ import org.mockito.Mockito;
 class ResourceServiceTest {
 
     private static final Instant NOW = Instant.parse("2026-01-01T00:00:00Z");
-    private static final Instant LATER = Instant.parse("2026-01-02T00:00:00Z");
     private static final BusinessId BUSINESS_ID = BusinessId.create();
 
     private BusinessBookingSettingsQueryPort settingsQueryPort;
@@ -80,36 +78,27 @@ class ResourceServiceTest {
                         () ->
                                 service.create(
                                         new CreateResourceCommand(
-                                                BUSINESS_ID,
-                                                "Room A",
-                                                "room-a",
-                                                null,
-                                                null,
-                                                null,
-                                                null)));
+                                                BUSINESS_ID, "Room A", null, null, null, null)));
 
         assertEquals(
                 "Booking settings are required for business: " + BUSINESS_ID.value(),
                 exception.getMessage());
-        verify(queryPort, never()).findByBusinessIdAndSlug(any(), any());
+        verifyNoInteractions(queryPort);
         verify(commandPort, never()).save(any());
     }
 
     @Test
     void createsResourceWithOverrides() {
-        final var slug = new ResourceSlug("room-a");
         when(settingsQueryPort.findByBusinessId(BUSINESS_ID))
                 .thenReturn(Optional.of(existingSettings()));
-        when(queryPort.findByBusinessIdAndSlug(BUSINESS_ID, slug)).thenReturn(Optional.empty());
 
         final var result =
                 service.create(
                         new CreateResourceCommand(
-                                BUSINESS_ID, " Room A ", "room-a", "  Window side  ", 30, 10, 120));
+                                BUSINESS_ID, " Room A ", "  Window side  ", 30, 10, 120));
 
         assertEquals(BUSINESS_ID.value(), result.businessId());
         assertEquals("Room A", result.name());
-        assertEquals("room-a", result.slug());
         assertEquals("Window side", result.description());
         assertEquals(ResourceStatus.ACTIVE, result.status());
         assertEquals(30, result.slotDurationMinutes());
@@ -124,7 +113,6 @@ class ResourceServiceTest {
         assertEquals(saved.id().value(), result.id());
         assertEquals(BUSINESS_ID, saved.businessId());
         assertEquals(new ResourceName("Room A"), saved.name());
-        assertEquals(slug, saved.slug());
         assertEquals("Window side", saved.description());
         assertEquals(ResourceStatus.ACTIVE, saved.status());
         assertEquals(new SlotDuration(30), saved.bookingOverrides().slotDuration());
@@ -133,16 +121,25 @@ class ResourceServiceTest {
     }
 
     @Test
-    void createsResourceWithNoOverrides() {
-        final var slug = new ResourceSlug("room-b");
+    void createsDuplicateNameResources() {
         when(settingsQueryPort.findByBusinessId(BUSINESS_ID))
                 .thenReturn(Optional.of(existingSettings()));
-        when(queryPort.findByBusinessIdAndSlug(BUSINESS_ID, slug)).thenReturn(Optional.empty());
+
+        service.create(new CreateResourceCommand(BUSINESS_ID, "Room A", null, null, null, null));
+        service.create(new CreateResourceCommand(BUSINESS_ID, "Room A", null, null, null, null));
+
+        verify(commandPort, Mockito.times(2)).save(any());
+        verifyNoInteractions(queryPort);
+    }
+
+    @Test
+    void createsResourceWithNoOverrides() {
+        when(settingsQueryPort.findByBusinessId(BUSINESS_ID))
+                .thenReturn(Optional.of(existingSettings()));
 
         final var result =
                 service.create(
-                        new CreateResourceCommand(
-                                BUSINESS_ID, "Room B", "room-b", "  ", null, null, null));
+                        new CreateResourceCommand(BUSINESS_ID, "Room B", "  ", null, null, null));
 
         assertNull(result.description());
         assertNull(result.slotDurationMinutes());
@@ -154,44 +151,6 @@ class ResourceServiceTest {
         final var saved = captor.getValue();
         assertEquals(ResourceBookingOverrides.none(), saved.bookingOverrides());
         assertNull(saved.description());
-    }
-
-    @Test
-    void duplicateSlugThrowsAndDoesNotSave() {
-        final var slug = new ResourceSlug("room-a");
-        final var existing =
-                Resource.create(
-                        BUSINESS_ID,
-                        new ResourceName("Room A"),
-                        slug,
-                        null,
-                        ResourceBookingOverrides.none(),
-                        NOW);
-        when(settingsQueryPort.findByBusinessId(BUSINESS_ID))
-                .thenReturn(Optional.of(existingSettings()));
-        when(queryPort.findByBusinessIdAndSlug(BUSINESS_ID, slug))
-                .thenReturn(Optional.of(existing));
-
-        final var exception =
-                assertThrows(
-                        ResourceSlugAlreadyExistsException.class,
-                        () ->
-                                service.create(
-                                        new CreateResourceCommand(
-                                                BUSINESS_ID,
-                                                "Room A",
-                                                "room-a",
-                                                null,
-                                                null,
-                                                null,
-                                                null)));
-
-        assertEquals(BUSINESS_ID, exception.businessId());
-        assertEquals(slug, exception.slug());
-        assertEquals(
-                "Resource slug already exists for business " + BUSINESS_ID.value() + ": room-a",
-                exception.getMessage());
-        verify(commandPort, never()).save(any());
     }
 
     @Test
@@ -214,13 +173,7 @@ class ResourceServiceTest {
     @Test
     void listActiveReturnsActiveResourcesWhenBusinessIsActive() {
         when(businessLookupPort.findActiveById(BUSINESS_ID))
-                .thenReturn(
-                        Optional.of(
-                                new BusinessLookupPort.BusinessView(
-                                        BUSINESS_ID,
-                                        "Salon A",
-                                        "salon-a",
-                                        Timezone.of("Asia/Seoul"))));
+                .thenReturn(Optional.of(activeBusiness()));
         when(queryPort.findActiveByBusinessId(BUSINESS_ID))
                 .thenReturn(List.of(resource(ResourceBookingOverrides.none())));
 
@@ -238,35 +191,9 @@ class ResourceServiceTest {
                         () ->
                                 service.create(
                                         new CreateResourceCommand(
-                                                BUSINESS_ID,
-                                                " ",
-                                                "room-a",
-                                                null,
-                                                null,
-                                                null,
-                                                null)));
+                                                BUSINESS_ID, " ", null, null, null, null)));
 
         assertEquals("Resource name must be 1-100 characters", exception.getMessage());
-        verifyNoPorts();
-    }
-
-    @Test
-    void invalidSlugFailsBeforePorts() {
-        final var exception =
-                assertThrows(
-                        IllegalArgumentException.class,
-                        () ->
-                                service.create(
-                                        new CreateResourceCommand(
-                                                BUSINESS_ID,
-                                                "Room A",
-                                                "room--a",
-                                                null,
-                                                null,
-                                                null,
-                                                null)));
-
-        assertEquals("Resource slug must be 3-63 lowercase URL characters", exception.getMessage());
         verifyNoPorts();
     }
 
@@ -278,13 +205,7 @@ class ResourceServiceTest {
                         () ->
                                 service.create(
                                         new CreateResourceCommand(
-                                                BUSINESS_ID,
-                                                "Room A",
-                                                "room-a",
-                                                null,
-                                                7,
-                                                null,
-                                                null)));
+                                                BUSINESS_ID, "Room A", null, 7, null, null)));
 
         assertEquals(
                 "Slot duration must be 5-480 minutes in 5 minute increments",
@@ -302,7 +223,6 @@ class ResourceServiceTest {
                                         new CreateResourceCommand(
                                                 BUSINESS_ID,
                                                 "Room A",
-                                                "room-a",
                                                 "x".repeat(501),
                                                 null,
                                                 null,
@@ -321,35 +241,26 @@ class ResourceServiceTest {
                         new SlotDuration(30), new HoldTtl(10), new CancellationWindow(120));
         final var resource =
                 Resource.create(
-                        BUSINESS_ID,
-                        new ResourceName("Room A"),
-                        new ResourceSlug("room-a"),
-                        "Window side",
-                        overrides,
-                        NOW);
+                        BUSINESS_ID, new ResourceName("Room A"), "Window side", overrides, NOW);
 
-        final var deactivated = resource.deactivate(LATER);
+        final var deactivated = resource.deactivate(NOW.plusSeconds(60));
 
         assertEquals(resource.id(), deactivated.id());
         assertEquals(resource.businessId(), deactivated.businessId());
         assertEquals(resource.name(), deactivated.name());
-        assertEquals(resource.slug(), deactivated.slug());
         assertEquals(resource.description(), deactivated.description());
         assertEquals(overrides, deactivated.bookingOverrides());
         assertEquals(ResourceStatus.INACTIVE, deactivated.status());
         assertEquals(NOW, deactivated.createdAt());
-        assertEquals(LATER, deactivated.updatedAt());
+        assertEquals(NOW.plusSeconds(60), deactivated.updatedAt());
     }
 
     @Test
-    void replaceDetailsAllowsSameSlugAndPreservesResourceIdentityAndStatus() {
+    void replaceDetailsPreservesResourceIdentityAndStatusAndAllowsDuplicateName() {
         final var resource = resource(ResourceBookingOverrides.none());
-        final var slug = new ResourceSlug("room-a");
         when(businessLookupPort.findActiveById(BUSINESS_ID))
                 .thenReturn(Optional.of(activeBusiness()));
         when(queryPort.findByBusinessIdAndId(BUSINESS_ID, resource.id()))
-                .thenReturn(Optional.of(resource));
-        when(queryPort.findByBusinessIdAndSlug(BUSINESS_ID, slug))
                 .thenReturn(Optional.of(resource));
 
         final var result =
@@ -358,7 +269,6 @@ class ResourceServiceTest {
                                 BUSINESS_ID,
                                 resource.id(),
                                 " Room A Updated ",
-                                "room-a",
                                 "  Updated  ",
                                 45,
                                 5,
@@ -367,7 +277,6 @@ class ResourceServiceTest {
         assertEquals(resource.id().value(), result.id());
         assertEquals(BUSINESS_ID.value(), result.businessId());
         assertEquals("Room A Updated", result.name());
-        assertEquals("room-a", result.slug());
         assertEquals("Updated", result.description());
         assertEquals(ResourceStatus.ACTIVE, result.status());
         assertEquals(45, result.slotDurationMinutes());
@@ -380,44 +289,7 @@ class ResourceServiceTest {
         assertEquals(ResourceStatus.ACTIVE, saved.status());
         assertEquals(NOW, saved.createdAt());
         assertEquals(NOW, saved.updatedAt());
-    }
-
-    @Test
-    void replaceDetailsRejectsSlugUsedByDifferentResource() {
-        final var resource = resource(ResourceBookingOverrides.none());
-        final var duplicate =
-                Resource.create(
-                        BUSINESS_ID,
-                        new ResourceName("Room B"),
-                        new ResourceSlug("room-b"),
-                        null,
-                        ResourceBookingOverrides.none(),
-                        NOW);
-        final var slug = new ResourceSlug("room-b");
-        when(businessLookupPort.findActiveById(BUSINESS_ID))
-                .thenReturn(Optional.of(activeBusiness()));
-        when(queryPort.findByBusinessIdAndId(BUSINESS_ID, resource.id()))
-                .thenReturn(Optional.of(resource));
-        when(queryPort.findByBusinessIdAndSlug(BUSINESS_ID, slug))
-                .thenReturn(Optional.of(duplicate));
-
-        final var exception =
-                assertThrows(
-                        ResourceSlugAlreadyExistsException.class,
-                        () ->
-                                service.replaceDetails(
-                                        new ReplaceResourceDetailsCommand(
-                                                BUSINESS_ID,
-                                                resource.id(),
-                                                "Room A",
-                                                "room-b",
-                                                null,
-                                                null,
-                                                null,
-                                                null)));
-
-        assertEquals(slug, exception.slug());
-        verify(commandPort, never()).save(any());
+        verify(queryPort, never()).findActiveByBusinessId(BUSINESS_ID);
     }
 
     @Test
@@ -434,7 +306,6 @@ class ResourceServiceTest {
                                                 BUSINESS_ID,
                                                 resourceId,
                                                 "Room A",
-                                                "room-a",
                                                 null,
                                                 null,
                                                 null,
@@ -460,7 +331,6 @@ class ResourceServiceTest {
                                         BUSINESS_ID,
                                         resourceId,
                                         "Room A",
-                                        "room-a",
                                         null,
                                         null,
                                         null,
@@ -484,7 +354,6 @@ class ResourceServiceTest {
                         resource.id(),
                         BUSINESS_ID,
                         resource.name(),
-                        resource.slug(),
                         resource.description(),
                         ResourceStatus.INACTIVE,
                         resource.bookingOverrides(),
@@ -522,7 +391,6 @@ class ResourceServiceTest {
                 ResourceId.create(),
                 BUSINESS_ID,
                 new ResourceName("Room A"),
-                new ResourceSlug("room-a"),
                 null,
                 ResourceStatus.ACTIVE,
                 overrides,

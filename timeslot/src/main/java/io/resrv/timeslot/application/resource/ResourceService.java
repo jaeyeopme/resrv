@@ -21,7 +21,6 @@ import io.resrv.timeslot.application.settings.out.BusinessBookingSettingsQueryPo
 import io.resrv.timeslot.domain.resource.Resource;
 import io.resrv.timeslot.domain.resource.ResourceBookingOverrides;
 import io.resrv.timeslot.domain.resource.ResourceName;
-import io.resrv.timeslot.domain.resource.ResourceSlug;
 import io.resrv.timeslot.domain.settings.CancellationWindow;
 import io.resrv.timeslot.domain.settings.HoldTtl;
 import io.resrv.timeslot.domain.settings.SlotDuration;
@@ -63,7 +62,6 @@ public class ResourceService
     public ResourceResult create(final CreateResourceCommand command) {
         Objects.requireNonNull(command, "Command must not be null");
         final var name = new ResourceName(command.name());
-        final var slug = new ResourceSlug(command.slug());
         final var description = Resource.normalizeDescription(command.description());
         final var overrides =
                 overrides(
@@ -74,13 +72,10 @@ public class ResourceService
         if (settingsQueryPort.findByBusinessId(command.businessId()).isEmpty()) {
             throw new BookingSettingsRequiredException(command.businessId());
         }
-        if (queryPort.findByBusinessIdAndSlug(command.businessId(), slug).isPresent()) {
-            throw new ResourceSlugAlreadyExistsException(command.businessId(), slug);
-        }
 
         final var now = clock.instant();
         final var resource =
-                Resource.create(command.businessId(), name, slug, description, overrides, now);
+                Resource.create(command.businessId(), name, description, overrides, now);
         commandPort.save(resource);
         return ResourceResult.from(resource);
     }
@@ -89,7 +84,6 @@ public class ResourceService
     public ResourceResult replaceDetails(final ReplaceResourceDetailsCommand command) {
         Objects.requireNonNull(command, "Command must not be null");
         final var name = new ResourceName(command.name());
-        final var slug = new ResourceSlug(command.slug());
         final var description = Resource.normalizeDescription(command.description());
         final var overrides =
                 overrides(
@@ -98,10 +92,8 @@ public class ResourceService
                         command.cancellationWindowMinutes());
 
         final var resource = loadResource(command.businessId(), command.resourceId());
-        ensureSlugAvailable(command.businessId(), command.resourceId(), slug);
 
-        final var updated =
-                resource.replaceDetails(name, slug, description, overrides, clock.instant());
+        final var updated = resource.replaceDetails(name, description, overrides, clock.instant());
         commandPort.save(updated);
         return ResourceResult.from(updated);
     }
@@ -147,17 +139,6 @@ public class ResourceService
         if (businessLookupPort.findActiveById(businessId).isEmpty()) {
             throw new BusinessNotAvailableException(businessId);
         }
-    }
-
-    private void ensureSlugAvailable(
-            final BusinessId businessId, final ResourceId resourceId, final ResourceSlug slug) {
-        queryPort
-                .findByBusinessIdAndSlug(businessId, slug)
-                .filter(existing -> !existing.id().equals(resourceId))
-                .ifPresent(
-                        ignored -> {
-                            throw new ResourceSlugAlreadyExistsException(businessId, slug);
-                        });
     }
 
     private static ResourceBookingOverrides overrides(

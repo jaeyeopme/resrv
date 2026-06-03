@@ -167,7 +167,7 @@ Do not include AI attribution, generated-by footers, model names, or AI co-autho
 
 <!-- SPECKIT START -->
 When working from a Spec Kit plan, read the active plan before implementation.
-Active plan: specs/019-ticket-event-inventory-model/plan.md
+Active plan: specs/019-timeslot-resource-id-only/plan.md
 <!-- SPECKIT END -->
 
 <!-- SPEC-KIT-KOREAN-RESPONSES START -->

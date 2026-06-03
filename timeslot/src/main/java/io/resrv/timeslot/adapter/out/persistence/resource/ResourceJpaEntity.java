@@ -5,7 +5,6 @@ import io.resrv.shared.kernel.ResourceId;
 import io.resrv.timeslot.domain.resource.Resource;
 import io.resrv.timeslot.domain.resource.ResourceBookingOverrides;
 import io.resrv.timeslot.domain.resource.ResourceName;
-import io.resrv.timeslot.domain.resource.ResourceSlug;
 import io.resrv.timeslot.domain.resource.ResourceStatus;
 import io.resrv.timeslot.domain.settings.CancellationWindow;
 import io.resrv.timeslot.domain.settings.HoldTtl;
@@ -27,9 +26,6 @@ class ResourceJpaEntity {
 
     @Column(name = "business_id", nullable = false)
     private UUID businessId;
-
-    @Column(nullable = false, length = 63)
-    private String slug;
 
     @Column(nullable = false, length = 100)
     private String name;
@@ -61,7 +57,6 @@ class ResourceJpaEntity {
     ResourceJpaEntity(
             final UUID id,
             final UUID businessId,
-            final String slug,
             final String name,
             final String description,
             final ResourceStatus status,
@@ -72,7 +67,6 @@ class ResourceJpaEntity {
             final Instant updatedAt) {
         this.id = id;
         this.businessId = businessId;
-        this.slug = slug;
         this.name = name;
         this.description = description;
         this.status = status;
@@ -88,7 +82,6 @@ class ResourceJpaEntity {
         return new ResourceJpaEntity(
                 resource.id().value(),
                 resource.businessId().value(),
-                resource.slug().value(),
                 resource.name().value(),
                 resource.description(),
                 resource.status(),
@@ -106,7 +99,6 @@ class ResourceJpaEntity {
                 ResourceId.of(id),
                 BusinessId.of(businessId),
                 new ResourceName(name),
-                new ResourceSlug(slug),
                 description,
                 status,
                 new ResourceBookingOverrides(

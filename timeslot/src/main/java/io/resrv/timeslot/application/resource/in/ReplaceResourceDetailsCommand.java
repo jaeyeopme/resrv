@@ -8,7 +8,6 @@ public record ReplaceResourceDetailsCommand(
         BusinessId businessId,
         ResourceId resourceId,
         String name,
-        String slug,
         String description,
         Integer slotDurationMinutes,
         Integer holdTtlMinutes,

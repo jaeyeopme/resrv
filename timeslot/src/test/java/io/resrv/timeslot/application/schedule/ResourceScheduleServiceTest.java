@@ -20,7 +20,6 @@ import io.resrv.timeslot.application.schedule.out.ResourceScheduleQueryPort;
 import io.resrv.timeslot.domain.resource.Resource;
 import io.resrv.timeslot.domain.resource.ResourceBookingOverrides;
 import io.resrv.timeslot.domain.resource.ResourceName;
-import io.resrv.timeslot.domain.resource.ResourceSlug;
 import io.resrv.timeslot.domain.resource.ResourceStatus;
 import io.resrv.timeslot.domain.schedule.DateResourceScheduleOverride;
 import io.resrv.timeslot.domain.schedule.ScheduleWindow;
@@ -132,7 +131,6 @@ class ResourceScheduleServiceTest {
                         RESOURCE_ID,
                         BUSINESS_ID,
                         new ResourceName("Room A"),
-                        new ResourceSlug("room-a"),
                         null,
                         ResourceStatus.INACTIVE,
                         ResourceBookingOverrides.none(),
@@ -268,7 +266,6 @@ class ResourceScheduleServiceTest {
                 RESOURCE_ID,
                 BUSINESS_ID,
                 new ResourceName("Room A"),
-                new ResourceSlug("room-a"),
                 null,
                 ResourceStatus.ACTIVE,
                 ResourceBookingOverrides.none(),

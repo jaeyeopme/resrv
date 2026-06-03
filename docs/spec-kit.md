@@ -103,12 +103,13 @@ historical checkpoint list, not as the next work queue.
 | `016-data-authorization-consistency` | Data and authorization consistency | Membership, business, resource, and reservation state changes preserve access rules and IDOR-sensitive response policy. |
 | `017-web-adapter-docs` | Web adapter documentation separation | Request-handling Web Adapters stay focused on HTTP mapping while generated OpenAPI metadata lives on matching `*ApiDocs` interfaces. |
 | `018-timeslot-traffic-hardening` | Timeslot reservation traffic hardening | Hold creation, lifecycle transitions, expiration behavior, and conflict responses are concurrency-safe and covered by API tests. |
+| `020-ticket-event-inventory-model` | Ticket event and inventory baseline | Implemented ticketing bounded context, event/inventory persistence baseline, and no public ticketing endpoint surface. |
 
 Current `Pending` feature specs:
 
 | Spec | Focus | Next Step |
 |---|---|---|
-| `019-ticket-event-inventory-model` | Ticket event and inventory baseline | Implement open tasks before ticket hold/claim traffic work starts. |
+| `019-timeslot-resource-id-only` | Timeslot resource identity cleanup | Implementation completed on feature branch; run review/merge workflow before marking implemented. |
 
 ## Future Feature Roadmap
 
@@ -118,10 +119,10 @@ artifacts only when the feature becomes the next implementation target.
 
 | Candidate | Phase | Focus | Start After | Notes |
 |---|---|---|---|---|
-| `020-ticket-purchase-hold-lifecycle` | Phase 2 | Ticket hold, purchase/confirm, release, expiration, customer ownership, and business access. | `019-ticket-event-inventory-model` implemented | Proves ticket traffic has an actual mutable lifecycle, not only static event inventory. |
-| `021-ticket-concurrency-hardening` | Phase 2 | Oversell prevention, high-contention hold/purchase behavior, idempotency key, retry-safe commands, and concurrency tests. | Ticket lifecycle endpoints and persistence exist | This is the main evidence that the backend handles a second traffic-sensitive flow. |
-| `022-ticket-api-contract-and-operations` | Phase 2 | Ticket API contract, OpenAPI coverage, integration tests, operational notes, and failure response consistency. | Ticket lifecycle and concurrency behavior stabilized | Keep generated OpenAPI authoritative; avoid hand-written endpoint catalogs. |
-| `023-traffic-pattern-extraction` | Phase 3 | Cross-flow backend patterns for capacity allocation, hold expiration, retry safety, lock/claim strategy, queue/backpressure, and lifecycle/state machine design. | Timeslot and ticket traffic both implemented and tested | Extract patterns from working flows; do not introduce speculative shared abstractions before this point. |
+| `021-ticket-purchase-hold-lifecycle` | Phase 2 | Ticket hold, purchase/confirm, release, expiration, customer ownership, and business access. | `020-ticket-event-inventory-model` implemented | Proves ticket traffic has an actual mutable lifecycle, not only static event inventory. |
+| `022-ticket-concurrency-hardening` | Phase 2 | Oversell prevention, high-contention hold/purchase behavior, idempotency key, retry-safe commands, and concurrency tests. | Ticket lifecycle endpoints and persistence exist | This is the main evidence that the backend handles a second traffic-sensitive flow. |
+| `023-ticket-api-contract-and-operations` | Phase 2 | Ticket API contract, OpenAPI coverage, integration tests, operational notes, and failure response consistency. | Ticket lifecycle and concurrency behavior stabilized | Keep generated OpenAPI authoritative; avoid hand-written endpoint catalogs. |
+| `024-traffic-pattern-extraction` | Phase 3 | Cross-flow backend patterns for capacity allocation, hold expiration, retry safety, lock/claim strategy, queue/backpressure, and lifecycle/state machine design. | Timeslot and ticket traffic both implemented and tested | Extract patterns from working flows; do not introduce speculative shared abstractions before this point. |
 
 Future runtime-split, outbox/message-broker, payments, notifications, external
 calendar sync, UI, or token-revocation work needs a fresh feature spec before

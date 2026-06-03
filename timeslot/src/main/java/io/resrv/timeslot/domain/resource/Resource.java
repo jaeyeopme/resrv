@@ -9,7 +9,6 @@ public record Resource(
         ResourceId id,
         BusinessId businessId,
         ResourceName name,
-        ResourceSlug slug,
         String description,
         ResourceStatus status,
         ResourceBookingOverrides bookingOverrides,
@@ -22,7 +21,6 @@ public record Resource(
         Objects.requireNonNull(id, "Resource id must not be null");
         Objects.requireNonNull(businessId, "Business id must not be null");
         Objects.requireNonNull(name, "Resource name must not be null");
-        Objects.requireNonNull(slug, "Resource slug must not be null");
         description = normalizeDescription(description);
         Objects.requireNonNull(status, "Resource status must not be null");
         Objects.requireNonNull(bookingOverrides, "Resource booking overrides must not be null");
@@ -33,7 +31,6 @@ public record Resource(
     public static Resource create(
             final BusinessId businessId,
             final ResourceName name,
-            final ResourceSlug slug,
             final String description,
             final ResourceBookingOverrides bookingOverrides,
             final Instant now) {
@@ -41,7 +38,6 @@ public record Resource(
                 ResourceId.create(),
                 businessId,
                 name,
-                slug,
                 description,
                 ResourceStatus.ACTIVE,
                 bookingOverrides,
@@ -53,22 +49,13 @@ public record Resource(
             final ResourceId id,
             final BusinessId businessId,
             final ResourceName name,
-            final ResourceSlug slug,
             final String description,
             final ResourceStatus status,
             final ResourceBookingOverrides bookingOverrides,
             final Instant createdAt,
             final Instant updatedAt) {
         return new Resource(
-                id,
-                businessId,
-                name,
-                slug,
-                description,
-                status,
-                bookingOverrides,
-                createdAt,
-                updatedAt);
+                id, businessId, name, description, status, bookingOverrides, createdAt, updatedAt);
     }
 
     public Resource deactivate(final Instant now) {
@@ -77,7 +64,6 @@ public record Resource(
                 id,
                 businessId,
                 name,
-                slug,
                 description,
                 ResourceStatus.INACTIVE,
                 bookingOverrides,
@@ -91,7 +77,6 @@ public record Resource(
                 id,
                 businessId,
                 name,
-                slug,
                 description,
                 ResourceStatus.ACTIVE,
                 bookingOverrides,
@@ -101,13 +86,12 @@ public record Resource(
 
     public Resource replaceDetails(
             final ResourceName name,
-            final ResourceSlug slug,
             final String description,
             final ResourceBookingOverrides bookingOverrides,
             final Instant now) {
         Objects.requireNonNull(now, "Updated at must not be null");
         return new Resource(
-                id, businessId, name, slug, description, status, bookingOverrides, createdAt, now);
+                id, businessId, name, description, status, bookingOverrides, createdAt, now);
     }
 
     public static String normalizeDescription(final String description) {

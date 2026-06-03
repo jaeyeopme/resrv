@@ -98,6 +98,11 @@ surface from `/v3/api-docs`. Ticketing contributes no public endpoint group in t
 Generated OpenAPI from that runtime is the API contract surface. Narrative docs describe API groups,
 authorization boundaries, and design decisions, but do not maintain a duplicate endpoint catalog.
 
+Timeslot resource APIs use resource UUIDs as the only resource identity. Resource create and replace
+requests do not accept slug, handle, or URL-safe resource key fields; obsolete identity fields are
+invalid request fields. Resource responses, public resource discovery, and customer reservation
+resource summaries omit resource slug/handle fields. Duplicate resource names are allowed.
+
 `timeslot` keeps an application class for module-local testing history, but its `bootJar` and
 `bootRun` tasks remain disabled. `ticketing` is also a non-executable module. Booking APIs and
 ticketing beans are served by the platform runtime. ADR-0022 and ADR-0023 do not add separate
@@ -165,6 +170,10 @@ Timeslot schema:
 
 Timeslot records reference `business_id` and `customer_account_id` by UUID. The current migrations
 do not add cross-schema foreign keys from timeslot to platform.
+
+`timeslot.resource` no longer stores resource slug data or business-scoped resource slug
+uniqueness. Reservations remain linked through `resource_id`, so resource display-detail changes and
+slug removal do not rewrite reservation rows.
 
 Ticketing schema:
 

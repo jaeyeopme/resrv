@@ -6,7 +6,6 @@ import java.util.Objects;
 public record CreateResourceCommand(
         BusinessId businessId,
         String name,
-        String slug,
         String description,
         Integer slotDurationMinutes,
         Integer holdTtlMinutes,

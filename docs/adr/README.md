@@ -16,7 +16,7 @@ introduced or hardened the decision so future readers can inspect the implementa
 | [0005](0005-platform-persistence-schema.md) | Accepted | Platform schema owns account, business, and membership persistence |
 | [0006](0006-account-scoped-jwt.md) | Accepted | Account-scoped JWTs with strict claim validation |
 | [0007](0007-timeslot-booking-settings.md) | Accepted | Business booking settings with active business lookup |
-| [0008](0008-reservable-resource-model.md) | Accepted | Reservable resources with optional booking overrides |
+| [0008](0008-reservable-resource-model.md) | Partially superseded | Reservable resources with optional booking overrides |
 | [0009](0009-resource-schedule-model.md) | Accepted | Weekly schedules and date override schedules |
 | [0010](0010-virtual-slots.md) | Accepted | Virtual slots selected by opaque slot IDs |
 | [0011](0011-derived-reservation-state.md) | Accepted | Reservation state derived from timestamp facts |
@@ -32,3 +32,4 @@ introduced or hardened the decision so future readers can inspect the implementa
 | [0021](0021-staff-membership-administration.md) | Accepted | Staff membership current state with append-only access audit |
 | [0022](0022-platform-runtime-packaging.md) | Accepted | Package platform as the canonical runtime for platform and booking APIs |
 | [0023](0023-ticketing-bounded-context.md) | Accepted | Add ticketing as a bounded context assembled into the platform runtime |
+| [0024](0024-timeslot-resource-id-only.md) | Accepted | Use resource IDs as the only timeslot resource identity |

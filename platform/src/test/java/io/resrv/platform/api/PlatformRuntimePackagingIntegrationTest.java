@@ -139,7 +139,7 @@ final class PlatformRuntimePackagingIntegrationTest {
         insertSettings(businessId);
         final var missingResourceId = UUID.fromString("00000000-0000-0000-0000-000000000034");
         final var otherResourceId = UUID.fromString("00000000-0000-0000-0000-000000000035");
-        insertResource(otherBusinessId, otherResourceId, "Room B", "room-b", "ACTIVE");
+        insertResource(otherBusinessId, otherResourceId, "Room B", "ACTIVE");
 
         final var missing =
                 mockMvc.perform(
@@ -249,8 +249,9 @@ final class PlatformRuntimePackagingIntegrationTest {
         assertSchemaHasProperties(openApi, "PublicBusinessResponse", "slug", "name", "timezone");
         assertSchemaOmitsProperties(openApi, "PublicBusinessResponse", "id", "businessId");
         assertSchemaHasProperties(
-                openApi, "PublicResourceResponse", "resourceId", "businessSlug", "name", "slug");
-        assertSchemaOmitsProperties(openApi, "PublicResourceResponse", "businessId");
+                openApi, "PublicResourceResponse", "resourceId", "businessSlug", "name");
+        assertSchemaOmitsProperties(
+                openApi, "PublicResourceResponse", "businessId", "slug", "handle");
         assertSchemaHasProperties(
                 openApi, "PublicReservationResponse", "id", "resourceId", "state");
         assertSchemaOmitsProperties(
@@ -429,20 +430,15 @@ final class PlatformRuntimePackagingIntegrationTest {
     }
 
     private void insertResource(
-            final UUID businessId,
-            final UUID resourceId,
-            final String name,
-            final String slug,
-            final String status) {
+            final UUID businessId, final UUID resourceId, final String name, final String status) {
         jdbcTemplate.update(
                 """
                 INSERT INTO timeslot.resource (
-                    id, business_id, slug, name, description, status, created_at, updated_at
-                ) VALUES (?, ?, ?, ?, null, ?, ?, ?)
+                    id, business_id, name, description, status, created_at, updated_at
+                ) VALUES (?, ?, ?, null, ?, ?, ?)
                 """,
                 resourceId,
                 businessId,
-                slug,
                 name,
                 status,
                 Timestamp.from(NOW),

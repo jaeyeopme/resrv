@@ -41,12 +41,11 @@ public record CustomerReservationResult(
         }
     }
 
-    public record ResourceSummary(UUID id, String name, String slug, boolean active) {
+    public record ResourceSummary(UUID id, String name, boolean active) {
 
         public ResourceSummary {
             Objects.requireNonNull(id, "Resource id must not be null");
             Objects.requireNonNull(name, "Resource name must not be null");
-            Objects.requireNonNull(slug, "Resource slug must not be null");
         }
     }
 }

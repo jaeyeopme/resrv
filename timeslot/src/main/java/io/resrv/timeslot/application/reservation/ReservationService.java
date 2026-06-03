@@ -310,7 +310,6 @@ public class ReservationService {
                 new CustomerReservationResult.ResourceSummary(
                         resource.id().value(),
                         resource.name().value(),
-                        resource.slug().value(),
                         resource.status() == ResourceStatus.ACTIVE),
                 reservation.startAt(),
                 reservation.endAt(),

@@ -1,6 +1,5 @@
 package io.resrv.timeslot.domain.resource;
 
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -31,14 +30,12 @@ class ResourceTest {
                 Resource.create(
                         businessId,
                         new ResourceName(" Room A "),
-                        new ResourceSlug("room-a"),
                         "  Window side  ",
                         overrides,
                         NOW);
 
         assertEquals(businessId, resource.businessId());
         assertEquals("Room A", resource.name().value());
-        assertEquals("room-a", resource.slug().value());
         assertEquals("Window side", resource.description());
         assertEquals(ResourceStatus.ACTIVE, resource.status());
         assertEquals(overrides, resource.bookingOverrides());
@@ -52,7 +49,6 @@ class ResourceTest {
                 Resource.create(
                         BusinessId.create(),
                         new ResourceName("Room B"),
-                        new ResourceSlug("room-b"),
                         "  ",
                         ResourceBookingOverrides.none(),
                         NOW);
@@ -96,7 +92,6 @@ class ResourceTest {
                 Resource.create(
                         BusinessId.create(),
                         new ResourceName("Room A"),
-                        new ResourceSlug("room-a"),
                         " " + description + " ",
                         ResourceBookingOverrides.none(),
                         NOW);
@@ -113,7 +108,6 @@ class ResourceTest {
                                 Resource.create(
                                         BusinessId.create(),
                                         new ResourceName("Room A"),
-                                        new ResourceSlug("room-a"),
                                         "x".repeat(501),
                                         ResourceBookingOverrides.none(),
                                         NOW));
@@ -134,7 +128,6 @@ class ResourceTest {
                         id,
                         businessId,
                         new ResourceName("Room A"),
-                        new ResourceSlug("room-a"),
                         null,
                         ResourceStatus.INACTIVE,
                         overrides,
@@ -156,7 +149,6 @@ class ResourceTest {
                 Resource.create(
                         BusinessId.create(),
                         new ResourceName("Room A"),
-                        new ResourceSlug("room-a"),
                         "Window side",
                         ResourceBookingOverrides.none(),
                         NOW);
@@ -166,7 +158,6 @@ class ResourceTest {
         assertEquals(resource.id(), deactivated.id());
         assertEquals(resource.businessId(), deactivated.businessId());
         assertEquals(resource.name(), deactivated.name());
-        assertEquals(resource.slug(), deactivated.slug());
         assertEquals(resource.description(), deactivated.description());
         assertEquals(resource.bookingOverrides(), deactivated.bookingOverrides());
         assertEquals(ResourceStatus.INACTIVE, deactivated.status());
@@ -181,7 +172,6 @@ class ResourceTest {
                         ResourceId.create(),
                         BusinessId.create(),
                         new ResourceName("Room A"),
-                        new ResourceSlug("room-a"),
                         "Window side",
                         ResourceStatus.INACTIVE,
                         ResourceBookingOverrides.none(),
@@ -193,7 +183,6 @@ class ResourceTest {
         assertEquals(resource.id(), activated.id());
         assertEquals(resource.businessId(), activated.businessId());
         assertEquals(resource.name(), activated.name());
-        assertEquals(resource.slug(), activated.slug());
         assertEquals(resource.description(), activated.description());
         assertEquals(resource.bookingOverrides(), activated.bookingOverrides());
         assertEquals(ResourceStatus.ACTIVE, activated.status());
@@ -207,7 +196,6 @@ class ResourceTest {
                 Resource.create(
                         BusinessId.create(),
                         new ResourceName("Room A"),
-                        new ResourceSlug("room-a"),
                         "Window side",
                         ResourceBookingOverrides.none(),
                         NOW);
@@ -217,17 +205,12 @@ class ResourceTest {
 
         final var replaced =
                 resource.replaceDetails(
-                        new ResourceName("Room B"),
-                        new ResourceSlug("room-b"),
-                        "  New description  ",
-                        overrides,
-                        LATER);
+                        new ResourceName("Room B"), "  New description  ", overrides, LATER);
 
         assertEquals(resource.id(), replaced.id());
         assertEquals(resource.businessId(), replaced.businessId());
         assertEquals(ResourceStatus.ACTIVE, replaced.status());
         assertEquals("Room B", replaced.name().value());
-        assertEquals("room-b", replaced.slug().value());
         assertEquals("New description", replaced.description());
         assertEquals(overrides, replaced.bookingOverrides());
         assertEquals(NOW, replaced.createdAt());
@@ -242,19 +225,6 @@ class ResourceTest {
     }
 
     @Test
-    void invalidSlugIsRejected() {
-        assertDoesNotThrow(() -> new ResourceSlug("abc"));
-        assertDoesNotThrow(() -> new ResourceSlug("a".repeat(63)));
-        assertThrows(NullPointerException.class, () -> new ResourceSlug(null));
-        assertThrows(IllegalArgumentException.class, () -> new ResourceSlug("ab"));
-        assertThrows(IllegalArgumentException.class, () -> new ResourceSlug("Room-A"));
-        assertThrows(IllegalArgumentException.class, () -> new ResourceSlug("-room"));
-        assertThrows(IllegalArgumentException.class, () -> new ResourceSlug("room-"));
-        assertThrows(IllegalArgumentException.class, () -> new ResourceSlug("room--a"));
-        assertThrows(IllegalArgumentException.class, () -> new ResourceSlug("a".repeat(64)));
-    }
-
-    @Test
     void nullRequiredResourceValuesAreRejected() {
         assertThrows(
                 NullPointerException.class,
@@ -263,7 +233,6 @@ class ResourceTest {
                                 ResourceId.create(),
                                 BusinessId.create(),
                                 new ResourceName("Room A"),
-                                new ResourceSlug("room-a"),
                                 null,
                                 ResourceStatus.ACTIVE,
                                 null,

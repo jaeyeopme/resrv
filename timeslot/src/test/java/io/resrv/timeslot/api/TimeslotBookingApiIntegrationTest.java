@@ -162,12 +162,12 @@ final class TimeslotBookingApiIntegrationTest {
                                                 """
                                                 {
                                                   "name": "Room A",
-                                                  "slug": "room-a",
                                                   "description": "Window side"
                                                 }
                                                 """))
                         .andExpect(status().isCreated())
                         .andExpect(jsonPath("$.id", notNullValue()))
+                        .andExpect(jsonPath("$.slug").doesNotExist())
                         .andReturn()
                         .getResponse()
                         .getContentAsString();
@@ -285,7 +285,7 @@ final class TimeslotBookingApiIntegrationTest {
     void publicBookingDiscoveryUsesBusinessSlugAndDoesNotExposeBusinessId() throws Exception {
         final var token = signedToken(ACCOUNT_ID);
         putSettings(token, 30, 10, 60, 30);
-        final var resourceId = createResource(token, "Room A", "room-a");
+        final var resourceId = createResource(token, "Room A");
         replaceWeeklySchedule(token, resourceId, "MONDAY", "10:00:00", "11:00:00");
 
         mockMvc.perform(get("/api/public/businesses/{businessSlug}", "salon-a"))
@@ -378,11 +378,11 @@ final class TimeslotBookingApiIntegrationTest {
     void publicSlotDiscoveryValidatesMalformedInputAndCollapsesResourceMisses() throws Exception {
         final var token = signedToken(ACCOUNT_ID);
         putSettings(token, 30, 10, 60, 30);
-        final var resourceId = createResource(token, "Room A", "room-a");
+        final var resourceId = createResource(token, "Room A");
         final var otherBusinessId = UUID.fromString("00000000-0000-0000-0000-000000000011");
         final var otherResourceId = UUID.fromString("00000000-0000-0000-0000-000000000033");
         insertBusiness(otherBusinessId, "Salon B", "salon-b", "ACTIVE");
-        insertResource(otherBusinessId, otherResourceId, "Room B", "room-b", "ACTIVE");
+        insertResource(otherBusinessId, otherResourceId, "Room B", "ACTIVE");
 
         mockMvc.perform(get("/api/public/businesses/{businessSlug}", "Salon-A"))
                 .andExpect(status().isBadRequest());
@@ -508,7 +508,7 @@ final class TimeslotBookingApiIntegrationTest {
 
         assertSettings(30, 10, 60, 30);
 
-        final var resourceId = createResource(token, "Room A", "room-a");
+        final var resourceId = createResource(token, "Room A");
         replaceWeeklySchedule(token, resourceId, "MONDAY", "10:00:00", "11:00:00");
 
         putSettings(token, 15, 5, 240, 30);
@@ -558,7 +558,7 @@ final class TimeslotBookingApiIntegrationTest {
     void resourceLifecycleReplacementAndActivationKeepReservationsStable() throws Exception {
         final var token = signedToken(ACCOUNT_ID);
         putSettings(token, 30, 10, 60, 30);
-        final var resourceId = createResource(token, "Room A", "room-a");
+        final var resourceId = createResource(token, "Room A");
         replaceWeeklySchedule(token, resourceId, "MONDAY", "10:00:00", "11:00:00");
         final var slotId = firstSlotId(resourceId, "2026-05-25");
         final var holdJson =
@@ -580,7 +580,6 @@ final class TimeslotBookingApiIntegrationTest {
                                         """
                                         {
                                           "name": "Room A Updated",
-                                          "slug": "room-a-updated",
                                           "description": "Updated",
                                           "slotDurationMinutes": 45,
                                           "holdTtlMinutes": 5,
@@ -632,12 +631,39 @@ final class TimeslotBookingApiIntegrationTest {
     }
 
     @Test
-    void resourceLifecycleRequiresBusinessAccessAndRejectsDuplicateSlug() throws Exception {
+    void resourceLifecycleRequiresBusinessAccessAndRejectsObsoleteIdentityFields()
+            throws Exception {
         final var token = signedToken(ACCOUNT_ID);
         putSettings(token, 30, 10, 60, 30);
-        final var resourceA = createResource(token, "Room A", "room-a");
-        createResource(token, "Room B", "room-b");
+        final var resourceA = createResource(token, "Room A");
+        createResource(token, "Room B");
 
+        mockMvc.perform(
+                        post("/api/businesses/{businessId}/resources", BUSINESS_ID)
+                                .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(
+                                        """
+                                        {
+                                          "name": "Room C",
+                                          "slug": "room-c",
+                                          "description": null
+                                        }
+                                        """))
+                .andExpect(status().isBadRequest());
+        mockMvc.perform(
+                        post("/api/businesses/{businessId}/resources", BUSINESS_ID)
+                                .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(
+                                        """
+                                        {
+                                          "name": "Room C",
+                                          "handle": "room-c",
+                                          "description": null
+                                        }
+                                        """))
+                .andExpect(status().isBadRequest());
         mockMvc.perform(
                         put(
                                         "/api/businesses/{businessId}/resources/{resourceId}",
@@ -653,7 +679,23 @@ final class TimeslotBookingApiIntegrationTest {
                                           "description": null
                                         }
                                         """))
-                .andExpect(status().isConflict());
+                .andExpect(status().isBadRequest());
+        mockMvc.perform(
+                        put(
+                                        "/api/businesses/{businessId}/resources/{resourceId}",
+                                        BUSINESS_ID,
+                                        resourceA)
+                                .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(
+                                        """
+                                        {
+                                          "name": "Room A",
+                                          "handle": "room-b",
+                                          "description": null
+                                        }
+                                        """))
+                .andExpect(status().isBadRequest());
 
         final var otherToken = signedToken(OTHER_ACCOUNT_ID);
         mockMvc.perform(
@@ -667,7 +709,6 @@ final class TimeslotBookingApiIntegrationTest {
                                         """
                                         {
                                           "name": "Room A",
-                                          "slug": "room-a",
                                           "description": null
                                         }
                                         """))
@@ -695,7 +736,7 @@ final class TimeslotBookingApiIntegrationTest {
         final var otherBusinessId = UUID.fromString("00000000-0000-0000-0000-000000000012");
         final var otherResourceId = UUID.fromString("00000000-0000-0000-0000-000000000036");
         insertBusiness(otherBusinessId, "Salon C", "salon-c", "ACTIVE");
-        insertResource(otherBusinessId, otherResourceId, "Room C", "room-c", "ACTIVE");
+        insertResource(otherBusinessId, otherResourceId, "Room C", "ACTIVE");
 
         final var missing =
                 mockMvc.perform(
@@ -709,7 +750,6 @@ final class TimeslotBookingApiIntegrationTest {
                                                 """
                                                 {
                                                   "name": "Room A",
-                                                  "slug": "room-a",
                                                   "description": null
                                                 }
                                                 """))
@@ -729,7 +769,6 @@ final class TimeslotBookingApiIntegrationTest {
                                                 """
                                                 {
                                                   "name": "Room A",
-                                                  "slug": "room-a",
                                                   "description": null
                                                 }
                                                 """))
@@ -745,7 +784,7 @@ final class TimeslotBookingApiIntegrationTest {
     void scheduleReplacementSupportsClosedOverridesAndInactiveResources() throws Exception {
         final var token = signedToken(ACCOUNT_ID);
         putSettings(token, 30, 10, 60, 30);
-        final var resourceId = createResource(token, "Room A", "room-a");
+        final var resourceId = createResource(token, "Room A");
         replaceWeeklySchedule(token, resourceId, "MONDAY", "10:00:00", "11:00:00");
 
         final var slotsJson =
@@ -859,8 +898,8 @@ final class TimeslotBookingApiIntegrationTest {
                 .andExpect(
                         jsonPath(
                                         "$.paths['/api/businesses/{businessId}/resources']"
-                                                + ".post.responses['409'].description")
-                                .value("Duplicate resource slug"))
+                                                + ".post.responses['409']")
+                                .doesNotExist())
                 .andExpect(
                         jsonPath("$.paths['" + resourcePath + "'].put.responses['404'].description")
                                 .value("Resource not found"))
@@ -1007,7 +1046,7 @@ final class TimeslotBookingApiIntegrationTest {
         final var resourceId = UUID.fromString("00000000-0000-0000-0000-000000000030");
         final var laterReservation = UUID.fromString("00000000-0000-0000-0000-000000000041");
         final var earlierReservation = UUID.fromString("00000000-0000-0000-0000-000000000042");
-        insertResource(resourceId, "Room A", "room-a", "ACTIVE");
+        insertResource(resourceId, "Room A", "ACTIVE");
         insertReservation(
                 laterReservation,
                 ACCOUNT_ID,
@@ -1077,7 +1116,7 @@ final class TimeslotBookingApiIntegrationTest {
         final var resourceId = UUID.fromString("00000000-0000-0000-0000-000000000031");
         final var reservationId = UUID.fromString("00000000-0000-0000-0000-000000000044");
         final var missingId = UUID.fromString("00000000-0000-0000-0000-000000000045");
-        insertResource(resourceId, "Room B", "room-b", "INACTIVE");
+        insertResource(resourceId, "Room B", "INACTIVE");
         insertReservation(
                 reservationId,
                 ACCOUNT_ID,
@@ -1129,7 +1168,7 @@ final class TimeslotBookingApiIntegrationTest {
         final var reservationId = UUID.fromString("00000000-0000-0000-0000-000000000049");
         final var missingId = UUID.fromString("00000000-0000-0000-0000-000000000050");
         final var otherToken = signedToken(OTHER_ACCOUNT_ID);
-        insertResource(resourceId, "Room D", "room-d", "ACTIVE");
+        insertResource(resourceId, "Room D", "ACTIVE");
         insertReservation(
                 reservationId,
                 ACCOUNT_ID,
@@ -1217,7 +1256,7 @@ final class TimeslotBookingApiIntegrationTest {
         final var resourceId = UUID.fromString("00000000-0000-0000-0000-000000000051");
         final var reservationId = UUID.fromString("00000000-0000-0000-0000-000000000052");
         final var otherToken = signedToken(OTHER_ACCOUNT_ID);
-        insertResource(resourceId, "Room E", "room-e", "ACTIVE");
+        insertResource(resourceId, "Room E", "ACTIVE");
         insertReservation(
                 reservationId,
                 ACCOUNT_ID,
@@ -1263,7 +1302,7 @@ final class TimeslotBookingApiIntegrationTest {
         final var resourceId = UUID.fromString("00000000-0000-0000-0000-000000000032");
         final var expiredId = UUID.fromString("00000000-0000-0000-0000-000000000046");
         final var confirmedId = UUID.fromString("00000000-0000-0000-0000-000000000047");
-        insertResource(resourceId, "Room C", "room-c", "ACTIVE");
+        insertResource(resourceId, "Room C", "ACTIVE");
         insertReservation(
                 expiredId,
                 ACCOUNT_ID,
@@ -1376,8 +1415,9 @@ final class TimeslotBookingApiIntegrationTest {
         assertSchemaHasProperties(openApi, "PublicBusinessResponse", "slug", "name", "timezone");
         assertSchemaOmitsProperties(openApi, "PublicBusinessResponse", "id", "businessId");
         assertSchemaHasProperties(
-                openApi, "PublicResourceResponse", "resourceId", "businessSlug", "name", "slug");
-        assertSchemaOmitsProperties(openApi, "PublicResourceResponse", "businessId");
+                openApi, "PublicResourceResponse", "resourceId", "businessSlug", "name");
+        assertSchemaOmitsProperties(
+                openApi, "PublicResourceResponse", "businessId", "slug", "handle");
         assertSchemaHasProperties(
                 openApi, "PublicReservationResponse", "id", "resourceId", "state");
         assertSchemaOmitsProperties(
@@ -1554,7 +1594,6 @@ final class TimeslotBookingApiIntegrationTest {
                                                 """
                                                 {
                                                   "name": "Room B",
-                                                  "slug": "room-b",
                                                   "description": "Window side"
                                                 }
                                                 """))
@@ -1603,7 +1642,7 @@ final class TimeslotBookingApiIntegrationTest {
         final var token = signedToken(ACCOUNT_ID);
         final var otherToken = signedToken(OTHER_ACCOUNT_ID);
         putSettings(token, 30, 10, 60, 30);
-        final var resourceId = createResource(token, "Concurrency Room", "concurrency-room");
+        final var resourceId = createResource(token, "Concurrency Room");
         replaceWeeklySchedule(token, resourceId, "MONDAY", "10:00:00", "20:00:00");
 
         final List<String> slotIds = slotIds(resourceId, "2026-05-25");
@@ -1625,7 +1664,7 @@ final class TimeslotBookingApiIntegrationTest {
     void expiredHoldConfirmReturnsConflict() throws Exception {
         final var resourceId = UUID.fromString("00000000-0000-0000-0000-000000000060");
         final var reservationId = UUID.fromString("00000000-0000-0000-0000-000000000061");
-        insertResource(resourceId, "Room C", "room-c", "ACTIVE");
+        insertResource(resourceId, "Room C", "ACTIVE");
         insertReservation(
                 reservationId,
                 ACCOUNT_ID,
@@ -1652,7 +1691,7 @@ final class TimeslotBookingApiIntegrationTest {
     void expiredHoldRowsDoNotBlockLaterHolds() throws Exception {
         final var token = signedToken(ACCOUNT_ID);
         putSettings(token, 30, 10, 60, 30);
-        final var resourceId = createResource(token, "Expired Row Room", "expired-row-room");
+        final var resourceId = createResource(token, "Expired Row Room");
         replaceWeeklySchedule(token, resourceId, "MONDAY", "10:00:00", "11:00:00");
         insertReservation(
                 UUID.fromString("00000000-0000-0000-0000-000000000062"),
@@ -1675,7 +1714,7 @@ final class TimeslotBookingApiIntegrationTest {
         final var confirmedId = UUID.fromString("00000000-0000-0000-0000-000000000064");
         final var expiredId = UUID.fromString("00000000-0000-0000-0000-000000000065");
         final var token = signedToken(ACCOUNT_ID);
-        insertResource(resourceId, "Lifecycle Room", "lifecycle-room", "ACTIVE");
+        insertResource(resourceId, "Lifecycle Room", "ACTIVE");
         insertReservation(
                 confirmedId,
                 ACCOUNT_ID,
@@ -1734,7 +1773,7 @@ final class TimeslotBookingApiIntegrationTest {
             throws Exception {
         final var token = signedToken(ACCOUNT_ID);
         final var resourceId = UUID.fromString("00000000-0000-0000-0000-000000000066");
-        insertResource(resourceId, "Transition Room", "transition-room", "ACTIVE");
+        insertResource(resourceId, "Transition Room", "ACTIVE");
 
         for (var i = 0; i < 20; i++) {
             final var reservationId =
@@ -1778,8 +1817,7 @@ final class TimeslotBookingApiIntegrationTest {
         Assertions.assertEquals(maxAdvanceBookingDays, settings.get("max_advance_booking_days"));
     }
 
-    private String createResource(final String token, final String name, final String slug)
-            throws Exception {
+    private String createResource(final String token, final String name) throws Exception {
         final var resourceJson =
                 mockMvc.perform(
                                 post("/api/businesses/{businessId}/resources", BUSINESS_ID)
@@ -1789,13 +1827,13 @@ final class TimeslotBookingApiIntegrationTest {
                                                 """
                                                 {
                                                   "name": "%s",
-                                                  "slug": "%s",
                                                   "description": "Window side"
                                                 }
                                                 """
-                                                        .formatted(name, slug)))
+                                                        .formatted(name)))
                         .andExpect(status().isCreated())
                         .andExpect(jsonPath("$.id", notNullValue()))
+                        .andExpect(jsonPath("$.slug").doesNotExist())
                         .andReturn()
                         .getResponse()
                         .getContentAsString();
@@ -1943,26 +1981,20 @@ final class TimeslotBookingApiIntegrationTest {
         Assertions.assertEquals(expectedCount, count, () -> "statuses=" + statuses);
     }
 
-    private void insertResource(
-            final UUID resourceId, final String name, final String slug, final String status) {
-        insertResource(BUSINESS_ID, resourceId, name, slug, status);
+    private void insertResource(final UUID resourceId, final String name, final String status) {
+        insertResource(BUSINESS_ID, resourceId, name, status);
     }
 
     private void insertResource(
-            final UUID businessId,
-            final UUID resourceId,
-            final String name,
-            final String slug,
-            final String status) {
+            final UUID businessId, final UUID resourceId, final String name, final String status) {
         jdbcTemplate.update(
                 """
                 INSERT INTO timeslot.resource (
-                    id, business_id, slug, name, description, status, created_at, updated_at
-                ) VALUES (?, ?, ?, ?, null, ?, ?, ?)
+                    id, business_id, name, description, status, created_at, updated_at
+                ) VALUES (?, ?, ?, null, ?, ?, ?)
                 """,
                 resourceId,
                 businessId,
-                slug,
                 name,
                 status,
                 Timestamp.from(TOKEN_NOW),

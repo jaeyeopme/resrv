@@ -7,7 +7,6 @@ import io.resrv.timeslot.application.reservation.ReservationNotFoundException;
 import io.resrv.timeslot.application.reservation.SlotBlockedException;
 import io.resrv.timeslot.application.reservation.SlotUnavailableException;
 import io.resrv.timeslot.application.resource.ResourceNotAvailableException;
-import io.resrv.timeslot.application.resource.ResourceSlugAlreadyExistsException;
 import io.resrv.timeslot.application.settings.BookingSettingsRequiredException;
 import io.resrv.timeslot.domain.reservation.ReservationHoldExpiredException;
 import io.resrv.timeslot.domain.reservation.ReservationInvalidStateException;
@@ -57,12 +56,6 @@ class TimeslotExceptionHandler {
     ProblemDetail handleConstraintViolation(
             final ConstraintViolationException exception, final HttpServletRequest request) {
         return problem(HttpStatus.BAD_REQUEST, "Validation failed", request);
-    }
-
-    @ExceptionHandler(ResourceSlugAlreadyExistsException.class)
-    ProblemDetail handleReservationConflict(
-            final RuntimeException exception, final HttpServletRequest request) {
-        return problem(HttpStatus.CONFLICT, exception.getMessage(), request);
     }
 
     @ExceptionHandler({

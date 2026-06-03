@@ -125,12 +125,11 @@ class CustomerReservationWebAdapter implements CustomerReservationApiDocs {
         }
     }
 
-    record ResourceSummaryResponse(UUID id, String name, String slug, boolean active) {
+    record ResourceSummaryResponse(UUID id, String name, boolean active) {
 
         static ResourceSummaryResponse from(
                 final CustomerReservationResult.ResourceSummary summary) {
-            return new ResourceSummaryResponse(
-                    summary.id(), summary.name(), summary.slug(), summary.active());
+            return new ResourceSummaryResponse(summary.id(), summary.name(), summary.active());
         }
     }
 }

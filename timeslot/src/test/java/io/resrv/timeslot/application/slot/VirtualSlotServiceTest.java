@@ -17,7 +17,6 @@ import io.resrv.timeslot.application.slot.in.ListSlotsQuery;
 import io.resrv.timeslot.domain.resource.Resource;
 import io.resrv.timeslot.domain.resource.ResourceBookingOverrides;
 import io.resrv.timeslot.domain.resource.ResourceName;
-import io.resrv.timeslot.domain.resource.ResourceSlug;
 import io.resrv.timeslot.domain.resource.ResourceStatus;
 import io.resrv.timeslot.domain.schedule.DateResourceScheduleOverride;
 import io.resrv.timeslot.domain.schedule.ScheduleWindow;
@@ -153,7 +152,6 @@ final class VirtualSlotServiceTest {
                         RESOURCE_ID,
                         BUSINESS_ID,
                         new ResourceName("Room A"),
-                        new ResourceSlug("room-a"),
                         null,
                         ResourceStatus.INACTIVE,
                         ResourceBookingOverrides.none(),
@@ -201,7 +199,6 @@ final class VirtualSlotServiceTest {
                 RESOURCE_ID,
                 BUSINESS_ID,
                 new ResourceName("Room A"),
-                new ResourceSlug("room-a"),
                 null,
                 ResourceStatus.ACTIVE,
                 overrides,

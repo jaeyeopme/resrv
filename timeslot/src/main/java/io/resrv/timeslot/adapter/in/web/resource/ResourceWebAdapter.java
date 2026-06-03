@@ -1,5 +1,6 @@
 package io.resrv.timeslot.adapter.in.web.resource;
 
+import com.fasterxml.jackson.annotation.JsonAnySetter;
 import io.resrv.shared.kernel.BusinessId;
 import io.resrv.shared.kernel.ResourceId;
 import io.resrv.timeslot.adapter.in.web.security.BusinessAccessGuard;
@@ -70,7 +71,6 @@ class ResourceWebAdapter implements ResourceApiDocs {
                         new CreateResourceCommand(
                                 BusinessId.of(businessId),
                                 request.name(),
-                                request.slug(),
                                 request.description(),
                                 request.slotDurationMinutes(),
                                 request.holdTtlMinutes(),
@@ -94,7 +94,6 @@ class ResourceWebAdapter implements ResourceApiDocs {
                                 BusinessId.of(businessId),
                                 ResourceId.of(resourceId),
                                 request.name(),
-                                request.slug(),
                                 request.description(),
                                 request.slotDurationMinutes(),
                                 request.holdTtlMinutes(),
@@ -137,17 +136,21 @@ class ResourceWebAdapter implements ResourceApiDocs {
 
     record ResourceRequest(
             @NotBlank @Size(max = 100) String name,
-            @NotBlank String slug,
             @Size(max = 500) String description,
             @Min(5) @Max(480) Integer slotDurationMinutes,
             @Min(1) @Max(30) Integer holdTtlMinutes,
-            @Min(0) @Max(10080) Integer cancellationWindowMinutes) {}
+            @Min(0) @Max(10080) Integer cancellationWindowMinutes) {
+
+        @JsonAnySetter
+        void rejectUnknownField(final String field, final Object value) {
+            throw new IllegalArgumentException("Unknown resource request field: " + field);
+        }
+    }
 
     record ResourceResponse(
             UUID id,
             UUID businessId,
             String name,
-            String slug,
             String description,
             String status,
             Integer slotDurationMinutes,
@@ -159,7 +162,6 @@ class ResourceWebAdapter implements ResourceApiDocs {
                     result.id(),
                     result.businessId(),
                     result.name(),
-                    result.slug(),
                     result.description(),
                     result.status().name(),
                     result.slotDurationMinutes(),
