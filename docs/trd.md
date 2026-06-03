@@ -2,36 +2,22 @@
 
 ## Scope
 
-This document describes the current implementation. ADRs are the source of truth for
-decisions; this TRD explains how those decisions appear in the codebase.
+This document describes the current implementation. ADRs are the source of truth for decisions; this
+TRD explains how those decisions appear in the codebase. It is not a deployment guide.
 
-Primary ADRs:
+Key decision areas are:
 
-- [ADR-0001](adr/0001-bounded-context-module-baseline.md): superseded 11-module baseline.
-- [ADR-0017](adr/0017-collapse-to-bounded-context-modules.md): active bounded-context module
-  decision.
-- [ADR-0003](adr/0003-platform-account-identity.md): platform account identity.
-- [ADR-0004](adr/0004-business-and-membership-boundary.md): business membership boundary.
-- [ADR-0006](adr/0006-account-scoped-jwt.md): account-scoped JWTs.
-- [ADR-0010](adr/0010-virtual-slots.md): virtual slots.
-- [ADR-0011](adr/0011-derived-reservation-state.md): derived reservation state.
-- [ADR-0012](adr/0012-reservation-persistence-and-locking.md): hold correctness.
-- [ADR-0014](adr/0014-timeslot-booking-api-boundary.md): timeslot API boundary.
-- [ADR-0015](adr/0015-replace-tenant-booking-api.md): replacement of the legacy reservation API.
-- [ADR-0018](adr/0018-account-security-hardening.md): password reset recovery and active-state
-  checks.
-- [ADR-0020](adr/0020-platform-exchange-boundary.md): pure Java platform exchange module for
-  cross-context lookup/check APIs.
-- [ADR-0021](adr/0021-staff-membership-administration.md): owner-only staff membership
-  administration with append-only audit.
-- [ADR-0022](adr/0022-platform-runtime-packaging.md): platform runtime packages platform and booking
-  APIs.
-- [ADR-0023](adr/0023-ticketing-bounded-context.md): ticketing bounded context assembled into the
-  platform runtime.
-- [ADR-0025](adr/0025-selected-seat-ticket-purchase.md): selected-seat first-successful purchase
-  semantics.
-- [ADR-0026](adr/0026-ticket-purchase-concurrency-idempotency.md): concurrency-safe ticket purchase
-  confirmation and idempotency-key replay semantics.
+- Identity and access: account-scoped JWTs, business membership boundaries, and owner/staff
+  administration.
+- Runtime and modules: bounded-context Gradle modules, one platform runtime, and pure Java
+  `platform-exchange` APIs.
+- Booking correctness: virtual slots, derived reservation state, and advisory-lock-backed hold
+  persistence.
+- Ticketing correctness: selected-seat purchase ownership, concurrency-safe seat claims, and
+  idempotency-key replay.
+- API contract: generated OpenAPI from the platform runtime.
+
+See the [ADR index](adr/README.md) for the full decision index.
 
 ## Runtime And Build
 

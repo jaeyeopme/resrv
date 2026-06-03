@@ -3,20 +3,26 @@
 ## Overview
 
 `resrv` is a backend for business reservation workflows that need account-based access control,
-resource scheduling, virtual slot discovery, and reservation lifecycle management.
+resource scheduling, virtual slot discovery, reservation lifecycle management, selected-seat ticket
+purchase confirmation, and business activity review.
 
-The current product scope focuses on a timeslot booking product. A business configures booking
-settings, creates resources, defines schedules, exposes virtual slots, and lets accounts hold and
-confirm reservations.
+The requirements describe implemented backend behavior and current boundaries, not a production
+rollout plan or commercial roadmap.
+
+The current product scope covers timeslot booking and selected-seat ticket purchases. A business
+configures booking settings, creates resources, defines schedules, exposes virtual slots, and lets
+accounts hold and confirm reservations. Ticketing models event-owned inventory and selected seats,
+lets authenticated customers confirm purchases for available seats, and lets authorized business
+actors review completed purchase activity.
 
 ## Users
 
 | User | Need |
 |---|---|
-| Business owner | Create a business, own settings, and manage staff access |
-| Business staff | Manage resources, schedules, and operational reservation transitions |
-| Customer account | Find slots, hold a slot, confirm, release, or cancel own reservation |
-| API reviewer/integrator | Inspect generated API docs and understand auth boundaries |
+| Business owner | Create a business, own settings, manage staff access, and review business activity |
+| Business staff | Manage resources, schedules, operational reservation transitions, and business activity |
+| Customer account | Find slots, manage own reservations, confirm selected-seat ticket purchases, and view own ticket history |
+| API integrator | Inspect generated API docs and understand auth boundaries |
 
 ## Goals
 
@@ -28,7 +34,9 @@ confirm reservations.
 - Require account recovery through password reset after repeated failed password sign-ins.
 - Stop protected actions when account, business, or membership state becomes inactive.
 - Let owners grant, review, update, disable, and audit staff membership without sharing credentials.
-- Expose generated Swagger/OpenAPI docs for review.
+- Model selected-seat ticket purchases as first-successful ownership without overselling seats.
+- Make repeated ticket purchase confirmation safe through customer-scoped idempotency replay.
+- Expose generated Swagger/OpenAPI docs for inspection.
 - Keep durable architecture decisions explicit in ADRs.
 
 ## Non-Goals
@@ -39,19 +47,25 @@ confirm reservations.
 - Full customer profile management separate from platform `Account`.
 - Distributed microservice deployment, message brokers, outbox processing, and event projections.
 - External calendar sync.
+- Ticket checkout attempts, ticket holds, failed-attempt ledgers, refunds, cancellations, resale,
+  waitlists, seating-map UI, and public ticket marketing discovery.
 
 ## Product Concepts
 
 | Concept | Meaning |
 |---|---|
 | Account | Platform identity used by owners, staff, and customers |
-| Business | Organization that owns booking settings, resources, schedules, and reservations |
+| Business | Organization that owns booking settings, resources, schedules, reservations, and ticket events |
 | BusinessMembership | `OWNER` or `STAFF` access from an account to a business |
 | Booking settings | Default slot duration, hold TTL, cancellation window, and max advance booking days |
 | Resource | Reservable item such as a room, seat, equipment, or staff member |
 | Schedule | Weekly windows plus optional date-specific override windows |
 | Slot | Virtual bookable time range encoded as an opaque `slotId` |
 | Reservation | Timestamp-fact record for hold, confirm, release, cancel, check-in, and no-show |
+| Ticket event | Ticketing-owned sale opportunity associated with a platform business |
+| Ticket seat | Event-owned selected seat that can be available or purchased |
+| Ticket purchase | Durable successful ownership of one or more selected seats by a customer account |
+| Purchase idempotency key | Customer-scoped retry key that replays the original ticket purchase outcome |
 | Sign-in protection | Account-scoped state requiring password reset after repeated failed password sign-ins |
 | Password reset challenge | Single-use email recovery link that clears sign-in protection when completed |
 
@@ -87,6 +101,14 @@ confirm reservations.
 4. Confirm or release the hold.
 5. Cancel confirmed reservation before the cancellation cutoff.
 
+### Customer Ticket Purchase
+
+1. Confirm selected seats for an active ticket event with a customer-scoped idempotency key.
+2. Receive the original public outcome again when retrying the same key and selected seats within
+   the replay window.
+3. Receive a stable unavailable-seat conflict when selected seats are already purchased.
+4. View completed successful ticket purchases in customer ticket history.
+
 ### Business Operations
 
 1. Business owner or staff lists reservations for a business-local date.
@@ -94,6 +116,7 @@ confirm reservations.
 3. Business owner or staff cancels a held or confirmed reservation.
 4. Business owner or staff checks in a confirmed reservation after start time.
 5. Business owner or staff marks no-show after end time.
+6. Business owner or staff reviews completed ticket purchase activity for an event they can access.
 
 ### Account Recovery
 
@@ -126,15 +149,24 @@ confirm reservations.
 - Membership grant, role change, reactivation, and disablement must append access audit entries.
 - Public booking discovery must remain reachable while excluding inactive businesses and inactive
   resources from bookable results.
+- Ticket purchase confirmation must require an authenticated customer account and a non-empty
+  selected-seat request.
+- Ticket purchase confirmation must require a customer-scoped idempotency key.
+- Ticket purchase confirmation must create all requested selected-seat ownership or none.
+- Contending selected-seat purchase confirmations must not oversell seats or create partial
+  purchases.
+- Ticket purchase idempotency must replay the original public outcome for the configured replay
+  window and reject changed or expired same-key retries with stable public reasons.
+- Customer ticket history must include only completed successful purchases for the authenticated
+  account.
+- Business ticket activity must require active owner/staff membership and must not reveal whether an
+  inaccessible ticket event exists.
 
 ## Open Product Questions
 
 - Whether customers need profile data beyond `Account`.
-- Current review runtime packaging uses the platform runtime to serve platform and booking APIs
-  together. `timeslot` local `bootRun` remains disabled until a separate runtime-split and
-  outbox/message-broker design is planned.
-- Future traffic-sensitive domains such as ticketing should use the same exchange-boundary approach
-  first, then get a dedicated runtime split only after the broker/outbox operational model is
-  explicit.
+- Current runtime packaging uses the platform runtime to serve platform, booking, and
+  ticketing APIs together. `timeslot` and `ticketing` local `bootRun` tasks remain disabled until a
+  separate runtime-split and outbox/message-broker design is planned.
 - Whether password reset needs a first-party web screen in this repository or an external client
   route.

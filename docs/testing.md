@@ -1,5 +1,8 @@
 # Testing Strategy
 
+This document explains the verification strategy for this backend. It focuses on runnable checks and
+the behavior those checks protect.
+
 ## Goals
 
 - Verify domain invariants without Spring.
@@ -24,11 +27,11 @@ Docker must be running because persistence and API integration tests use Testcon
 | Layer | Location | Purpose |
 |---|---|---|
 | Shared kernel tests | `shared-kernel/src/test` | ID and timezone primitives |
-| Domain tests | `platform/src/test`, `timeslot/src/test` | Entity/value object invariants |
-| Application tests | `platform/src/test`, `timeslot/src/test` | Use case behavior with fake ports |
-| Persistence tests | `platform/src/test`, `timeslot/src/test` | JPA mapping, Flyway schema, PostgreSQL behavior |
-| API integration tests | `platform/src/test`, `timeslot/src/test` | Security, HTTP flow, runtime wiring |
-| Architecture tests | `platform/src/test/.../architecture`, `timeslot/src/test/.../architecture` | Package/module dependency rules |
+| Domain tests | `platform/src/test`, `timeslot/src/test`, `ticketing/src/test` | Entity/value object invariants |
+| Application tests | `platform/src/test`, `timeslot/src/test`, `ticketing/src/test` | Use case behavior with fake ports |
+| Persistence tests | `platform/src/test`, `timeslot/src/test`, `ticketing/src/test` | JPA mapping, Flyway schema, PostgreSQL behavior |
+| API integration tests | `platform/src/test`, `timeslot/src/test` | Security, HTTP flow, runtime wiring, including ticketing endpoints assembled into `platform` |
+| Architecture tests | `platform/src/test/.../architecture`, `timeslot/src/test/.../architecture`, `ticketing/src/test/.../architecture` | Package/module dependency rules |
 | Platform exchange architecture tests | `platform-exchange/src/test` | Pure Java exchange boundary and event-package guard |
 
 ## Coverage Gates
@@ -39,10 +42,11 @@ JaCoCo line coverage minimums are configured in the root `build.gradle.kts`.
 |---|---|
 | `shared-kernel` | 85% |
 | `platform` | 80% |
+| `ticketing` | 80% |
 | `timeslot` | 80% |
 
 `check` depends on `jacocoTestCoverageVerification` for modules that apply JaCoCo.
-The bounded-context modules also keep package-level gates for application, web adapter, and
+`platform` and `timeslot` also keep package-level gates for application, web adapter, and
 persistence adapter packages so aggregate module coverage cannot hide a drop in one layer.
 
 ## Architecture Rules
@@ -59,6 +63,11 @@ ArchUnit verifies:
 - Timeslot does not depend on platform domain, adapters, API runtime, repositories, entities, or
   persistence schema.
 - Only the timeslot outbound platform adapter may depend on explicit `platform-exchange` APIs.
+- Ticketing does not depend on platform domain, adapters, API runtime, repositories, entities, or
+  persistence schema.
+- Only the ticketing outbound platform adapter may depend on explicit `platform-exchange` APIs.
+- Ticketing selected-seat and purchase domain code stays inside the ticketing domain and has no
+  Spring, Jakarta, Hibernate, or platform dependencies.
 - Platform exchange APIs do not depend on Spring, Jakarta, Hibernate, platform implementation
   packages, or exchange event packages.
 - Direct database access primitives stay inside outbound adapter packages in production code.
@@ -66,60 +75,20 @@ ArchUnit verifies:
   annotations; those annotations live on same-package `*ApiDocs` interfaces implemented by the
   adapters.
 
-Reservation list/search tests verify business membership authorization, business-local date
-windows, optional resource/customer/state filters, and deterministic start-time ordering.
+## Behavior Coverage
 
-Customer reservation history tests verify self-scoped list/detail APIs, owner-only account
-filtering, inactive business/resource summary rendering, bounded page/size validation, stable
-descending ordering, derived state and `upcoming=true` filtering before pagination, and identical
-public `404` responses for missing and not-owned detail, confirm, release, and customer-cancel
-lookups.
+The test suite is organized around behavior guarantees rather than endpoint catalogs:
 
-Business resource lifecycle tests verify full replacement semantics for booking settings, resource
-details, booking overrides, weekly schedules, and date overrides. They also cover resource ID-only
-identity, duplicate resource names, rejection of obsolete slug/handle request fields, explicit
-activate/deactivate actions, public discovery exclusion for inactive resources, future-only policy
-effects for holds and cancellation cutoffs, and reservation fact preservation after lifecycle
-changes.
-
-Resource probe tests compare missing and wrong-business resource identifiers at the API boundary so
-public problem details do not expose resource ownership or existence facts.
-
-Staff membership administration tests verify owner-only grant/list/audit/update/disable APIs,
-duplicate active membership rejection, disabled membership reactivation, last-owner protection,
-wrong-business membership denial, immutable audit entries, generated OpenAPI response documentation,
-and request-time access decisions from current membership state.
-
-Public booking discovery tests verify slug-based business discovery, active-only resource discovery,
-schedule-derived slots with `available` state, malformed-input validation, collapsed `404` responses
-for valid missing/inactive/not-bookable/wrong-business lookups, no public business UUID exposure,
-no public resource slug/handle exposure, and business-slug-scoped authenticated hold creation.
-
-Timeslot reservation traffic tests verify generated-slot non-overlap, DST/midnight timezone
-boundaries, stale or policy-drifted slot rejection before persistence, advisory-lock ordering before
-blocker checks, active blocker overlap semantics, expired hold rows remaining stored while
-non-blocking, blocked hold `409 Conflict`, expired-hold confirmation `409 Conflict`, malformed hold
-payload `400`, IDOR-safe customer reservation not-found responses, business-access `403`, and
-same-slot/same-reservation contention with exactly one successful transition across repeated
-attempts.
-
-Platform runtime packaging tests verify that the canonical platform runtime serves booking settings,
-public booking discovery, and ticketing API groups; applies platform, timeslot, and ticketing
-schemas; rejects inactive accounts for protected booking actions; preserves non-enumerating
-wrong-business public slot lookup responses; exposes platform, booking, and ticketing endpoint
-groups from generated OpenAPI; excludes unsupported capability groups; verifies public/private
-schema boundaries; and checks that human docs do not duplicate a hand-written endpoint catalog.
-
-Operational readiness tests verify public liveness/readiness probes, database-backed readiness,
-Flyway migration history visibility for platform, timeslot, and ticketing migrations, generated
-OpenAPI reachability for smoke checks, and documentation drift around unsupported standalone
-services.
-
-API contract consistency tests use generated OpenAPI as the source of truth. They assert path/method
-coverage, representative response documentation for success and failure statuses, and boundary
-schemas for public discovery, customer history, business-scoped reservations, and owner-only
-membership administration. When endpoint documentation changes, tests should verify generated
-summaries or response descriptions rather than inspecting controller annotations directly.
+| Area | Protected behavior |
+|---|---|
+| Account security | Password reset protection after repeated failed sign-ins, fake email delivery in API tests, inactive-account denial, and public documentation reachability |
+| Business access | Owner/staff membership checks, membership audit history, last-owner protection, and request-time access decisions |
+| Resource lifecycle | Replacement semantics for settings, resources, schedules, date overrides, resource ID-only identity, and inactive-resource public discovery exclusion |
+| Public booking | Business slug discovery, active resource and generated slot discovery, collapsed public not-found responses, and authenticated hold creation |
+| Reservation traffic | Generated-slot validation, timezone boundaries, advisory lock ordering, active blocker checks, expired-hold behavior, IDOR-safe responses, and contention outcomes |
+| Runtime packaging | Platform runtime assembly of platform, booking, and ticketing API groups; migration loading; generated OpenAPI exposure; and unsupported runtime exclusion |
+| Operational readiness | Public liveness/readiness probes, database-backed readiness, migration visibility, OpenAPI smoke reachability, and absence of secrets in health responses |
+| API contract | Generated OpenAPI path/method coverage, representative success/failure documentation, and public/private schema boundaries |
 
 Ticketing API tests run through the platform runtime because ticketing has no standalone backend
 runtime. Focused ticketing verification is:
@@ -163,15 +132,6 @@ public contract and covered by end-to-end verification appropriate to the change
 changes must update generated OpenAPI coverage and API integration tests. Documentation-only pattern
 updates should state why runtime tests were not run.
 
-Account security hardening tests verify:
-
-- Five failed password sign-in attempts create account-scoped password reset protection.
-- Password reset email delivery uses a fake adapter in API integration tests.
-- Password sign-in stays blocked until reset succeeds.
-- Inactive accounts are denied at request time even with otherwise valid JWTs.
-- Inactive businesses or memberships deny protected business actions.
-- Public generated documentation and public booking discovery remain reachable.
-
 ## Testcontainers
 
 Integration and persistence tests use PostgreSQL through Testcontainers. Test properties configure:
@@ -194,6 +154,6 @@ JWT tests use a fixed local test secret and test issuer/audience values.
 
 ## Known Gaps
 
-- A separate timeslot service runtime is deferred until a later explicit runtime split and
-  outbox/message-broker design.
+- Separate timeslot or ticketing service runtimes are deferred until a later explicit runtime split
+  and outbox/message-broker design.
 - Token revocation for account-scoped JWTs is deferred.

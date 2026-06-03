@@ -62,41 +62,20 @@ Configuration:
 | `resrv.security.password-reset.public-base-url` | Public base URL used to build password reset links |
 | `resrv.security.password-reset.token-ttl` | Password reset link lifetime |
 
-## Public Endpoints
+## Public Exposure
 
-This section lists security exposure, not the full endpoint contract. Generated OpenAPI from the
+This section describes public exposure, not the full endpoint contract. Generated OpenAPI from the
 platform runtime remains the canonical endpoint and schema contract.
 
-Generated documentation endpoints are public:
+Public surfaces:
 
-- `/swagger-ui.html`
-- `/swagger-ui/**`
-- `/v3/api-docs`
-- `/v3/api-docs/**`
-- `/v3/api-docs.yaml`
-
-Operational probe endpoints are public and must not expose secrets or private domain data:
-
-- `/actuator/health`
-- `/actuator/health/**`
-
-Platform public endpoints:
-
-- `POST /api/accounts`
-- `POST /api/auth/login`
-- `POST /api/auth/password-reset`
-
-Timeslot public read endpoints:
-
-- `GET /api/businesses/*/resources`
-- `GET /api/businesses/*/resources/*/slots`
-- `GET /api/public/businesses/*`
-- `GET /api/public/businesses/*/resources`
-- `GET /api/public/businesses/*/resources/*/slots`
-
-Timeslot public booking hold endpoint:
-
-- `POST /api/public/businesses/*/reservations`
+- Generated API documentation: Swagger UI and `/v3/api-docs` JSON/YAML.
+- Operational probes: Actuator health, liveness, and readiness. Probe responses must not expose
+  secrets or private domain data.
+- Platform account and authentication entry points: account registration, login, and password reset
+  completion.
+- Timeslot public booking flow: public business discovery, active resource discovery, generated slot
+  discovery, and authenticated hold creation.
 
 Ticketing protected endpoints are served by the platform runtime. Generated OpenAPI remains the
 source of truth for exact paths and schemas; at a high level, ticketing exposes authenticated

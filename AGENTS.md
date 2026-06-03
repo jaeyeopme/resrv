@@ -4,8 +4,9 @@
 
 `resrv` is a Java 25 + Spring Boot 4 backend for business reservation workflows.
 It models accounts, businesses, staff access, booking setup, generated slots,
-and reservation lifecycle transitions. The codebase uses bounded-context modules
-with hexagonal package boundaries.
+reservation lifecycle transitions, ticket events, selected seats, and ticket
+purchase confirmation. The codebase uses bounded-context modules with hexagonal
+package boundaries.
 
 Current Gradle modules:
 
@@ -13,15 +14,18 @@ Current Gradle modules:
 shared-kernel
 platform-exchange
 platform
+ticketing
 timeslot
 ```
 
-`platform` is the canonical runnable Spring Boot API and serves both platform and
-booking API groups. `platform-exchange` contains pure Java platform-owned
-lookup/check APIs for cross-context consumers. `timeslot` contains booking API
-code contributed to the platform runtime, but its `bootJar` and `bootRun` tasks
-are intentionally disabled so it does not become a second supported backend
-runtime.
+`platform` is the canonical runnable Spring Boot API and serves platform,
+booking, and ticketing API groups. `platform-exchange` contains pure Java
+platform-owned lookup/check APIs for cross-context consumers. `timeslot`
+contains booking API code contributed to the platform runtime. `ticketing`
+contains event, inventory, selected-seat, purchase, history, and business
+activity behavior contributed to the platform runtime. `timeslot` and
+`ticketing` `bootJar` and `bootRun` tasks are intentionally disabled so they do
+not become additional supported backend runtimes.
 
 ## Required Commands
 
@@ -56,9 +60,6 @@ Supporting docs:
 
 - `docs/security.md`
 - `docs/testing.md`
-- `docs/operations.md`
-- `docs/glossary.md`
-- `docs/spec-kit.md`
 - `.specify/memory/constitution.md`
 - `specs/` when Spec Kit feature specs exist
 
@@ -67,8 +68,6 @@ Spec Kit specs may drive new work, but they do not replace ADRs or generated API
 contracts.
 
 ## Spec Kit
-
-Read `docs/spec-kit.md` before starting or reviewing Spec Kit work.
 
 Use this workflow for spec-driven work:
 
@@ -99,7 +98,7 @@ When changing API behavior:
 - Keep DTO/payload schema metadata on the payload type when it describes fields.
 - Update or add API integration tests.
 - Let `/v3/api-docs`, `/v3/api-docs.yaml`, and `/swagger-ui.html` expose the contract.
-- Keep human docs focused on product, architecture, security, operations, and testing context.
+- Keep human docs focused on product, architecture, security, and testing context.
 - Mention only high-level API groups in narrative docs unless a concrete endpoint example is needed
   to explain a decision.
 
@@ -117,8 +116,8 @@ When changing API behavior:
   outbound adapter packages.
 - Test `JdbcTemplate` use is allowed for fixtures and database assertions.
 - If production code needs native SQL/JDBC, document why JPA is not the right fit.
-- Timeslot must not read platform tables directly. Use explicit `platform-exchange` APIs from the
-  timeslot outbound platform adapter.
+- Timeslot and ticketing must not read platform tables directly. Use explicit
+  `platform-exchange` APIs from their outbound platform adapters.
 
 ## Commit Messages
 

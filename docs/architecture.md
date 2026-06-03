@@ -1,6 +1,7 @@
 # Architecture
 
-`resrv` is organized around bounded contexts and hexagonal boundaries.
+`resrv` is organized around bounded contexts and hexagonal boundaries. This document explains the
+implemented architecture; ADRs remain the durable decision log.
 
 ## Bounded Contexts
 
@@ -11,6 +12,23 @@
 | Timeslot | Booking settings, resources, schedules, virtual slots, reservations |
 | Ticketing | Ticket sale events, sale windows, tiered inventory, selected seats, and ticket purchases |
 | Shared kernel | Stable identity and time primitives shared by contexts |
+
+```mermaid
+flowchart LR
+    platform["Platform<br/>accounts, businesses, memberships"]
+    timeslot["Timeslot<br/>resources, schedules, reservations"]
+    ticketing["Ticketing<br/>events, seats, purchases"]
+    exchange["Platform exchange<br/>published lookup and access APIs"]
+    kernel["Shared kernel<br/>ids and time primitives"]
+
+    timeslot --> exchange
+    ticketing --> exchange
+    exchange --> platform
+    platform --> kernel
+    timeslot --> kernel
+    ticketing --> kernel
+    exchange --> kernel
+```
 
 ## Current Module State
 
@@ -25,6 +43,25 @@ platform-exchange
 platform
 ticketing
 timeslot
+```
+
+```mermaid
+flowchart TD
+    platform["platform<br/>runnable Spring Boot API"]
+    timeslot["timeslot<br/>booking module"]
+    ticketing["ticketing<br/>ticketing module"]
+    exchange["platform-exchange<br/>pure Java contracts"]
+    kernel["shared-kernel<br/>shared primitives"]
+
+    platform --> timeslot
+    platform --> ticketing
+    platform --> exchange
+    platform --> kernel
+    timeslot --> exchange
+    timeslot --> kernel
+    ticketing --> exchange
+    ticketing --> kernel
+    exchange --> kernel
 ```
 
 [ADR-0001](adr/0001-bounded-context-module-baseline.md) records the superseded 11-module baseline.
@@ -55,6 +92,31 @@ Rules:
 Owned persistence defaults to Spring Data JPA repositories inside `adapter.out.persistence`.
 Database-specific behavior may use native SQL only inside outbound adapters. Current production use
 is PostgreSQL advisory locking in timeslot persistence.
+
+The persistence map is conceptual. Timeslot and ticketing store platform ids as UUIDs but do not
+add cross-schema foreign keys to platform tables.
+
+```mermaid
+erDiagram
+    PLATFORM_ACCOUNT ||--o{ PLATFORM_BUSINESS_MEMBERSHIP : owns_or_staffs
+    PLATFORM_BUSINESS ||--o{ PLATFORM_BUSINESS_MEMBERSHIP : grants_access
+    PLATFORM_BUSINESS_MEMBERSHIP ||--o{ PLATFORM_MEMBERSHIP_AUDIT : records
+    PLATFORM_ACCOUNT ||--o{ PLATFORM_PASSWORD_RESET_CHALLENGE : recovers
+
+    TIMESLOT_RESOURCE ||--o{ TIMESLOT_WEEKLY_SCHEDULE : has
+    TIMESLOT_WEEKLY_SCHEDULE ||--o{ TIMESLOT_WEEKLY_WINDOW : contains
+    TIMESLOT_RESOURCE ||--o{ TIMESLOT_DATE_OVERRIDE : overrides
+    TIMESLOT_DATE_OVERRIDE ||--o{ TIMESLOT_DATE_WINDOW : contains
+    TIMESLOT_RESOURCE ||--o{ TIMESLOT_RESERVATION : reserves
+
+    TICKETING_EVENT ||--|| TICKETING_INVENTORY : owns
+    TICKETING_INVENTORY ||--o{ TICKETING_TIER : contains
+    TICKETING_EVENT ||--o{ TICKETING_SEAT : offers
+    TICKETING_EVENT ||--o{ TICKETING_PURCHASE : records
+    TICKETING_PURCHASE ||--o{ TICKETING_PURCHASE_SEAT : contains
+    TICKETING_SEAT ||--o{ TICKETING_PURCHASE_SEAT : claimed_by
+    TICKETING_EVENT ||--o{ TICKETING_IDEMPOTENCY : scopes
+```
 
 ## Platform Context
 
