@@ -103,13 +103,12 @@ historical checkpoint list, not as the next work queue.
 | `016-data-authorization-consistency` | Data and authorization consistency | Membership, business, resource, and reservation state changes preserve access rules and IDOR-sensitive response policy. |
 | `017-web-adapter-docs` | Web adapter documentation separation | Request-handling Web Adapters stay focused on HTTP mapping while generated OpenAPI metadata lives on matching `*ApiDocs` interfaces. |
 | `018-timeslot-traffic-hardening` | Timeslot reservation traffic hardening | Hold creation, lifecycle transitions, expiration behavior, and conflict responses are concurrency-safe and covered by API tests. |
+| `019-timeslot-resource-id-only` | Timeslot resource identity cleanup | Removed resource slug/handle semantics from domain, persistence, API contracts, generated OpenAPI coverage, and docs/ADR references. |
 | `020-ticket-event-inventory-model` | Ticket event and inventory baseline | Implemented ticketing bounded context, event/inventory persistence baseline, and no public ticketing endpoint surface. |
 
 Current `Pending` feature specs:
 
-| Spec | Focus | Next Step |
-|---|---|---|
-| `019-timeslot-resource-id-only` | Timeslot resource identity cleanup | Implementation completed on feature branch; run review/merge workflow before marking implemented. |
+None.
 
 ## Future Feature Roadmap
 

@@ -188,7 +188,10 @@ The current scope is a working backend API for local execution and code review.
 It is not production-deployment ready. Payments, staff invitation delivery and
 acceptance UI, password reset UI, production deployment infrastructure, and
 notification workflows are outside the current scope. Owner-managed staff
-membership administration is implemented in the platform API.
+membership administration is implemented in the platform API. Timeslot resources
+use resource IDs and display names without resource slug/handle identity fields.
+Ticketing has an internal event and inventory baseline assembled into the
+platform runtime, but no public ticketing endpoint group.
 
 ## Review Checklist
 

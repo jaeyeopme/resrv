@@ -162,9 +162,11 @@ Flyway migrations are stored in bounded-context modules:
 | `timeslot/src/main/resources/db/migration/V10__create_timeslot_schema.sql` | Timeslot settings, resources, schedules, reservations |
 | `platform/src/main/resources/db/migration/V11__account_security_hardening.sql` | Sign-in protection and password reset recovery |
 | `platform/src/main/resources/db/migration/V12__staff_membership_management.sql` | Membership timestamps and access audit history |
+| `ticketing/src/main/resources/db/migration/V20__create_ticketing_schema.sql` | Ticketing event and inventory baseline |
+| `timeslot/src/main/resources/db/migration/V21__remove_timeslot_resource_slug.sql` | Timeslot resource slug removal |
 
-The platform runtime loads `classpath:db/migration`, so platform and timeslot migration resources on
-the runtime classpath are applied through the same startup path.
+The platform runtime loads `classpath:db/migration`, so platform, timeslot, and ticketing migration
+resources on the runtime classpath are applied through the same startup path.
 
 Migration success can be checked through startup logs and the `flyway_schema_history` table. The
 platform runtime is not ready for traffic when the database is unavailable or required migrations

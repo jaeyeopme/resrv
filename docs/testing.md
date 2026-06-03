@@ -104,15 +104,17 @@ same-slot/same-reservation contention with exactly one successful transition acr
 attempts.
 
 Platform runtime packaging tests verify that the canonical platform runtime serves booking settings
-and public booking discovery endpoints, applies platform and timeslot schemas, rejects inactive
-accounts for protected booking actions, preserves non-enumerating wrong-business public slot lookup
-responses, exposes platform plus booking endpoint groups from generated OpenAPI, excludes
-unsupported capability groups, verifies public/private schema boundaries, and checks that human docs
-do not duplicate a hand-written endpoint catalog.
+and public booking discovery endpoints, assembles ticketing beans without public endpoints, applies
+platform, timeslot, and ticketing schemas, rejects inactive accounts for protected booking actions,
+preserves non-enumerating wrong-business public slot lookup responses, exposes platform plus booking
+endpoint groups from generated OpenAPI, excludes unsupported capability groups, verifies
+public/private schema boundaries, and checks that human docs do not duplicate a hand-written
+endpoint catalog.
 
 Operational readiness tests verify public liveness/readiness probes, database-backed readiness,
-Flyway migration history visibility for platform and timeslot migrations, generated OpenAPI
-reachability for smoke checks, and documentation drift around unsupported standalone services.
+Flyway migration history visibility for platform, timeslot, and ticketing migrations, generated
+OpenAPI reachability for smoke checks, and documentation drift around unsupported standalone
+services.
 
 API contract consistency tests use generated OpenAPI as the source of truth. They assert path/method
 coverage, representative response documentation for success and failure statuses, and boundary
