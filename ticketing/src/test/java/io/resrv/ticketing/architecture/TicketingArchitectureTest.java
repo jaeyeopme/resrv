@@ -89,4 +89,16 @@ final class TicketingArchitectureTest {
                         "jakarta.persistence..", "javax.sql..", "org.springframework.jdbc..")
                 .check(classes);
     }
+
+    @Test
+    void seat_and_purchase_domain_stay_inside_ticketing_domain() {
+        noClasses()
+                .that()
+                .resideInAnyPackage(
+                        "io.resrv.ticketing.domain.seat..", "io.resrv.ticketing.domain.purchase..")
+                .should()
+                .dependOnClassesThat()
+                .resideInAnyPackage("io.resrv.platform..", "org.springframework..", "jakarta..")
+                .check(classes);
+    }
 }

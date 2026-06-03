@@ -9,7 +9,7 @@
 | Platform | Account identity, login, business creation, business membership |
 | Platform exchange | Published platform-owned lookup and decision APIs for other contexts |
 | Timeslot | Booking settings, resources, schedules, virtual slots, reservations |
-| Ticketing | Ticket sale events, sale windows, and tiered inventory baseline |
+| Ticketing | Ticket sale events, sale windows, tiered inventory, selected seats, and ticket purchases |
 | Shared kernel | Stable identity and time primitives shared by contexts |
 
 ## Current Module State
@@ -125,21 +125,33 @@ plus resource ID.
 
 ## Ticketing Context
 
-Ticketing owns the baseline model for future ticket sale flows:
+Ticketing owns ticket sale and purchase lifecycle data:
 
 - `TicketEvent` for a sale opportunity owned by a platform business id.
 - `TicketEventProfile` for display title and event occurrence timing.
 - `TicketSaleWindow` for sale start/end boundaries.
 - `TicketInventory` and `TicketInventoryTier` for tiered capacity counters.
+- `TicketSeat` for event-owned selected seats and purchase status.
+- `TicketPurchase` for durable customer ownership of purchased seats.
 
 Ticketing stores platform `businessId` references locally and resolves platform business facts only
 through `platform-exchange`. It does not add cross-schema foreign keys to platform tables and does
 not read platform persistence directly.
 
-Ticketing IDs are the external identity strategy for future ticketing APIs. Slugs, handles, event
-keys, title uniqueness, and separate public opaque identifiers are intentionally excluded from this
-baseline. Public ticketing endpoints, claim/hold flows, payment, queueing, waitlists, and recurring
-or multi-session events are future scope.
+Ticketing exposes selected-seat purchase confirmation, customer ticket history, and authorized
+business purchase activity through the platform runtime. Purchase confirmation is the first durable
+ticket lifecycle action: it creates no pre-purchase checkout attempt, hold, cancellation,
+expiration, or failed-attempt record. Same-customer retries for the same purchased seats return the
+existing purchase; later attempts by other customers fail as unavailable.
+
+Business purchase activity access is resolved server-side through `platform-exchange` membership
+checks. Missing events and events outside the caller's business authority return the same public
+not-found style response.
+
+Ticketing IDs are the external identity strategy for ticketing APIs. Slugs, handles, event keys,
+title uniqueness, and separate public opaque identifiers are intentionally excluded from this
+baseline. Real payment authorization/settlement, queueing, waitlists, resale, and recurring or
+multi-session events remain future scope.
 
 ## Reservation Correctness
 

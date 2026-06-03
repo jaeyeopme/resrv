@@ -28,6 +28,8 @@ Primary ADRs:
   APIs.
 - [ADR-0023](adr/0023-ticketing-bounded-context.md): ticketing bounded context assembled into the
   platform runtime.
+- [ADR-0025](adr/0025-selected-seat-ticket-purchase.md): selected-seat first-successful purchase
+  semantics.
 
 ## Runtime And Build
 
@@ -84,16 +86,21 @@ Timeslot API owns booking lifecycle:
 - List business reservations for a business-local date, with optional resource, customer account,
   and derived-state filters.
 
-Ticketing currently owns internal baseline model and persistence only:
+Ticketing owns selected-seat purchase lifecycle behavior:
 
 - Ticket sale events tied to platform business ids.
 - Event occurrence windows and sale windows.
 - Tiered inventory totals, reserved counts, confirmed counts, soft-reserved counts, and derived
   available counts.
+- Event-owned selected seats with available or purchased state.
+- Customer ticket purchases that own one or more selected seats.
+- Customer ticket history for authenticated customers.
+- Business purchase activity for authorized owner/staff actors.
 
 `platform` is the canonical backend runtime. It scans platform, timeslot, and ticketing
 bounded-context packages, serves platform and booking API groups, and exposes one generated OpenAPI
-surface from `/v3/api-docs`. Ticketing contributes no public endpoint group in the current scope.
+surface from `/v3/api-docs`. Ticketing contributes purchase confirmation, customer history, and
+business purchase activity endpoints through platform web adapters.
 
 Generated OpenAPI from that runtime is the API contract surface. Narrative docs describe API groups,
 authorization boundaries, and design decisions, but do not maintain a duplicate endpoint catalog.
@@ -180,14 +187,30 @@ Ticketing schema:
 - `ticketing.ticket_event`
 - `ticketing.ticket_inventory`
 - `ticketing.ticket_inventory_tier`
+- `ticketing.ticket_seat`
+- `ticketing.ticket_purchase`
+- `ticketing.ticket_purchase_seat`
 
 Ticketing records reference platform `business_id` by UUID and ticketing-owned ids by UUID. The
 current migration does not add cross-schema foreign keys from ticketing to platform.
 
 Production persistence code defaults to Spring Data JPA for owned tables. Native SQL or JDBC is
 reserved for outbound adapters where database-specific behavior is required, such as PostgreSQL
-advisory locks. Timeslot and ticketing obtain platform business and membership data through platform
-application exchange APIs rather than reading platform tables directly.
+advisory locks or compact read projections. Timeslot and ticketing obtain platform business and
+membership data through platform application exchange APIs rather than reading platform tables
+directly.
+
+## Ticket Purchase Correctness
+
+Selected-seat purchase confirmation validates the authenticated customer, active event, non-empty
+seat selection, duplicate seat ids, event ownership for each seat, and current seat availability.
+All selected seats are purchased together or none are. The first successful confirmation creates one
+`ticket_purchase` row and marks selected `ticket_seat` rows as `PURCHASED`.
+
+The feature deliberately does not store checkout attempts, failed attempts, cancellations, or
+expirations. Retrying an already successful same-customer/same-seat selection returns the existing
+purchase response without creating duplicate ownership. Business purchase activity uses current
+server-side business access checks and keeps unauthorized or missing event probes non-enumerating.
 
 ## Reservation Correctness
 

@@ -1,17 +1,13 @@
 package io.resrv.platform.api;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import com.jayway.jsonpath.JsonPath;
-import java.util.Map;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.context.annotation.Import;
-import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.jdbc.core.JdbcTemplate;
 
 @SpringBootTest(
         properties = {
@@ -26,23 +22,28 @@ import org.springframework.test.web.servlet.MockMvc;
         })
 @AutoConfigureMockMvc
 @Import(FakePasswordResetEmailAdapter.class)
-final class TicketingEndpointAbsenceIntegrationTest {
+final class TicketPurchaseAttemptAbsenceIntegrationTest {
 
-    @Autowired private MockMvc mockMvc;
+    @Autowired private JdbcTemplate jdbcTemplate;
 
     @Test
-    void generatedOpenApiDoesNotExposeCheckoutAttemptEndpoints() throws Exception {
-        final var openApi =
-                mockMvc.perform(get("/v3/api-docs"))
-                        .andExpect(status().isOk())
-                        .andReturn()
-                        .getResponse()
-                        .getContentAsString();
+    void ticketingSchemaDoesNotContainCheckoutAttemptOrFailureLifecycleTables() {
+        final var tableNames =
+                jdbcTemplate.queryForList(
+                        """
+                        SELECT table_name
+                        FROM information_schema.tables
+                        WHERE table_schema = 'ticketing'
+                        """,
+                        String.class);
 
-        @SuppressWarnings("unchecked")
-        final Map<String, Object> paths = JsonPath.read(openApi, "$.paths");
-
-        assertThat(paths.keySet()).noneMatch(path -> path.contains("checkout"));
-        assertThat(paths.keySet()).noneMatch(path -> path.contains("attempt"));
+        assertThat(tableNames)
+                .doesNotContain(
+                        "ticket_checkout",
+                        "ticket_checkout_attempt",
+                        "ticket_purchase_attempt",
+                        "ticket_purchase_failure",
+                        "ticket_cancellation",
+                        "ticket_expiration");
     }
 }

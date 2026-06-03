@@ -33,3 +33,4 @@ introduced or hardened the decision so future readers can inspect the implementa
 | [0022](0022-platform-runtime-packaging.md) | Accepted | Package platform as the canonical runtime for platform and booking APIs |
 | [0023](0023-ticketing-bounded-context.md) | Accepted | Add ticketing as a bounded context assembled into the platform runtime |
 | [0024](0024-timeslot-resource-id-only.md) | Accepted | Use resource IDs as the only timeslot resource identity |
+| [0025](0025-selected-seat-ticket-purchase.md) | Accepted | Selected-seat ticket purchase confirmation claims seats on first success |

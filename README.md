@@ -38,9 +38,9 @@ and reservations.
 - **Reservations**: hold, confirm, release, customer cancel, business cancel,
   check in, mark no-show, view customer history, and search business
   reservations.
-- **Ticketing baseline**: model ticket events, event timing, sale windows, and
-  tiered inventory for future ticket sale flows without exposing public ticket
-  endpoints yet.
+- **Ticketing purchases**: model ticket events, sale windows, tiered inventory,
+  selected seats, first-successful purchase confirmation, customer ticket
+  history, and authorized business purchase activity.
 - **Runtime and API docs**: run one platform backend, serve generated
   OpenAPI/Swagger UI, expose liveness/readiness probes, and build a Jib image.
 
@@ -48,8 +48,8 @@ and reservations.
 
 The app runs as one Spring Boot process from the `platform` module. The
 `timeslot` module adds booking behavior to that same process. The `ticketing`
-module adds the ticket event and inventory baseline to the same process without
-public ticketing endpoints.
+module adds ticket event, inventory, selected-seat, and purchase behavior to the
+same process.
 `platform-exchange` contains plain Java types used between modules. It is not
 HTTP, messaging, or an outbox layer.
 
@@ -85,8 +85,9 @@ Module roles:
   Boot app.
 - `timeslot`: booking settings, resources, schedules, generated slots, and
   reservations.
-- `ticketing`: ticket sale event and inventory baseline, assembled into the
-  platform runtime with no public endpoints in the current scope.
+- `ticketing`: ticket sale events, inventory, selected seats, customer
+  purchases, history, and business activity, assembled into the platform
+  runtime.
 
 `platform` serves platform and booking API groups. `timeslot` and `ticketing`
 depend on `platform-exchange`, not on platform implementation packages.
@@ -190,8 +191,10 @@ acceptance UI, password reset UI, production deployment infrastructure, and
 notification workflows are outside the current scope. Owner-managed staff
 membership administration is implemented in the platform API. Timeslot resources
 use resource IDs and display names without resource slug/handle identity fields.
-Ticketing has an internal event and inventory baseline assembled into the
-platform runtime, but no public ticketing endpoint group.
+Ticketing selected-seat purchase confirmation, customer history, and business
+activity are assembled into the platform runtime. Real payments, checkout
+attempt records, cancellations, expiration records, and failed-attempt records
+remain outside the current scope.
 
 ## Review Checklist
 
@@ -215,7 +218,10 @@ These are not implemented in the current backend:
 - Notifications and reminders, except SMTP for password reset delivery.
 - External calendar sync.
 - A separate `timeslot` runtime.
-- A separate `ticketing` runtime or public ticketing endpoint group.
+- A separate `ticketing` runtime.
+- Ticketing checkout attempts, failed-attempt persistence, real payments,
+  refunds, cancellations, expiration lifecycle, waitlists, resale, and seating
+  map editing.
 - Message broker, outbox, and projections. The current cross-module path is
   synchronous `platform-exchange` APIs.
 

@@ -227,6 +227,10 @@ final class PlatformRuntimePackagingIntegrationTest {
         assertOperation(
                 paths, "/api/public/businesses/{businessSlug}/resources/{resourceId}/slots", "get");
         assertOperation(paths, "/api/public/businesses/{businessSlug}/reservations", "post");
+
+        assertOperation(paths, "/api/ticketing/events/{ticketEventId}/purchases", "post");
+        assertOperation(paths, "/api/ticketing/customers/me/purchases", "get");
+        assertOperation(paths, "/api/ticketing/business/events/{ticketEventId}/purchases", "get");
     }
 
     @Test
@@ -239,7 +243,8 @@ final class PlatformRuntimePackagingIntegrationTest {
         assertNoPathContaining(paths, "broker");
         assertNoPathContaining(paths, "outbox");
         assertNoPathContaining(paths, "/api/events");
-        assertNoPathContaining(paths, "ticket");
+        assertNoPathContaining(paths, "checkout");
+        assertNoPathContaining(paths, "attempt");
     }
 
     @Test
