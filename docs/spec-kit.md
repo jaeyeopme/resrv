@@ -107,12 +107,11 @@ historical checkpoint list, not as the next work queue.
 | `020-ticket-event-inventory-model` | Ticket event and inventory baseline | Implemented ticketing bounded context, event/inventory persistence baseline, and no public ticketing endpoint surface. |
 | `021-ticket-purchase-hold-lifecycle` | Selected-seat purchase lifecycle | Implemented purchase confirmation as the first durable ticket lifecycle action, customer history, and business purchase activity without checkout attempts or ticket holds. |
 | `023-ticket-concurrency-hardening` | Ticket purchase concurrency hardening | Implemented concurrency-safe selected-seat claims, required idempotency keys, replay/invalid/expired-key behavior, and high-contention API verification. |
+| `024-ticket-api-contract-and-operations` | Ticket API contract and operations | Implemented generated OpenAPI coverage, API integration tests, failure responses, and operational notes for stabilized ticket lifecycle and concurrency behavior. |
 
 Current `Pending` feature specs:
 
-| Spec | Focus | Completion Bar |
-|---|---|---|
-| `024-ticket-api-contract-and-operations` | Ticket API contract and operations | Generated OpenAPI, API integration tests, failure responses, and operational notes match stabilized ticket lifecycle and concurrency behavior. |
+None.
 
 ## Future Feature Roadmap
 
