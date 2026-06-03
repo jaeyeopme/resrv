@@ -111,7 +111,9 @@ historical checkpoint list, not as the next work queue.
 
 Current `Pending` feature specs:
 
-None.
+| Spec | Focus | Completion Bar |
+|---|---|---|
+| `025-traffic-pattern-extraction` | Traffic pattern extraction | Proven capacity, expiry, retry, lock/claim, queue/backpressure, and lifecycle guidance is extracted from implemented timeslot and ticketing traffic flows without introducing speculative shared abstractions. |
 
 ## Future Feature Roadmap
 
@@ -121,11 +123,17 @@ artifacts only when the feature becomes the next implementation target.
 
 | Candidate | Phase | Focus | Start After | Notes |
 |---|---|---|---|---|
-| `025-traffic-pattern-extraction` | Phase 3 | Cross-flow backend patterns for capacity allocation, hold expiration, retry safety, lock/claim strategy, queue/backpressure, and lifecycle/state machine design. | Timeslot and ticket traffic both implemented and tested | Extract patterns from working flows; do not introduce speculative shared abstractions before this point. |
+| _No candidate selected_ | Phase 3+ | Runtime split, outbox/message-broker, payments, notifications, external calendar sync, UI, or token-revocation work. | A fresh feature spec is selected | Keep future artifacts uncreated until the next implementation target is chosen. |
 
 Future runtime-split, outbox/message-broker, payments, notifications, external
 calendar sync, UI, or token-revocation work needs a fresh feature spec before
 planning.
+
+Traffic-pattern guidance from `025-traffic-pattern-extraction` is a planning
+and review aid only. It must not be used as approval to create shared production
+abstractions, queues, waitlists, payment flows, notification delivery, external
+calendar sync, token revocation, or runtime-split behavior without a new feature
+spec and, when architectural boundaries change, a new ADR.
 
 ## Extension Hooks
 

@@ -189,6 +189,59 @@ runtime state conflicts:
 - `422 Unprocessable Entity`: a syntactically valid hold request references a slot identity that is
   stale, policy-drifted, outside booking range, unavailable, or otherwise not currently bookable.
 
+## Traffic Pattern Guidance
+
+Traffic-sensitive feature work should start from implemented reservation and ticketing behavior, but
+must preserve bounded-context vocabulary. The guidance below is a review and planning surface. It is
+not approval to introduce shared production abstractions, new runtime boundaries, queueing,
+waitlists, payment handling, notifications, external calendar sync, or token revocation.
+
+Canonical terms:
+
+- **Catalog entry**: A proven traffic pattern with source flow, protected invariant, public outcome,
+  non-applicability boundary, and review questions.
+- **Traffic invariant**: A capacity, expiry, retry, lock/claim, lifecycle, or authorization property
+  that must remain true under concurrent or repeated actions.
+- **Applicability rule**: A rule that classifies future traffic-sensitive work as
+  `pattern-aligned`, `locally-informed`, or `fresh-spec-required`.
+- **Review question**: A question a spec or plan must answer before implementation starts.
+
+| Pattern | Source flow | Protected invariant | Public outcome | Non-applicability boundary |
+|---|---|---|---|---|
+| Reservation hold active blockers | Timeslot hold creation and reservation lifecycle | A resource time range cannot be actively overbooked by unexpired holds, confirmed reservations, or checked-in reservations. Expired holds stop blocking without cleanup. | Valid unavailable capacity returns conflict or unavailable-slot style responses according to request shape and slot validity. | Do not reuse for selected-seat ownership or idempotency replay; reservations use generated slots and blocker semantics. |
+| Selected-seat all-or-nothing ownership | Ticket purchase confirmation | A selected seat has at most one customer owner, and multi-seat purchase confirmation creates either all requested ownership or none. | Losing confirmations return `409 Conflict` unavailable-seat outcomes without partial ownership. | Do not reuse for generated time slots, queues, waitlists, transfers, resale, or payment authorization. |
+| Expiry as correctness release | Reservation holds | Capacity stops being blocked when `holdExpiresAt` is in the past, regardless of cleanup mutation. | Expired-hold confirmation returns `409 Conflict`; future availability can proceed without deleting the hold row. | Do not use this model for retry records that must retain expired-key rejection behavior. |
+| Expiry as retry retention | Ticket purchase idempotency | Same-key replay is available for 24 hours, changed same-key retry is invalid, and retained expired keys reject after replay expiry until cleanup eligibility. | Replays return the original public outcome; invalid or expired retries return stable problem reasons. | Do not treat cleanup as required for purchase correctness or as a failed-attempt ledger. |
+| Lifecycle conflict stability | Reservation transitions and ticket purchase confirmation | Terminal, expired, and conflict-producing states remain explicit and return stable public outcomes. | Conflicting reservation transitions and unavailable ticket claims are public conflicts; completed ticket history shows only successful purchases. | Do not add cancellation, refund, queue, or waitlist states without a separate feature spec. |
+| Server-side authority and non-enumeration | Business reservation operations and business ticket activity | Business access is resolved server-side, and IDOR-sensitive probes do not reveal whether inaccessible objects exist. | Missing and unauthorized sensitive lookups use the same not-found style public response. | Non-sensitive validation and operational facts may still expose specific causes when they do not reveal protected object existence. |
+| Queue and backpressure boundary | Current timeslot and ticketing traffic behavior | Current behavior protects correctness without product-level queue or waitlist semantics. | Losing customers receive conflict/unavailable outcomes rather than queue positions or deferred claims. | Queueing, waitlists, rate shaping, and backpressure are future-spec work requiring explicit product and operational decisions. |
+
+Use these applicability recommendations for future traffic-sensitive features:
+
+- `pattern-aligned`: The candidate shares a proven invariant and can reuse the review questions
+  without changing product capability. Example: a future limited-capacity add-on reservation flow
+  that needs all-or-nothing claim behavior, stable conflict outcomes, and retry guidance but no
+  queue or payment state.
+- `locally-informed`: The candidate resembles only one source flow and needs domain-specific
+  planning before implementation. Example: a future single-resource booking variant that uses
+  reservation blockers but has no selected-seat ownership.
+- `fresh-spec-required`: The candidate introduces new product or architecture capability outside
+  current guidance. Example: a queue or waitlist for sold-out ticket events, real payment
+  authorization, notification delivery, external calendar sync, token revocation, or a runtime split
+  with broker/outbox behavior.
+
+Review questions:
+
+- Can capacity be overbooked, oversold, or partially claimed under concurrent attempts?
+- Does the flow protect generated availability and active blockers, selected ownership, or another
+  explicit invariant?
+- What repeat-request behavior is expected: replay, invalid retry, expired retry, or new attempt?
+- Does expiry release correctness immediately, retain rejection behavior, or only permit cleanup?
+- Which lifecycle states are terminal, reversible, expired, or conflict-producing?
+- Which public responses must remain stable for losing contention or unauthorized probes?
+- Does the feature need a fresh spec or ADR before adding queue, waitlist, payment, notification,
+  external calendar, token-revocation, or runtime-split behavior?
+
 ## Decision Log
 
 Architecture decisions live in [docs/adr](adr/).

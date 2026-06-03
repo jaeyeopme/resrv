@@ -138,6 +138,31 @@ Ticket purchase idempotency uses a 24-hour replay window. Expired idempotency re
 until 30 days after replay expiry and may be cleaned later, but cleanup is not required for purchase
 correctness.
 
+## Traffic-Sensitive Feature Review
+
+Use the architecture traffic-pattern guidance before implementing a new
+high-contention flow. Review language must preserve each bounded context's own
+terms: reservation work can talk about generated slots and active blockers,
+while ticketing work can talk about selected-seat ownership and purchase
+idempotency.
+
+Review questions:
+
+- Can capacity be overbooked, oversold, or partially claimed under concurrent attempts?
+- Does the flow protect generated availability and active blockers, selected ownership, or another
+  explicit invariant?
+- What repeat-request behavior is expected: replay, invalid retry, expired retry, or new attempt?
+- Does expiry release correctness immediately, retain rejection behavior, or only permit cleanup?
+- Which lifecycle states are terminal, reversible, expired, or conflict-producing?
+- Which public responses must remain stable for losing contention or unauthorized probes?
+- Does the feature need a fresh spec or ADR before adding queue, waitlist, payment, notification,
+  external calendar, token-revocation, or runtime-split behavior?
+
+Future public behavior changes for traffic-sensitive flows must be visible through the accepted
+public contract and covered by end-to-end verification appropriate to the change. API behavior
+changes must update generated OpenAPI coverage and API integration tests. Documentation-only pattern
+updates should state why runtime tests were not run.
+
 Account security hardening tests verify:
 
 - Five failed password sign-in attempts create account-scoped password reset protection.

@@ -117,6 +117,12 @@ idempotency records remain eligible for retention until 30 days after replay exp
 delete retained expired records after that point, but purchase correctness does not depend on
 cleanup.
 
+Queueing, waitlists, backpressure controls, payments, notifications, external calendar sync,
+token revocation, and runtime split remain future-spec-only concerns. Current operational guidance
+for high-contention reservation and ticketing flows is correctness-first: losing attempts receive
+stable conflict or unavailable outcomes, and cleanup jobs are not required for capacity or purchase
+correctness.
+
 ## Runtime Packaging
 
 Build the executable platform runtime artifact:
