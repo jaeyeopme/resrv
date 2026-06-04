@@ -4,6 +4,9 @@
 
 Accepted
 
+Updated by [ADR-0026](0026-ticket-purchase-concurrency-idempotency.md), which adds selected-seat
+oversell prevention and purchase-confirmation idempotency hardening.
+
 ## Context
 
 Ticketing now needs a minimal selected-seat purchase lifecycle. The feature must prove ownership,
@@ -26,5 +29,5 @@ response.
 
 - No checkout, cancellation, expiration, or failed-attempt tables are introduced.
 - Customer history and business activity are read projections over completed purchases only.
-- High-contention oversell prevention and idempotency-key hardening remain a later feature slice.
+- High-contention oversell prevention and idempotency-key hardening were added later by ADR-0026.
 - Generated OpenAPI from the platform runtime remains the endpoint contract.

@@ -2,24 +2,23 @@
 
 [![CI](https://github.com/jaeyeopme/resrv/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/jaeyeopme/resrv/actions/workflows/ci.yml)
 
-`resrv` is a backend project for business reservation workflows. It is built
-with Java 25 and Spring Boot 4, and focuses on backend engineering rather than a
-full product UI.
+`resrv` is a Spring Boot and PostgreSQL backend for scarce-capacity reservation
+and ticketing workflows.
 
-The project demonstrates a modular-monolith backend with bounded-context
-modules, generated OpenAPI, PostgreSQL persistence, account-scoped security,
-server-side authorization, concurrency-safe reservation holds, selected-seat
-ticket purchases, and automated quality gates.
+It focuses on the backend problems that make these domains hard to implement
+well: preventing duplicate reservation holds, preventing selected-seat oversell,
+making repeated purchase confirmations safe, and resolving business access on
+the server instead of trusting client-provided tenant or role data.
 
-It is not a production deployment template. Payments, a first-party UI,
-notification workflows, external calendar sync, and runtime service splitting
-are intentionally outside the current scope.
+The project demonstrates a modular-monolith API with bounded-context modules,
+generated OpenAPI, PostgreSQL persistence, account-scoped security,
+transactional contention handling, and automated quality gates.
 
 ## At A Glance
 
 | Area | Current state |
 |---|---|
-| Purpose | Backend API for reservation and ticketing workflows |
+| Purpose | Scarce-capacity API for reservation holds and selected-seat ticket purchases |
 | Runtime | One supported Spring Boot API from the `platform` module |
 | Language | Java 25 |
 | Framework | Spring Boot 4, Spring MVC, Spring Security |
@@ -28,7 +27,7 @@ are intentionally outside the current scope.
 | Modules | `platform`, `timeslot`, `ticketing`, `platform-exchange`, `shared-kernel` |
 | Verification | Gradle `check`, Testcontainers, ArchUnit, JaCoCo, Checkstyle, Spotless, OpenRewrite |
 
-## Design Highlights
+## What This Shows
 
 The repository is structured to make core backend design choices easy to inspect:
 
@@ -36,7 +35,7 @@ The repository is structured to make core backend design choices easy to inspect
   and shared primitives are separated by Gradle modules and package rules.
 - **Authorization model**: JWTs identify only the account. Business access,
   reservation ownership, and ticket activity access are resolved server-side.
-- **Correctness under contention**: reservation holds use PostgreSQL advisory
+- **Contention correctness**: reservation holds use PostgreSQL advisory
   locks and active blocker checks; ticket purchase confirmation uses
   all-or-nothing selected-seat ownership and idempotency replay.
 - **API contract discipline**: generated OpenAPI is the endpoint and schema
@@ -99,6 +98,13 @@ Open the generated API and health surfaces:
 | Ticketing | Ticket events, sale windows, tiered inventory, selected seats, purchase confirmation, customer history, business activity |
 | Runtime | One platform API serving platform, booking, and ticketing API groups |
 
+Terminology:
+
+- **Booking** means the broader scheduling workflow: settings, resources,
+  schedules, generated slots, discovery, and hold creation.
+- **Reservation** means the persisted time-range record and lifecycle facts:
+  hold, confirm, release, cancel, check-in, and no-show.
+
 ## Architecture
 
 The app runs as one Spring Boot process from the `platform` module. `timeslot`
@@ -106,28 +112,13 @@ and `ticketing` contribute booking and ticketing behavior to that process.
 `platform-exchange` is a plain Java module for cross-context lookup and access
 decisions. It is not HTTP, messaging, or an outbox layer.
 
-```mermaid
-flowchart LR
-    subgraph runtime[one platform API process]
-        app[platform Spring Boot app]
-        platform[accounts, businesses, staff access]
-        timeslot[booking and reservations]
-        ticketing[ticket events and purchases]
-        exchange[platform-exchange Java APIs]
+The runtime path is intentionally simple:
 
-        app --> platform
-        app --> timeslot
-        app --> ticketing
-        timeslot --> exchange
-        ticketing --> exchange
-        exchange --> platform
-    end
-
-    client[API client] --> app
-    platform --> db[(PostgreSQL)]
-    timeslot --> db
-    ticketing --> db
-```
+1. API clients call the `platform` Spring Boot app.
+2. The platform runtime assembles platform, booking, and ticketing API groups.
+3. `timeslot` and `ticketing` ask platform-owned lookup and access questions
+   through `platform-exchange`.
+4. Each bounded context owns its PostgreSQL schema and migrations.
 
 Module roles:
 
@@ -157,30 +148,13 @@ capacity before saving a hold. The hold path revalidates generated slot identity
 against current settings and schedule data, then protects the resource/time
 range with a PostgreSQL advisory lock before checking active blockers.
 
-```mermaid
-sequenceDiagram
-    actor Customer
-    participant PublicAPI as Public booking API
-    participant Platform as Platform context
-    participant Service as Reservation service
-    participant Lock as Resource/time lock
-    participant DB as PostgreSQL
+The write path is:
 
-    Customer->>PublicAPI: Request hold with business slug, resourceId, slotId
-    PublicAPI->>Platform: Resolve active business
-    PublicAPI->>Service: Create hold with business id, account id, resourceId, slotId
-    Service->>DB: Load settings, resource, and schedule
-    Service->>Service: Decode and revalidate slotId
-    Service->>Lock: Lock resource and slot start
-    Lock->>DB: Take PostgreSQL advisory lock
-    Service->>DB: Check active holds and reservations
-    alt Capacity already blocked
-        Service-->>PublicAPI: Reject as unavailable
-    else Slot still available
-        Service->>DB: Save hold with expiry
-        Service-->>PublicAPI: Return held reservation
-    end
-```
+1. Resolve the active business from the public slug.
+2. Decode and revalidate the opaque `slotId`.
+3. Lock the resource and slot start in PostgreSQL.
+4. Check active blockers.
+5. Save the hold only when capacity is still available.
 
 Reservation state is derived from timestamp facts on the reservation row. Held,
 confirmed, and checked-in reservations block capacity. Expired, released,
@@ -212,35 +186,36 @@ or a committed OpenAPI snapshot. Narrative docs describe product scope,
 architecture, security boundaries, and testing strategy. Exact paths, methods,
 schemas, and response documentation come from generated OpenAPI.
 
-## Generated Artifacts
+## Build Evidence
 
-Inspection artifacts are generated by the existing build instead of committed:
+Evidence is produced by local build and runtime commands instead of committed as
+standalone snapshots:
 
-| Artifact | How to generate | Where to inspect |
+| Evidence | How to generate | Where to inspect |
 |---|---|---|
-| Generated OpenAPI | `./gradlew :platform:bootRun` | `/v3/api-docs`, `/v3/api-docs.yaml`, Swagger UI |
+| OpenAPI contract | `./gradlew :platform:bootRun` | `/v3/api-docs`, `/v3/api-docs.yaml`, Swagger UI |
 | Test reports | `./gradlew check` | `*/build/reports/tests/test/index.html` |
 | Coverage reports | `./gradlew check` | `*/build/reports/jacoco/test/html/index.html` |
 | Checkstyle reports | `./gradlew check` | `*/build/reports/checkstyle/*.html` |
+| High-contention API behavior | `./gradlew :platform:test --tests '*Concurrency*' --tests '*HighContention*'` | Platform test report |
 | Executable API jar | `./gradlew :platform:bootJar` | `platform/build/libs/resrv-platform-api-0.0.1-SNAPSHOT.jar` |
 | Local container image | `./gradlew :platform:jibDockerBuild` | `resrv-platform-api:latest` |
 
 No extra standalone artifact file is required now. Static OpenAPI snapshots,
 Postman collections, exported ERD images, and operations guides would duplicate
 generated OpenAPI, Flyway migrations, runtime health probes, or the existing
-design documents.
+design documents. Presentation and sales assets belong outside this repository.
 
-## Design Artifacts
+## Architecture References
 
-Visual design artifacts are kept as Mermaid diagrams in Markdown so they stay
-close to the decisions they explain:
+Architecture detail lives in the durable docs and ADRs:
 
-| Artifact | Location |
+| Reference | Location |
 |---|---|
-| Runtime and bounded-context map | [Architecture](#architecture) |
-| Reservation hold sequence | [Reservation Holds](#reservation-holds) |
+| Runtime and bounded-context map | [docs/architecture.md](docs/architecture.md#bounded-contexts) |
 | Module dependency map | [docs/architecture.md](docs/architecture.md#current-module-state) |
 | Persistence ownership map | [docs/architecture.md](docs/architecture.md#persistence-access-policy) |
+| Contention correctness catalog | [docs/architecture.md](docs/architecture.md#high-contention-correctness-guidance) |
 
 ## Quality Gates
 
@@ -259,6 +234,7 @@ Focused checks:
 
 ```bash
 ./gradlew :platform:test --tests '*Ticketing*'
+./gradlew :platform:test --tests '*Concurrency*' --tests '*HighContention*'
 ./gradlew :platform:test --tests io.resrv.platform.api.PlatformRuntimePackagingIntegrationTest
 ./gradlew :platform:test --tests io.resrv.platform.api.PlatformOperationalReadinessIntegrationTest
 ```
@@ -269,19 +245,16 @@ Focused checks:
 |---|---|
 | [docs/prd.md](docs/prd.md) | Product scope, concepts, flows, acceptance criteria, and open product questions |
 | [docs/trd.md](docs/trd.md) | Current technical design, runtime, persistence, security, and configuration reference |
-| [docs/architecture.md](docs/architecture.md) | Bounded contexts, module boundaries, correctness patterns, and traffic guidance |
+| [docs/architecture.md](docs/architecture.md) | Bounded contexts, module boundaries, and contention correctness patterns |
 | [docs/security.md](docs/security.md) | Authentication, authorization, public exposure, data boundaries, and deferred hardening |
 | [docs/testing.md](docs/testing.md) | Test strategy, quality gates, coverage thresholds, and focused verification commands |
 | [docs/adr/README.md](docs/adr/README.md) | Architecture decision record index |
-| [AGENTS.md](AGENTS.md) | Repository automation rules and agent guardrails |
-
-Feature planning history lives under `specs/`. ADRs and generated OpenAPI are
-the durable technical and API contract sources.
 
 ## Project Boundaries
 
 Current non-goals:
 
+- Load benchmarking, traffic simulation, and production capacity planning.
 - Payments, deposits, invoices, and refunds.
 - Staff invitation delivery and acceptance UI.
 - Password reset UI. Backend challenge completion exists.

@@ -85,7 +85,7 @@ The test suite is organized around behavior guarantees rather than endpoint cata
 | Business access | Owner/staff membership checks, membership audit history, last-owner protection, and request-time access decisions |
 | Resource lifecycle | Replacement semantics for settings, resources, schedules, date overrides, resource ID-only identity, and inactive-resource public discovery exclusion |
 | Public booking | Business slug discovery, active resource and generated slot discovery, collapsed public not-found responses, and authenticated hold creation |
-| Reservation traffic | Generated-slot validation, timezone boundaries, advisory lock ordering, active blocker checks, expired-hold behavior, IDOR-safe responses, and contention outcomes |
+| Reservation contention | Generated-slot validation, timezone boundaries, advisory lock ordering, active blocker checks, expired-hold behavior, IDOR-safe responses, and contention outcomes |
 | Runtime packaging | Platform runtime assembly of platform, booking, and ticketing API groups; migration loading; generated OpenAPI exposure; and unsupported runtime exclusion |
 | Operational readiness | Public liveness/readiness probes, database-backed readiness, migration visibility, OpenAPI smoke reachability, and absence of secrets in health responses |
 | API contract | Generated OpenAPI path/method coverage, representative success/failure documentation, and public/private schema boundaries |
@@ -95,25 +95,26 @@ runtime. Focused ticketing verification is:
 
 ```bash
 ./gradlew :platform:test --tests '*Ticketing*'
+./gradlew :platform:test --tests '*Concurrency*' --tests '*HighContention*'
 ```
 
 Those tests cover generated OpenAPI for purchase confirmation, customer ticket history, and business
 ticket activity; unavailable selected seats as `409 Conflict`; idempotency problem reasons
-`invalid_retry` and `expired_key`; and non-enumerating not-found responses for missing versus
-unauthorized business activity probes. Run `./gradlew :ticketing:test` only when ticketing
-application, domain, or persistence behavior changes.
+`invalid_retry` and `expired_key`; non-enumerating not-found responses for missing versus
+unauthorized business activity probes; and concurrent selected-seat claim behavior. Run
+`./gradlew :ticketing:test` only when ticketing application, domain, or persistence behavior
+changes.
 
 Ticket purchase idempotency uses a 24-hour replay window. Expired idempotency records remain retained
 until 30 days after replay expiry and may be cleaned later, but cleanup is not required for purchase
 correctness.
 
-## Traffic-Sensitive Feature Review
+## High-Contention Correctness Review
 
-Use the architecture traffic-pattern guidance before implementing a new
-high-contention flow. Review language must preserve each bounded context's own
-terms: reservation work can talk about generated slots and active blockers,
-while ticketing work can talk about selected-seat ownership and purchase
-idempotency.
+Use the architecture high-contention correctness guidance before implementing a new flow that can
+lose correctness when many callers compete for the same limited capacity. Review language must preserve
+each bounded context's own terms: reservation work can talk about generated slots and active
+blockers, while ticketing work can talk about selected-seat ownership and purchase idempotency.
 
 Review questions:
 
@@ -124,13 +125,12 @@ Review questions:
 - Does expiry release correctness immediately, retain rejection behavior, or only permit cleanup?
 - Which lifecycle states are terminal, reversible, expired, or conflict-producing?
 - Which public responses must remain stable for losing contention or unauthorized probes?
-- Does the feature need a fresh spec or ADR before adding queue, waitlist, payment, notification,
-  external calendar, token-revocation, or runtime-split behavior?
+- Does the feature need a fresh spec or ADR because it adds new product or runtime behavior?
 
-Future public behavior changes for traffic-sensitive flows must be visible through the accepted
-public contract and covered by end-to-end verification appropriate to the change. API behavior
-changes must update generated OpenAPI coverage and API integration tests. Documentation-only pattern
-updates should state why runtime tests were not run.
+Future public behavior changes for high-contention flows must be visible through the accepted public
+contract and covered by end-to-end verification appropriate to the change. API behavior changes must
+update generated OpenAPI coverage and API integration tests. Documentation-only pattern updates
+should state why runtime tests were not run.
 
 ## Testcontainers
 

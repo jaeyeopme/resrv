@@ -58,6 +58,10 @@ bin/
 # Generated docs
 HELP.md
 
+# Local planning artifacts
+specs/
+.specify/
+
 # Local agent/wiki state
 AGENTS.local.md
 .agents/

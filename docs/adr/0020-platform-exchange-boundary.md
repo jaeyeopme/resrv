@@ -10,10 +10,11 @@ Accepted.
 
 ## Context
 
-`timeslot` is traffic-sensitive and future domains such as ticketing may need the same extraction
-path. The previous synchronous platform API surface lived inside the runnable `platform` module as
-`platform.contract`, which forced consumers to compile against the platform implementation module
-even when they only needed platform-owned lookup and decision APIs.
+`timeslot` owns workflows that can lose correctness during peak concurrent booking attempts, and
+future domains such as ticketing may need the same extraction path. The previous synchronous
+platform API surface lived inside the runnable `platform` module as `platform.contract`, which
+forced consumers to compile against the platform implementation module even when they only needed
+platform-owned lookup and decision APIs.
 
 The product is still a modular monolith. Runtime process separation, HTTP/gRPC transport adapters,
 Kafka/RabbitMQ, outbox tables, event schemas, and projections are intentionally deferred until a
@@ -37,7 +38,7 @@ on platform domain, adapters, API runtime, repositories, entities, or persistenc
 
 - Cross-context synchronous lookup/check APIs are explicit without coupling consumers to the
   platform implementation module.
-- Future traffic-sensitive domains can depend on `platform-exchange` without depending on
+- Future high-contention domains can depend on `platform-exchange` without depending on
   `platform`.
 - Architecture tests can enforce that the exchange module stays framework-free and event-free.
 - A real runtime split still needs a later ADR/spec covering process boundaries, transport, outbox,

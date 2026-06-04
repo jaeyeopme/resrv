@@ -7,10 +7,14 @@ Accepted
 ## Context
 
 Selected-seat ticket purchase confirmation already creates durable ownership as the first ticket
-lifecycle action. The next risk is high-contention traffic: simultaneous customers can compete for
+lifecycle action. The next risk is high-contention behavior: simultaneous customers can compete for
 the same seats, and clients can repeat purchase confirmation requests after network or UI failures.
 The system must prevent oversold seats and provide stable retry behavior without adding checkout
 attempts, pre-purchase holds, payment state, or a failed-attempt ledger.
+
+This decision covers transactional correctness under concurrent and repeated purchase confirmation
+requests. It does not claim production peak-traffic readiness, load benchmarking, queueing,
+backpressure, custom connection tuning, or horizontal throughput design.
 
 ## Decision
 

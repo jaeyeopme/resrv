@@ -33,6 +33,11 @@ See the [ADR index](adr/README.md) for the full decision index.
 | Container packaging | Jib image for the platform runtime |
 | Tests | JUnit 5, Spring Boot tests, Testcontainers, ArchUnit |
 
+The current contention strategy uses PostgreSQL as the coordination point for scarce capacity. The
+correctness mechanisms are database-backed rather than JVM-local: reservation holds, selected-seat
+claims, and purchase idempotency do not depend on single-process memory. Throughput scaling for
+sold-out-event traffic is a separate design problem.
+
 ## Current Module Baseline
 
 The backend has 5 Gradle modules:
@@ -105,8 +110,8 @@ timeslot or ticketing runtimes, service-to-service transport, message broker, ou
 projections.
 
 The platform runtime exposes liveness and readiness health probes. Readiness includes database
-availability and should be used before sending traffic to the backend. Probe responses expose status
-only and must not expose secrets or private account, business, or reservation data.
+availability and should be checked before routing requests to the backend. Probe responses expose
+status only and must not expose secrets or private account, business, or reservation data.
 
 ## Security Design
 
@@ -295,8 +300,8 @@ resrv.security.password-reset.token-ttl
 
 ## Open Technical Decisions
 
-- Decide the future runtime split strategy for traffic-sensitive domains such as timeslot and
-  ticketing, including process boundaries, transport, outbox/message broker, event schemas,
-  replay/backfill, and projection repair.
+- Decide any future runtime split strategy for domains that outgrow the current modular monolith,
+  including process boundaries, transport, outbox/message broker, event schemas, replay/backfill,
+  and projection repair.
 - Decide whether password reset link handling is owned by this repository or by a separate client.
 - Decide the production SMTP provider, sender identity, and delivery failure policy.

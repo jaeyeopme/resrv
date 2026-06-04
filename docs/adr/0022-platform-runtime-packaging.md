@@ -35,7 +35,7 @@ Container packaging is owned by the platform runtime and uses Jib to build the
   surface for implemented platform and booking endpoint groups.
 - Platform and timeslot Flyway migrations run from the same runtime classpath,
   while each bounded context keeps ownership of its own migration files.
-- A future traffic-driven service split remains possible, but requires a later
+- A future scale-driven service split remains possible, but requires a later
   ADR/spec for broker or HTTP transport, outbox, state propagation,
   observability, deployment, and failure handling.
 - No payment, notification, UI, broker, outbox, projection storage, or

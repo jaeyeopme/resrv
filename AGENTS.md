@@ -60,28 +60,8 @@ Supporting docs:
 
 - `docs/security.md`
 - `docs/testing.md`
-- `.specify/memory/constitution.md`
-- `specs/` when Spec Kit feature specs exist
 
 ADRs are the decision record. Generated OpenAPI is the endpoint contract.
-Spec Kit specs may drive new work, but they do not replace ADRs or generated API
-contracts.
-
-## Spec Kit
-
-Use this workflow for spec-driven work:
-
-- `$speckit-constitution`
-- `$speckit-specify`
-- `$speckit-clarify`
-- `$speckit-plan`
-- `$speckit-tasks`
-- `$speckit-analyze`
-- `$speckit-implement`
-
-Keep generated specs aligned with `docs/prd.md`, `docs/trd.md`, and ADRs. Spec
-Kit outputs may guide implementation, but accepted ADRs and generated OpenAPI
-remain authoritative for durable decisions and API contracts.
 
 ## API Contract
 
@@ -141,7 +121,7 @@ Rules:
 - Prefer one concise context/rationale paragraph plus `Tested:` when useful.
 - Use `Constraint:`, `Rejected:`, `Directive:`, and `Not-tested:` only when they prevent future confusion.
 - Do not use `Confidence:` or `Scope-risk:` in normal commit messages.
-- Never include file lists, AI attribution, or work-log narration in commit messages.
+- Never include file lists, tool attribution, or work-log narration in commit messages.
 
 ## Pull Request Descriptions
 
@@ -150,29 +130,16 @@ Use `.github/pull_request_template.md` for PR bodies.
 PR descriptions should explain reviewer-relevant context:
 
 - `Summary`: what changed at the product or system level.
-- `Motivation`: why the change exists, including ADR or Spec Kit references when useful.
+- `Motivation`: why the change exists, including ADR references when useful.
 - `Changes`: the concrete behavioral, schema, config, or documentation changes.
 - `Verification`: commands run and meaningful manual probes.
 - `Risk And Follow-Up`: migration risk, compatibility concerns, known gaps, or next branches.
 
 Keep PR bodies detailed enough for client review, but do not turn them into a chronological work log.
-Do not include AI attribution, generated-by footers, model names, or AI co-author trailers.
+Do not include tool attribution, generated-by footers, model names, or co-author trailers.
 
 ## Durable Learnings
 
 > One-liner rules added after PR corrections. Format: `- <rule>`
 
 - Do not duplicate booking policy fallback logic across services; resolve it through the domain policy type.
-
-<!-- SPECKIT START -->
-When working from a Spec Kit plan, read the active plan before implementation.
-Active plan: specs/025-traffic-pattern-extraction/plan.md
-<!-- SPECKIT END -->
-
-<!-- SPEC-KIT-KOREAN-RESPONSES START -->
-## Spec Kit response language
-
-- When using any Spec Kit skill, command, workflow, or extension-generated skill (`speckit-*`), write conversational replies, progress updates, summaries, reports, questions, findings, recommendations, and verification results in Korean by default.
-- Use another language only when the user explicitly asks for it.
-- Preserve code, commands, file paths, identifiers, commit messages, quoted output, and user-requested artifacts in the language or format appropriate for that artifact.
-<!-- SPEC-KIT-KOREAN-RESPONSES END -->
