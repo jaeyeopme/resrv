@@ -13,6 +13,7 @@ import io.resrv.ticketing.domain.event.TicketEvent;
 import io.resrv.ticketing.domain.event.TicketEventId;
 import io.resrv.ticketing.domain.purchase.PurchaseConfirmationIdempotency;
 import io.resrv.ticketing.domain.purchase.PurchaseConfirmationIdempotencyKey;
+import io.resrv.ticketing.domain.purchase.PurchaseConfirmationIdempotencyStatus;
 import io.resrv.ticketing.domain.purchase.TicketPurchase;
 import io.resrv.ticketing.domain.purchase.TicketPurchaseId;
 import io.resrv.ticketing.domain.seat.TicketSeat;
@@ -66,6 +67,9 @@ final class TicketPurchaseConfirmationServiceTest {
 
         assertThat(result.purchased()).isFalse();
         assertThat(fixture.savedPurchase).isNull();
+        assertThat(fixture.savedIdempotency.status())
+                .isEqualTo(PurchaseConfirmationIdempotencyStatus.UNAVAILABLE_SEATS);
+        assertThat(fixture.savedIdempotency.completedAt()).isEqualTo(NOW);
     }
 
     @Test

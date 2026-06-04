@@ -37,13 +37,4 @@ public record TicketPurchaseResult(
     public boolean purchased() {
         return outcome == Outcome.PURCHASED;
     }
-
-    public static TicketPurchaseResult replayUnavailable(
-            final UUID ticketEventId, final UUID customerAccountId, final List<UUID> seatIds) {
-        return unavailable(ticketEventId, customerAccountId, seatIds);
-    }
-
-    public static TicketPurchaseResult replayPurchased(final TicketPurchase purchase) {
-        return from(purchase);
-    }
 }

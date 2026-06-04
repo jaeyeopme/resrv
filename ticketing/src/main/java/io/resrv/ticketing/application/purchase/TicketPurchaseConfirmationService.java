@@ -15,6 +15,7 @@ import java.time.Clock;
 import java.time.Instant;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -89,24 +90,12 @@ public class TicketPurchaseConfirmationService {
         final var seats = seatQueryPort.findAllByIds(uniqueSeatIds);
         if (seats.size() != uniqueSeatIds.size()
                 || seats.stream().anyMatch(seat -> !seat.isAvailableFor(event.id()))) {
-            idempotencyPort.save(
-                    idempotency.complete(
-                            PurchaseConfirmationIdempotencyStatus.UNAVAILABLE_SEATS, null, now));
-            return TicketPurchaseResult.unavailable(
-                    command.ticketEventId().value(),
-                    command.customerAccountId().value(),
-                    uniqueSeatIds.stream().map(TicketSeatId::value).toList());
+            return completeUnavailableSeats(idempotency, command, uniqueSeatIds, now);
         }
         final var purchase =
                 TicketPurchase.create(event.id(), command.customerAccountId(), uniqueSeatIds, now);
         if (!seatClaimPort.claimAvailableSeats(purchase)) {
-            idempotencyPort.save(
-                    idempotency.complete(
-                            PurchaseConfirmationIdempotencyStatus.UNAVAILABLE_SEATS, null, now));
-            return TicketPurchaseResult.unavailable(
-                    command.ticketEventId().value(),
-                    command.customerAccountId().value(),
-                    uniqueSeatIds.stream().map(TicketSeatId::value).toList());
+            return completeUnavailableSeats(idempotency, command, uniqueSeatIds, now);
         }
         idempotencyPort.save(
                 idempotency.complete(
@@ -130,12 +119,26 @@ public class TicketPurchaseConfirmationService {
                     purchaseQueryPort.findById(idempotency.ticketPurchaseId()).orElseThrow());
         }
         if (idempotency.status() == PurchaseConfirmationIdempotencyStatus.UNAVAILABLE_SEATS) {
-            return TicketPurchaseResult.replayUnavailable(
+            return TicketPurchaseResult.unavailable(
                     command.ticketEventId().value(),
                     command.customerAccountId().value(),
-                    uniqueSeatIds.stream().map(TicketSeatId::value).toList());
+                    seatIdValues(uniqueSeatIds));
         }
         throw new TicketPurchaseValidationException("Purchase confirmation is not complete");
+    }
+
+    private TicketPurchaseResult completeUnavailableSeats(
+            final PurchaseConfirmationIdempotency idempotency,
+            final ConfirmTicketPurchaseCommand command,
+            final List<TicketSeatId> uniqueSeatIds,
+            final Instant now) {
+        idempotencyPort.save(
+                idempotency.complete(
+                        PurchaseConfirmationIdempotencyStatus.UNAVAILABLE_SEATS, null, now));
+        return TicketPurchaseResult.unavailable(
+                command.ticketEventId().value(),
+                command.customerAccountId().value(),
+                seatIdValues(uniqueSeatIds));
     }
 
     private static List<TicketSeatId> uniqueSeatIds(final List<TicketSeatId> seatIds) {
@@ -147,5 +150,9 @@ public class TicketPurchaseConfirmationService {
             throw new TicketPurchaseValidationException("Duplicate ticket seats are not allowed");
         }
         return List.copyOf(unique);
+    }
+
+    private static List<UUID> seatIdValues(final List<TicketSeatId> seatIds) {
+        return seatIds.stream().map(TicketSeatId::value).toList();
     }
 }
