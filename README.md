@@ -120,6 +120,32 @@ The runtime path is intentionally simple:
    through `platform-exchange`.
 4. Each bounded context owns its PostgreSQL schema and migrations.
 
+```mermaid
+flowchart LR
+    client["API client"]
+    db[(PostgreSQL schemas)]
+
+    subgraph runtime["one platform Spring Boot process"]
+        app["platform API runtime"]
+        platform["platform accounts and access"]
+        timeslot["timeslot booking and reservations"]
+        ticketing["ticketing events and purchases"]
+        exchange["platform-exchange Java APIs"]
+
+        app --> platform
+        app --> timeslot
+        app --> ticketing
+        timeslot --> exchange
+        ticketing --> exchange
+        exchange --> platform
+    end
+
+    client --> app
+    platform --> db
+    timeslot --> db
+    ticketing --> db
+```
+
 Module roles:
 
 | Module | Role |
@@ -156,6 +182,30 @@ The write path is:
 4. Check active blockers.
 5. Save the hold only when capacity is still available.
 
+```mermaid
+sequenceDiagram
+    autonumber
+    actor Customer
+    participant API as Public booking API
+    participant Platform as Platform context
+    participant Service as Reservation service
+    participant DB as PostgreSQL
+
+    Customer->>API: Request hold with business slug and slotId
+    API->>Platform: Resolve active business by slug
+    API->>Service: Create hold for account and resource
+    Service->>DB: Load resource policy and schedule
+    Service->>Service: Decode and revalidate slotId
+    Service->>DB: Take resource and slot advisory lock
+    Service->>DB: Check active blockers
+    alt Capacity blocked
+        Service-->>API: Reject as unavailable
+    else Capacity available
+        Service->>DB: Save hold with expiry
+        Service-->>API: Return held reservation
+    end
+```
+
 Reservation state is derived from timestamp facts on the reservation row. Held,
 confirmed, and checked-in reservations block capacity. Expired, released,
 cancelled, and no-show reservations do not.
@@ -172,6 +222,34 @@ Ticketing models selected-seat purchases as the first durable lifecycle action:
   hours.
 - Changed same-key retries and retained expired keys return stable public
   problem reasons.
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor Customer
+    participant API as Ticketing API
+    participant Service as Purchase service
+    participant Idempotency as Idempotency store
+    participant Seats as Seat claim store
+
+    Customer->>API: Confirm purchase with idempotency key
+    API->>Service: Confirm selected seats
+    Service->>Idempotency: Create pending key or load existing outcome
+    alt Existing replayable outcome
+        Idempotency-->>Service: Original outcome
+        Service-->>API: Replay original response
+    else New confirmation
+        Service->>Seats: Lock seats in deterministic order
+        alt Every seat is available
+            Seats-->>Service: Claim all seats
+            Service->>Idempotency: Store purchased outcome
+            Service-->>API: Return confirmed purchase
+        else Any seat is unavailable
+            Service->>Idempotency: Store unavailable outcome
+            Service-->>API: Return unavailable seats conflict
+        end
+    end
+```
 
 ## API Contract
 
