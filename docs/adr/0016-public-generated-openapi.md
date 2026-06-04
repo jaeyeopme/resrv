@@ -32,12 +32,12 @@ Protect application endpoints under `/api/**` according to each API module's sec
 
 ## Alternatives
 
-### Protect Swagger UI Behind Authentication
+### Protect Swagger UI behind authentication
 
 Appropriate for private production APIs, but it slows review and adds little value when source code
 is available.
 
-### Maintain Hand-Written OpenAPI As Source
+### Maintain hand-written OpenAPI as source
 
 Contract-first can be valid, but this project currently treats generated Springdoc output as the
 contract surface.
@@ -47,4 +47,3 @@ contract surface.
 - API docs can be reviewed without a token.
 - Security-sensitive examples and secrets must never appear in generated docs.
 - Public docs and public mutation access remain separate concerns.
-

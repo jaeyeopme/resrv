@@ -32,12 +32,12 @@ Replace them with the platform/timeslot module set.
 
 ## Alternatives
 
-### Keep Both APIs Temporarily
+### Keep both APIs temporarily
 
 This eases migration but doubles documentation, tests, and maintenance in a project that does not
 need backward compatibility yet.
 
-### Migrate Incrementally Per Endpoint
+### Migrate incrementally per endpoint
 
 This is safer for production systems. This repository is still pre-production, so a branch-level
 replacement is acceptable.

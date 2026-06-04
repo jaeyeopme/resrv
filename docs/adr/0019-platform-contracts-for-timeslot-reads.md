@@ -46,7 +46,7 @@ schema.
 
 ## Alternatives
 
-### Platform Event Projection In Timeslot
+### Platform event projection in timeslot
 
 Platform would publish business lifecycle events and timeslot would store a local business summary
 projection.
@@ -65,7 +65,7 @@ Costs:
 This remains a future option if business summary reads become high-volume or platform/timeslot move
 out of a modular monolith.
 
-### Single Generic Business Lookup
+### Single generic business lookup
 
 Expose one `findById` style business lookup and let callers decide how to use it.
 

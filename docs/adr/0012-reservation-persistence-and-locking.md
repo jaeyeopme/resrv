@@ -36,13 +36,13 @@ slot identities.
 
 ## Alternatives
 
-### Database Exclusion Constraint On Active Status
+### Database exclusion constraint on active status
 
 The old tenant API used persisted status-based overlap prevention. The new model derives active
 hold state from `hold_expires_at > now`, which cannot be expressed as a stable partial index
 predicate for correctness.
 
-### Rely Only On Application Query Without Lock
+### Rely only on application query without lock
 
 Concurrent hold attempts could both observe no blocker and insert conflicting holds.
 

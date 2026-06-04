@@ -35,11 +35,11 @@ Do not persist `HELD` or `EXPIRED` as status values.
 
 ## Alternatives
 
-### Persist Reservation Status Enum
+### Persist reservation status enum
 
 This is easy to query but makes time-derived state stale without scheduled mutation.
 
-### Event Store Reservation Transitions
+### Event store reservation transitions
 
 An event store preserves richer history but is unnecessary for current scope.
 
@@ -48,4 +48,3 @@ An event store preserves richer history but is unnecessary for current scope.
 - Time passing can change reservation state without database writes.
 - Domain invariants must reject conflicting terminal facts.
 - Queries must encode active-state logic explicitly.
-

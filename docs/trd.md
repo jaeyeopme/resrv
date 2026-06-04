@@ -1,11 +1,11 @@
-# Technical Requirements And Design
+# Technical requirements and design
 
 ## Scope
 
 This document describes the current implementation. ADRs are the source of truth for decisions; this
 TRD explains how those decisions appear in the codebase. It is not a deployment guide.
 
-Key decision areas are:
+This document covers:
 
 - Identity and access: account-scoped JWTs, business membership boundaries, and owner/staff
   administration.
@@ -19,7 +19,7 @@ Key decision areas are:
 
 See the [ADR index](adr/README.md) for the full decision index.
 
-## Runtime And Build
+## Runtime and build
 
 | Area | Current design |
 |---|---|
@@ -33,12 +33,11 @@ See the [ADR index](adr/README.md) for the full decision index.
 | Container packaging | Jib image for the platform runtime |
 | Tests | JUnit 5, Spring Boot tests, Testcontainers, ArchUnit |
 
-The current contention strategy uses PostgreSQL as the coordination point for scarce capacity. The
-correctness mechanisms are database-backed rather than JVM-local: reservation holds, selected-seat
-claims, and purchase idempotency do not depend on single-process memory. Throughput scaling for
-sold-out-event traffic is a separate design problem.
+PostgreSQL coordinates scarce capacity. Reservation holds, selected-seat claims, and purchase
+idempotency use database-backed coordination rather than single-process memory. Throughput scaling
+for sold-out-event traffic is a separate design problem.
 
-## Current Module Baseline
+## Module baseline
 
 The backend has 5 Gradle modules:
 
@@ -55,7 +54,7 @@ enforces dependency direction, keeps direct database access in outbound adapter 
 timeslot/ticketing-to-platform dependencies to the explicit `platform-exchange` APIs consumed by
 outbound platform adapters.
 
-## API Boundary
+## API boundary
 
 Platform API owns account and business lifecycle:
 
@@ -90,7 +89,7 @@ Ticketing owns selected-seat purchase lifecycle behavior:
 - Customer ticket history for authenticated customers.
 - Business purchase activity for authorized owner/staff actors.
 
-`platform` is the canonical backend runtime. It scans platform, timeslot, and ticketing
+`platform` is the supported backend runtime. It scans platform, timeslot, and ticketing
 bounded-context packages, serves platform, booking, and ticketing API groups, and exposes one
 generated OpenAPI surface from `/v3/api-docs`. Ticketing contributes purchase confirmation,
 customer history, and business purchase activity endpoints through platform web adapters.
@@ -113,7 +112,7 @@ The platform runtime exposes liveness and readiness health probes. Readiness inc
 availability and should be checked before routing requests to the backend. Probe responses expose
 status only and must not expose secrets or private account, business, or reservation data.
 
-## Security Design
+## Security design
 
 JWTs are account-scoped:
 
@@ -146,7 +145,7 @@ not-owned reservations. Resource-scoped mutations return a generic resource not-
 missing or wrong-business resource ids. Internal diagnostic facts may be logged, but they are not
 returned in problem details.
 
-## Persistence Design
+## Persistence design
 
 Platform schema:
 
@@ -194,7 +193,7 @@ advisory locks or compact read projections. Timeslot and ticketing obtain platfo
 membership data through platform application exchange APIs rather than reading platform tables
 directly.
 
-## Ticket Purchase Correctness
+## Ticket purchase correctness
 
 Selected-seat purchase confirmation validates the authenticated customer, active event, non-empty
 seat selection, duplicate seat ids, event ownership for each seat, current seat availability, and a
@@ -208,8 +207,9 @@ an unavailable-seats outcome as `409 Conflict` without creating a purchase, expo
 customer, or leaving partial seat ownership.
 
 Idempotency records bind the authenticated customer, idempotency key, event, and selected seat set.
-The same key and request replay the original purchased or unavailable public outcome for 24 hours.
-The same key with different purchase details is rejected as an invalid retry during that window.
+The same request with the same key replays the original purchased or unavailable public outcome for
+24 hours. Reusing the key with different purchase details is rejected as an invalid retry during that
+window.
 After the replay window, retained records reject reuse as an expired key. Cleanup eligibility is
 stored as a timestamp 30 days after replay expiry; purchase correctness does not depend on a cleanup
 job running.
@@ -223,7 +223,7 @@ expirations. The idempotency table is the minimal customer-scoped replay record,
 failed-attempt ledger. Business purchase activity uses current server-side business access checks
 and keeps unauthorized or missing event probes non-enumerating.
 
-## Reservation Correctness
+## Reservation correctness
 
 Hold creation:
 
@@ -241,7 +241,7 @@ Active blocker query includes:
 
 It excludes released, cancelled, and no-show reservations.
 
-## Reservation State
+## Reservation state
 
 Reservation state is derived from facts:
 
@@ -255,7 +255,7 @@ Reservation state is derived from facts:
 
 `HELD` and `EXPIRED` are not persisted statuses.
 
-## Time Handling
+## Time handling
 
 - Persistence stores UTC instants.
 - Business timezone is used to generate schedules and virtual slots.
@@ -298,7 +298,7 @@ resrv.security.password-reset.public-base-url
 resrv.security.password-reset.token-ttl
 ```
 
-## Open Technical Decisions
+## Open technical decisions
 
 - Decide any future runtime split strategy for domains that outgrow the current modular monolith,
   including process boundaries, transport, outbox/message broker, event schemas, replay/backfill,

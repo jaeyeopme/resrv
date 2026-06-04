@@ -1,9 +1,9 @@
 # Architecture
 
-`resrv` is organized around bounded contexts and hexagonal boundaries. This document explains the
-implemented architecture; ADRs remain the durable decision log.
+`resrv` uses bounded contexts and hexagonal boundaries. This document describes the implemented
+architecture; ADRs record the decisions.
 
-## Bounded Contexts
+## Bounded contexts
 
 | Context | Owns |
 |---|---|
@@ -30,7 +30,7 @@ flowchart LR
     exchange --> kernel
 ```
 
-## Current Module State
+## Current module state
 
 The backend uses bounded-context Gradle modules. The bounded-context collapse is
 recorded in [ADR-0017](adr/0017-collapse-to-bounded-context-modules.md),
@@ -67,7 +67,7 @@ flowchart TD
 [ADR-0001](adr/0001-bounded-context-module-baseline.md) records the superseded 11-module baseline.
 Hexagonal layers are enforced as packages.
 
-## Dependency Direction
+## Dependency direction
 
 Dependency direction points inward:
 
@@ -87,13 +87,13 @@ Rules:
   platform module.
 - Direct database access primitives are limited to outbound adapters.
 
-## Persistence Access Policy
+## Persistence access policy
 
 Owned persistence defaults to Spring Data JPA repositories inside `adapter.out.persistence`.
-Database-specific behavior may use native SQL or JDBC only inside outbound adapters. Current
-production use includes timeslot PostgreSQL advisory locks for reservation holds, ticketing
-selected-seat row coordination with deterministic ordering, and ticketing idempotency-key advisory
-locks for purchase confirmation.
+Database-specific behavior may use native SQL or JDBC only inside outbound adapters. Production code
+currently uses timeslot PostgreSQL advisory locks for reservation holds, ticketing selected-seat row
+coordination with deterministic ordering, and ticketing idempotency-key advisory locks for purchase
+confirmation.
 
 The persistence map is conceptual. Timeslot and ticketing store platform ids as UUIDs but do not
 add cross-schema foreign keys to platform tables.
@@ -120,7 +120,7 @@ erDiagram
     TICKETING_EVENT ||--o{ TICKETING_IDEMPOTENCY : scopes
 ```
 
-## Platform Context
+## Platform context
 
 Platform uses:
 
@@ -134,7 +134,7 @@ Platform uses:
 Account-scoped JWTs identify the caller. Business access is resolved server-side from membership
 data.
 
-## Account Security
+## Account security
 
 Platform owns repeated password failure tracking, password reset challenge persistence, reset token
 digesting, password hash update, and SMTP-compatible reset email delivery. Password reset delivery is
@@ -161,7 +161,7 @@ synchronous platform exchange APIs in the current modular monolith and keep even
 projections as a future option. See [ADR-0020](adr/0020-platform-exchange-boundary.md) for the
 module boundary that keeps those APIs out of the platform implementation module.
 
-## Timeslot Context
+## Timeslot context
 
 Timeslot uses:
 
@@ -187,7 +187,7 @@ expose resource slugs, handles, or URL-safe resource keys. Business slug remains
 continues to scope public booking discovery; resource-scoped public discovery uses business slug
 plus resource ID.
 
-## Ticketing Context
+## Ticketing context
 
 Ticketing owns ticket sale and purchase lifecycle data:
 
@@ -205,12 +205,12 @@ through `platform-exchange`. It does not add cross-schema foreign keys to platfo
 not read platform persistence directly.
 
 Ticketing exposes selected-seat purchase confirmation, customer ticket history, and authorized
-business purchase activity through the platform runtime. Purchase confirmation is the first durable
+business purchase activity through the platform runtime. Purchase confirmation is the first persisted
 ticket lifecycle action: it creates no pre-purchase checkout attempt, hold, cancellation,
 expiration, or general failed-attempt record. Customer purchase confirmation requires an
-idempotency key, replays the original public outcome for 24 hours, rejects changed same-key requests,
-and rejects retained expired keys after the replay window. Unavailable selected seats are reported
-as `409 Conflict`; idempotency problems expose stable public reasons `invalid_retry` and
+idempotency key, replays the original public outcome for 24 hours, rejects retries with changed
+details, and rejects retained expired keys after the replay window. Unavailable selected seats are
+reported as `409 Conflict`; idempotency problems expose stable public reasons `invalid_retry` and
 `expired_key`.
 
 Seat claiming is concurrency-safe in ticketing outbound persistence. Multi-seat claims use
@@ -226,7 +226,7 @@ title uniqueness, and separate public opaque identifiers are intentionally exclu
 baseline. Real payment authorization/settlement, queueing, waitlists, resale, and recurring or
 multi-session events remain future scope.
 
-## Reservation Correctness
+## Reservation correctness
 
 Hold creation uses PostgreSQL advisory transaction locking plus an active blocker query. This keeps
 correctness independent from cleanup jobs.
@@ -253,7 +253,7 @@ runtime state conflicts:
 - `422 Unprocessable Entity`: a syntactically valid hold request references a slot identity that is
   stale, policy-drifted, outside booking range, unavailable, or otherwise not currently bookable.
 
-## High-Contention Correctness Guidance
+## High-contention correctness guidance
 
 High-contention work in this project means correctness when many customers compete for the same
 limited capacity. New work should start from implemented reservation and ticketing behavior while
@@ -282,7 +282,7 @@ Canonical terms:
 | Server-side authority and non-enumeration | Business reservation operations and business ticket activity | Business access is resolved server-side, and IDOR-sensitive probes do not reveal whether inaccessible objects exist. | Missing and unauthorized sensitive lookups use the same not-found style public response. | Non-sensitive validation and operational facts may still expose specific causes when they do not reveal protected object existence. |
 | Queue and waitlist boundary | Current reservation and ticketing contention behavior | Current behavior protects correctness without product-level queue, waitlist, or deferred-claim semantics. | Losing customers receive conflict/unavailable outcomes rather than queue positions or deferred claims. | Queueing, waitlists, and runtime policy require separate design. |
 
-Use these applicability recommendations for future high-contention features:
+Classify future high-contention work this way:
 
 - `pattern-aligned`: The candidate shares a proven invariant and can reuse the review questions
   without changing product capability.
@@ -302,6 +302,6 @@ Review questions:
 - Which public responses must remain stable for losing contention or unauthorized probes?
 - Does the feature need a fresh spec or ADR because it adds new product or runtime behavior?
 
-## Decision Log
+## Decision log
 
 Architecture decisions live in [docs/adr](adr/).

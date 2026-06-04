@@ -29,11 +29,11 @@ Creating a business creates owner membership for the creator account.
 
 ## Alternatives
 
-### Keep Tenant Terminology
+### Keep tenant terminology
 
 Tenant is common in SaaS architecture, but the product-facing domain is clearer with Business.
 
-### Put Role Claims In JWT
+### Put role claims in JWT
 
 This avoids membership lookup on each business operation, but role claims become stale and can be
 misused across businesses.
@@ -43,4 +43,3 @@ misused across businesses.
 - Business authorization is a server-side lookup.
 - Account identity and business access are separate.
 - Timeslot can reference `business_id` without owning platform membership rules.
-

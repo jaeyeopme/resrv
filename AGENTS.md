@@ -1,6 +1,6 @@
 # AGENTS.md
 
-## Project Snapshot
+## Project snapshot
 
 `resrv` is a Java 25 + Spring Boot 4 backend for business reservation workflows.
 It models accounts, businesses, staff access, booking setup, generated slots,
@@ -27,7 +27,7 @@ activity behavior contributed to the platform runtime. `timeslot` and
 `ticketing` `bootJar` and `bootRun` tasks are intentionally disabled so they do
 not become additional supported backend runtimes.
 
-## Required Commands
+## Required commands
 
 Run formatting before full verification:
 
@@ -45,7 +45,7 @@ Run the platform API locally:
 
 Tests use Testcontainers. Docker must be running.
 
-## Project Entry Points
+## Project entry points
 
 | File | Purpose |
 |---|---|
@@ -63,7 +63,7 @@ Supporting docs:
 
 ADRs are the decision record. Generated OpenAPI is the endpoint contract.
 
-## API Contract
+## API contract
 
 Generated OpenAPI/Swagger is the API contract surface. Do not create or maintain a hand-written
 `docs/api.md` endpoint catalog.
@@ -82,14 +82,14 @@ When changing API behavior:
 - Mention only high-level API groups in narrative docs unless a concrete endpoint example is needed
   to explain a decision.
 
-## Authorization Responses
+## Authorization responses
 
 - IDOR-sensitive object lookups must not reveal whether a probed object id exists when the caller
   lacks authority to access it.
 - For those lookups, missing objects and existing objects outside caller authority must return the
   same not-found style public response; keep any cause distinction internal and non-sensitive.
 
-## Persistence Access
+## Persistence access
 
 - Production code defaults to Spring Data JPA for owned persistence.
 - Direct database access primitives (`EntityManager`, `DataSource`, native SQL) belong only in
@@ -99,7 +99,7 @@ When changing API behavior:
 - Timeslot and ticketing must not read platform tables directly. Use explicit
   `platform-exchange` APIs from their outbound platform adapters.
 
-## Commit Messages
+## Commit messages
 
 Match the repository's existing Conventional Commit subject style before committing.
 
@@ -123,7 +123,7 @@ Rules:
 - Do not use `Confidence:` or `Scope-risk:` in normal commit messages.
 - Never include file lists, tool attribution, or work-log narration in commit messages.
 
-## Pull Request Descriptions
+## Pull request descriptions
 
 Use `.github/pull_request_template.md` for PR bodies.
 
@@ -138,7 +138,7 @@ PR descriptions should explain reviewer-relevant context:
 Keep PR bodies detailed enough for client review, but do not turn them into a chronological work log.
 Do not include tool attribution, generated-by footers, model names, or co-author trailers.
 
-## Durable Learnings
+## Durable learnings
 
 > One-liner rules added after PR corrections. Format: `- <rule>`
 

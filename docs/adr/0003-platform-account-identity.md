@@ -36,11 +36,11 @@ validated at command and domain boundaries.
 
 ## Alternatives
 
-### Keep Separate Admin And Customer Identities
+### Keep separate admin and customer identities
 
 This preserves old terminology but duplicates identity, login, and token flows.
 
-### Model Customer As A Separate Aggregate Immediately
+### Model customer as a separate aggregate immediately
 
 This may be needed later for profile, preferences, or CRM data. It is not required for reservation
 ownership in the current scope.
@@ -50,4 +50,3 @@ ownership in the current scope.
 - Owners, staff, and customers all authenticate as accounts.
 - Role and business access are not account properties.
 - Customer reservation ownership can reference `customer_account_id`.
-

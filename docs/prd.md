@@ -1,4 +1,4 @@
-# Product Requirements
+# Product requirements
 
 ## Overview
 
@@ -39,7 +39,7 @@ actors review completed purchase activity.
 - Expose generated Swagger/OpenAPI docs for inspection.
 - Keep durable architecture decisions explicit in ADRs.
 
-## Non-Goals
+## Non-goals
 
 - Payments, deposits, invoices, and refunds.
 - SMS, push notifications, or reminder delivery.
@@ -50,7 +50,7 @@ actors review completed purchase activity.
 - Ticket checkout attempts, ticket holds, failed-attempt ledgers, refunds, cancellations, resale,
   waitlists, seating-map UI, and public ticket marketing discovery.
 
-## Product Concepts
+## Product concepts
 
 | Concept | Meaning |
 |---|---|
@@ -69,23 +69,23 @@ actors review completed purchase activity.
 | Sign-in protection | Account-scoped state requiring password reset after repeated failed password sign-ins |
 | Password reset challenge | Single-use email recovery link that clears sign-in protection when completed |
 
-## Core Flows
+## Core flows
 
-### Platform Onboarding
+### Platform onboarding
 
 1. Register account.
 2. Login and receive account-scoped JWT.
 3. Create business.
 4. Owner membership is created for the business.
 
-### Business Setup
+### Business setup
 
 1. Configure business booking settings.
 2. Create resources.
 3. Replace weekly schedule windows.
 4. Replace date override windows when needed.
 
-### Staff Membership Administration
+### Staff membership administration
 
 1. Owner grants staff access to an existing active account by login email.
 2. Owner lists current active and inactive memberships with account summaries.
@@ -93,7 +93,7 @@ actors review completed purchase activity.
 4. Owner changes a membership role between `STAFF` and `OWNER`.
 5. Owner disables membership; request-time business access uses the updated server-side state.
 
-### Customer Booking
+### Customer booking
 
 1. List active resources.
 2. List virtual slots for a resource and date.
@@ -101,7 +101,7 @@ actors review completed purchase activity.
 4. Confirm or release the hold.
 5. Cancel confirmed reservation before the cancellation cutoff.
 
-### Customer Ticket Purchase
+### Customer ticket purchase
 
 1. Confirm selected seats for an active ticket event with a customer-scoped idempotency key.
 2. Receive the original public outcome again when retrying the same key and selected seats within
@@ -109,7 +109,7 @@ actors review completed purchase activity.
 3. Receive a stable unavailable-seat conflict when selected seats are already purchased.
 4. View completed successful ticket purchases in customer ticket history.
 
-### Business Operations
+### Business operations
 
 1. Business owner or staff lists reservations for a business-local date.
 2. Business owner or staff filters the list by resource, customer account, or derived state.
@@ -118,7 +118,7 @@ actors review completed purchase activity.
 5. Business owner or staff marks no-show after end time.
 6. Business owner or staff reviews completed ticket purchase activity for an event they can access.
 
-### Account Recovery
+### Account recovery
 
 1. Password sign-in failures remain non-enumerating.
 2. The fifth failed password sign-in attempt for an existing account sends a password reset email.
@@ -127,7 +127,7 @@ actors review completed purchase activity.
    protection.
 5. Account-level sign-in protection does not affect other accounts or public booking availability.
 
-## Acceptance Criteria
+## Acceptance criteria
 
 - Account login issues a JWT with account identity only.
 - Five failed password sign-in attempts for the same account require password reset through email.
@@ -162,7 +162,7 @@ actors review completed purchase activity.
 - Business ticket activity must require active owner/staff membership and must not reveal whether an
   inaccessible ticket event exists.
 
-## Open Product Questions
+## Open product questions
 
 - Whether customers need profile data beyond `Account`.
 - Current runtime packaging uses the platform runtime to serve platform, booking, and

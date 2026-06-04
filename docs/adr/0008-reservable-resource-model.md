@@ -41,11 +41,11 @@ reimplemented by application services.
 
 ## Alternatives
 
-### Store All Booking Policy Only On Resource
+### Store all booking policy only on resource
 
 This gives maximum flexibility but duplicates common defaults across resources.
 
-### Omit Resource Overrides
+### Omit resource overrides
 
 This is simpler, but many businesses need one resource to differ from the default schedule or policy.
 

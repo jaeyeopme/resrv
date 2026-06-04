@@ -33,11 +33,11 @@ Before upsert, validate command values and confirm the business is active throug
 
 ## Alternatives
 
-### Hard-Code Booking Policy
+### Hard-code booking policy
 
 This is simpler, but each business needs configurable booking behavior.
 
-### Store Settings In Platform
+### Store settings in platform
 
 Booking policy belongs to timeslot, not platform identity and membership.
 
@@ -46,4 +46,3 @@ Booking policy belongs to timeslot, not platform identity and membership.
 - Timeslot application depends on a narrow business lookup port, not platform domain code.
 - Settings validation happens before persistence.
 - Resource-level overrides can later fall back to business settings.
-

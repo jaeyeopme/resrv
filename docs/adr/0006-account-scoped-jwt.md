@@ -38,11 +38,11 @@ business-local authority.
 
 ## Alternatives
 
-### Put Business Role Claims In JWT
+### Put business role claims in JWT
 
 This reduces database lookups but creates stale authorization and cross-business misuse risk.
 
-### Session-Based Authentication
+### Session-based authentication
 
 Sessions are viable for browser apps, but an API-first backend benefits from bearer tokens and
 generated API review.

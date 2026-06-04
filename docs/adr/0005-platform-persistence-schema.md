@@ -41,11 +41,11 @@ needed.
 
 ## Alternatives
 
-### Application-Only Uniqueness Checks
+### Application-only uniqueness checks
 
 These are useful for clear errors but do not protect against races.
 
-### Single Public Schema
+### Single public schema
 
 A single schema is simpler, but schema separation makes platform/timeslot ownership visible in the
 database.
@@ -55,4 +55,3 @@ database.
 - Platform tables are owned by platform persistence adapters.
 - Database constraints become part of correctness, not just documentation.
 - Timeslot does not add cross-schema foreign keys to platform in the current design.
-

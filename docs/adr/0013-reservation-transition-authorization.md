@@ -44,11 +44,11 @@ Rules:
 
 ## Alternatives
 
-### Controller-Only Authorization
+### Controller-only authorization
 
 This is easier initially but lets non-web adapters bypass rules.
 
-### Role Claims In JWT
+### Role claims in JWT
 
 This avoids a membership lookup but duplicates business access state into tokens.
 
@@ -57,4 +57,3 @@ This avoids a membership lookup but duplicates business access state into tokens
 - Authorization is part of application behavior.
 - Web adapters remain thin.
 - Tests can verify transition rules without HTTP.
-

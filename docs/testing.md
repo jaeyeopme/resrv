@@ -1,7 +1,6 @@
-# Testing Strategy
+# Testing strategy
 
-This document explains the verification strategy for this backend. It focuses on runnable checks and
-the behavior those checks protect.
+This document lists the checks for this backend and the behavior those checks protect.
 
 ## Goals
 
@@ -22,7 +21,7 @@ the behavior those checks protect.
 
 Docker must be running because persistence and API integration tests use Testcontainers.
 
-## Test Layers
+## Test layers
 
 | Layer | Location | Purpose |
 |---|---|---|
@@ -34,7 +33,7 @@ Docker must be running because persistence and API integration tests use Testcon
 | Architecture tests | `platform/src/test/.../architecture`, `timeslot/src/test/.../architecture`, `ticketing/src/test/.../architecture` | Package/module dependency rules |
 | Platform exchange architecture tests | `platform-exchange/src/test` | Pure Java exchange boundary and event-package guard |
 
-## Coverage Gates
+## Coverage gates
 
 JaCoCo line coverage minimums are configured in the root `build.gradle.kts`.
 
@@ -49,7 +48,7 @@ JaCoCo line coverage minimums are configured in the root `build.gradle.kts`.
 `platform` and `timeslot` also keep package-level gates for application, web adapter, and
 persistence adapter packages so aggregate module coverage cannot hide a drop in one layer.
 
-## Architecture Rules
+## Architecture rules
 
 ArchUnit verifies:
 
@@ -75,7 +74,7 @@ ArchUnit verifies:
   annotations; those annotations live on same-package `*ApiDocs` interfaces implemented by the
   adapters.
 
-## Behavior Coverage
+## Behavior coverage
 
 The test suite is organized around behavior guarantees rather than endpoint catalogs:
 
@@ -109,14 +108,14 @@ Ticket purchase idempotency uses a 24-hour replay window. Expired idempotency re
 until 30 days after replay expiry and may be cleaned later, but cleanup is not required for purchase
 correctness.
 
-## High-Contention Correctness Review
+## High-contention correctness review
 
 Use the architecture high-contention correctness guidance before implementing a new flow that can
 lose correctness when many callers compete for the same limited capacity. Review language must preserve
 each bounded context's own terms: reservation work can talk about generated slots and active
 blockers, while ticketing work can talk about selected-seat ownership and purchase idempotency.
 
-Review questions:
+Questions to answer:
 
 - Can capacity be overbooked, oversold, or partially claimed under concurrent attempts?
 - Does the flow protect generated availability and active blockers, selected ownership, or another
@@ -127,8 +126,8 @@ Review questions:
 - Which public responses must remain stable for losing contention or unauthorized probes?
 - Does the feature need a fresh spec or ADR because it adds new product or runtime behavior?
 
-Future public behavior changes for high-contention flows must be visible through the accepted public
-contract and covered by end-to-end verification appropriate to the change. API behavior changes must
+Public behavior changes for high-contention flows must be visible through the accepted public
+contract and covered by end-to-end verification that fits the change. API behavior changes must
 update generated OpenAPI coverage and API integration tests. Documentation-only pattern updates
 should state why runtime tests were not run.
 
@@ -143,7 +142,7 @@ spring.datasource.driver-class-name=org.testcontainers.jdbc.ContainerDatabaseDri
 
 JWT tests use a fixed local test secret and test issuer/audience values.
 
-## Runtime Packaging Verification
+## Runtime packaging verification
 
 ```bash
 ./gradlew :platform:test --tests io.resrv.platform.api.PlatformRuntimePackagingIntegrationTest
@@ -152,7 +151,7 @@ JWT tests use a fixed local test secret and test issuer/audience values.
 ./gradlew :platform:jibDockerBuild
 ```
 
-## Known Gaps
+## Known gaps
 
 - Separate timeslot or ticketing service runtimes are deferred until a later explicit runtime split
   and outbox/message-broker design.

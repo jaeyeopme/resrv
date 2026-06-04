@@ -10,11 +10,11 @@ well: preventing duplicate reservation holds, preventing selected-seat oversell,
 making repeated purchase confirmations safe, and resolving business access on
 the server instead of trusting client-provided tenant or role data.
 
-The project demonstrates a modular-monolith API with bounded-context modules,
-generated OpenAPI, PostgreSQL persistence, account-scoped security,
-transactional contention handling, and automated quality gates.
+`resrv` keeps those concerns in a small modular-monolith API with generated
+OpenAPI, PostgreSQL persistence, account-scoped security, transactional
+contention handling, and automated checks.
 
-## At A Glance
+## At a glance
 
 | Area | Current state |
 |---|---|
@@ -27,24 +27,23 @@ transactional contention handling, and automated quality gates.
 | Modules | `platform`, `timeslot`, `ticketing`, `platform-exchange`, `shared-kernel` |
 | Verification | Gradle `check`, Testcontainers, ArchUnit, JaCoCo, Checkstyle, Spotless, OpenRewrite |
 
-## What This Shows
+## What the code shows
 
-The repository is structured to make core backend design choices easy to inspect:
+The codebase keeps these choices visible:
 
-- **Bounded contexts**: platform identity, booking, ticketing, exchange APIs,
-  and shared primitives are separated by Gradle modules and package rules.
-- **Authorization model**: JWTs identify only the account. Business access,
-  reservation ownership, and ticket activity access are resolved server-side.
-- **Contention correctness**: reservation holds use PostgreSQL advisory
-  locks and active blocker checks; ticket purchase confirmation uses
-  all-or-nothing selected-seat ownership and idempotency replay.
-- **API contract discipline**: generated OpenAPI is the endpoint and schema
-  contract; hand-written endpoint catalogs are avoided.
-- **Quality gates**: tests cover domain behavior, application use cases,
-  persistence, API flows, runtime wiring, architecture rules, and coverage
-  thresholds.
+- Gradle modules and package rules separate platform identity, booking,
+  ticketing, exchange APIs, and shared primitives.
+- JWTs identify only the account. Business access, reservation ownership, and
+  ticket activity access are resolved server-side.
+- Reservation holds use PostgreSQL advisory locks and active blocker checks.
+  Ticket purchase confirmation uses all-or-nothing selected-seat ownership and
+  idempotency replay.
+- Generated OpenAPI is the endpoint and schema contract. The repository avoids a
+  hand-written endpoint catalog.
+- Tests cover domain behavior, application use cases, persistence, API flows,
+  runtime wiring, architecture rules, and coverage thresholds.
 
-## Quick Start
+## Quick start
 
 Prerequisites:
 
@@ -85,7 +84,7 @@ Open the generated API and health surfaces:
 - Liveness: <http://localhost:8080/actuator/health/liveness>
 - Readiness: <http://localhost:8080/actuator/health/readiness>
 
-## Implemented Scope
+## Implemented scope
 
 | Area | Implemented behavior |
 |---|---|
@@ -100,10 +99,10 @@ Open the generated API and health surfaces:
 
 Terminology:
 
-- **Booking** means the broader scheduling workflow: settings, resources,
-  schedules, generated slots, discovery, and hold creation.
-- **Reservation** means the persisted time-range record and lifecycle facts:
-  hold, confirm, release, cancel, check-in, and no-show.
+- Booking means the broader scheduling workflow: settings, resources, schedules,
+  generated slots, discovery, and hold creation.
+- Reservation means the persisted time-range record and lifecycle facts: hold,
+  confirm, release, cancel, check-in, and no-show.
 
 ## Architecture
 
@@ -112,7 +111,7 @@ and `ticketing` contribute booking and ticketing behavior to that process.
 `platform-exchange` is a plain Java module for cross-context lookup and access
 decisions. It is not HTTP, messaging, or an outbox layer.
 
-The runtime path is intentionally simple:
+The runtime path is simple:
 
 1. API clients call the `platform` Spring Boot app.
 2. The platform runtime assembles platform, booking, and ticketing API groups.
@@ -164,9 +163,9 @@ disabled, so there is one supported backend runtime.
 More detail: [docs/architecture.md](docs/architecture.md) and
 [docs/trd.md](docs/trd.md).
 
-## Correctness Examples
+## Correctness examples
 
-### Reservation Holds
+### Reservation holds
 
 Hold creation starts from a public business slug. The platform context resolves
 the active business, then timeslot validates the resource, slot identity, and
@@ -210,9 +209,9 @@ Reservation state is derived from timestamp facts on the reservation row. Held,
 confirmed, and checked-in reservations block capacity. Expired, released,
 cancelled, and no-show reservations do not.
 
-### Ticket Purchases
+### Ticket purchases
 
-Ticketing models selected-seat purchases as the first durable lifecycle action:
+Ticketing treats purchase confirmation as the first persisted ticket action:
 
 - A successful confirmation creates one ticket purchase and marks every selected
   seat as purchased.
@@ -220,7 +219,7 @@ Ticketing models selected-seat purchases as the first durable lifecycle action:
 - Contending customers cannot oversell a selected seat.
 - Customer-scoped idempotency keys replay the original public outcome for 24
   hours.
-- Changed same-key retries and retained expired keys return stable public
+- Retries with changed details and retained expired keys return stable public
   problem reasons.
 
 ```mermaid
@@ -251,7 +250,7 @@ sequenceDiagram
     end
 ```
 
-## API Contract
+## API contract
 
 The platform runtime generates the API contract:
 
@@ -264,10 +263,9 @@ or a committed OpenAPI snapshot. Narrative docs describe product scope,
 architecture, security boundaries, and testing strategy. Exact paths, methods,
 schemas, and response documentation come from generated OpenAPI.
 
-## Build Evidence
+## Build outputs
 
-Evidence is produced by local build and runtime commands instead of committed as
-standalone snapshots:
+Local build and runtime commands produce the files a reviewer needs:
 
 | Evidence | How to generate | Where to inspect |
 |---|---|---|
@@ -279,14 +277,15 @@ standalone snapshots:
 | Executable API jar | `./gradlew :platform:bootJar` | `platform/build/libs/resrv-platform-api-0.0.1-SNAPSHOT.jar` |
 | Local container image | `./gradlew :platform:jibDockerBuild` | `resrv-platform-api:latest` |
 
-No extra standalone artifact file is required now. Static OpenAPI snapshots,
-Postman collections, exported ERD images, and operations guides would duplicate
-generated OpenAPI, Flyway migrations, runtime health probes, or the existing
-design documents. Presentation and sales assets belong outside this repository.
+The repository does not need extra snapshot files right now. Static OpenAPI
+snapshots, Postman collections, exported ERD images, and operations guides would
+duplicate generated OpenAPI, Flyway migrations, runtime health probes, or the
+existing design documents. Presentation and sales assets belong outside this
+repository.
 
-## Architecture References
+## Architecture references
 
-Architecture detail lives in the durable docs and ADRs:
+Architecture detail lives in docs and ADRs:
 
 | Reference | Location |
 |---|---|
@@ -295,7 +294,7 @@ Architecture detail lives in the durable docs and ADRs:
 | Persistence ownership map | [docs/architecture.md](docs/architecture.md#persistence-access-policy) |
 | Contention correctness catalog | [docs/architecture.md](docs/architecture.md#high-contention-correctness-guidance) |
 
-## Quality Gates
+## Quality gates
 
 The primary check sequence is:
 
@@ -317,7 +316,7 @@ Focused checks:
 ./gradlew :platform:test --tests io.resrv.platform.api.PlatformOperationalReadinessIntegrationTest
 ```
 
-## Documentation Map
+## Documentation map
 
 | Document | Purpose |
 |---|---|
@@ -328,9 +327,9 @@ Focused checks:
 | [docs/testing.md](docs/testing.md) | Test strategy, quality gates, coverage thresholds, and focused verification commands |
 | [docs/adr/README.md](docs/adr/README.md) | Architecture decision record index |
 
-## Project Boundaries
+## Project boundaries
 
-Current non-goals:
+Out of scope now:
 
 - Load benchmarking, traffic simulation, and production capacity planning.
 - Payments, deposits, invoices, and refunds.

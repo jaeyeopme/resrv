@@ -35,12 +35,12 @@ bounded contexts.
 
 ## Alternatives
 
-### Duplicate IDs Per Context
+### Duplicate IDs per context
 
 This keeps contexts purer, but it would add boilerplate mapping between platform and timeslot for
 the same UUID values.
 
-### Put IDs In A General Common Module
+### Put IDs in a general common module
 
 A broad common module tends to collect unrelated utilities. `shared-kernel` is narrower and should
 not become a dumping ground.
@@ -50,4 +50,3 @@ not become a dumping ground.
 - Platform and timeslot can share ID types without sharing domain models.
 - `shared-kernel` must remain stable and small.
 - New shared types require high scrutiny because they create cross-context coupling.
-

@@ -80,7 +80,7 @@ Use ArchUnit to enforce:
 
 ## Alternatives
 
-### Keep ADR-0001 Structure
+### Keep ADR-0001 structure
 
 Keep the current 11-module layout.
 
@@ -95,7 +95,7 @@ Costs:
 - Higher onboarding cost.
 - Slower refactoring while the model is still in flux.
 
-### Collapse Further To One Module
+### Collapse further to one module
 
 Use only the root project or one application module.
 

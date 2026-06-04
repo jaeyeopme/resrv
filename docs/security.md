@@ -1,6 +1,6 @@
 # Security
 
-## Security Goals
+## Security goals
 
 - Authenticate callers as platform accounts.
 - Resolve business authorization on the server.
@@ -8,7 +8,7 @@
 - Keep generated API documentation public while protecting application endpoints.
 - Make deferred hardening explicit.
 
-## JWT Model
+## JWT model
 
 JWTs are signed with HS256.
 
@@ -38,7 +38,7 @@ JWTs must not contain:
 Passwords are hashed with Spring Security's Argon2 password encoder. Login uses a dummy hash path
 for invalid inputs or missing accounts to reduce obvious timing differences.
 
-## Repeated Failed Sign-In Recovery
+## Repeated failed sign-in recovery
 
 After 5 failed password sign-in attempts for the same account, the platform requires password reset
 through the registered email address. The fifth failure sends a password reset email immediately.
@@ -62,7 +62,7 @@ Configuration:
 | `resrv.security.password-reset.public-base-url` | Public base URL used to build password reset links |
 | `resrv.security.password-reset.token-ttl` | Password reset link lifetime |
 
-## Public Exposure
+## Public exposure
 
 This section describes public exposure, not the full endpoint contract. Generated OpenAPI from the
 platform runtime remains the canonical endpoint and schema contract.
@@ -95,7 +95,7 @@ Resource-scoped object probes also use a generic public not-found response when 
 is missing or belongs outside the addressed business. The request path may still identify the
 attempted object; the problem detail must not reveal ownership or existence facts.
 
-## Business Authorization
+## Business authorization
 
 Business write operations require active `BusinessMembership` with role `OWNER` or `STAFF`.
 
@@ -119,7 +119,7 @@ availability data, while `BusinessSummaryLookup` may return inactive businesses 
 customer-owned reservation rendering. Neither lookup should replace `BusinessAccessCheck` for
 business-scoped authorization.
 
-## Reservation Authorization
+## Reservation authorization
 
 Customer-scoped transitions require reservation ownership:
 
@@ -143,7 +143,7 @@ Business reservation operations keep business-membership authorization semantics
 active owner/staff access receives `403`; a reservation id outside the addressed business is treated
 as not found for that route.
 
-## Ticketing Authorization
+## Ticketing authorization
 
 Ticket purchase confirmation requires an authenticated customer account. Unavailable selected seats
 return `409 Conflict` without exposing the customer who owns the seats.
@@ -161,7 +161,7 @@ public problem reasons `invalid_retry` and `expired_key`. The replay window is 2
 records remain retained until 30 days after replay expiry. Cleanup after retention must not be a
 precondition for purchase correctness.
 
-## Data Boundary
+## Data boundary
 
 Timeslot rows carry `business_id` and `customer_account_id` UUIDs. Ticketing rows carry
 `business_id`, ticketing-owned ids, customer account ids, purchased seat ids, and customer-scoped
@@ -169,15 +169,15 @@ idempotency keys. Business existence, active status, and access decisions are re
 platform lookup or access ports. The current migrations do not use cross-schema foreign keys from
 timeslot or ticketing to platform.
 
-## Deferred Hardening
+## Deferred hardening
 
-These are intentionally not implemented in the current phase:
+These are not implemented in the current phase:
 
 - Active hold quota per customer.
 - Token revocation or logout blacklist for account-scoped JWTs.
 - Production CORS, CSRF, and deployment-specific network policy.
 
-## Operational Requirements
+## Operational requirements
 
 - `RESRV_JWT_SECRET_KEY` must be at least 32 bytes.
 - Do not use the documented development secret outside local development or tests.

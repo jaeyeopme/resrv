@@ -43,12 +43,12 @@ Timeslot security accepts account-scoped JWTs and resolves business access serve
 
 ## Alternatives
 
-### Put Timeslot Controllers In Platform API
+### Put timeslot controllers in platform API
 
 This would reduce runtime modules but erase the boundary between platform lifecycle and booking
 workflow.
 
-### Let Timeslot Read Platform Schema Directly
+### Let timeslot read platform schema directly
 
 This avoids a compile-time platform dependency but couples timeslot to platform table and column
 names.

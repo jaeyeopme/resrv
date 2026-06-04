@@ -31,12 +31,12 @@ availability for that day/date.
 
 ## Alternatives
 
-### Persist Generated Availability Per Date
+### Persist generated availability per date
 
 This makes slot lookup simple but creates storage churn and regeneration complexity when settings
 change.
 
-### Only Weekly Schedules
+### Only weekly schedules
 
 Weekly schedules are not enough for holidays, closures, or special operating days.
 
@@ -45,4 +45,3 @@ Weekly schedules are not enough for holidays, closures, or special operating day
 - Slot generation must check date override first, then weekly schedule.
 - Schedules are stored as local times and interpreted using business timezone.
 - Persistence owns window ordering and replacement behavior.
-
