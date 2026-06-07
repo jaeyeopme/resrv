@@ -1,18 +1,24 @@
 # resrv
 
+> Contention-safe reservation and selected-seat ticketing backend in Java 25.
+
 [![CI](https://github.com/jaeyeopme/resrv/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/jaeyeopme/resrv/actions/workflows/ci.yml)
 
-`resrv` is a Spring Boot and PostgreSQL backend for scarce-capacity reservation
-and ticketing workflows.
+`resrv` is a Spring Boot 4 and PostgreSQL backend for businesses that manage
+scarce capacity: time slots, resources, and selected seats.
 
-It focuses on the backend problems that make these domains hard to implement
-well: preventing duplicate reservation holds, preventing selected-seat oversell,
-making repeated purchase confirmations safe, and resolving business access on
-the server instead of trusting client-provided tenant or role data.
+The interesting part is not CRUD. This repo focuses on the paths that usually
+break first in reservation systems:
 
-`resrv` keeps those concerns in a small modular-monolith API with generated
-OpenAPI, PostgreSQL persistence, account-scoped security, transactional
-contention handling, and automated checks.
+- two customers trying to hold the same time range
+- two customers trying to buy the same selected seat
+- the same purchase confirmation being retried
+- a generated slot becoming stale after schedule or policy changes
+- business access changing after a JWT has already been issued
+
+The result is one modular-monolith API with generated OpenAPI, PostgreSQL-backed
+contention control, account-scoped security, bounded-context package rules, and
+automated verification.
 
 ## At a glance
 
@@ -27,17 +33,71 @@ contention handling, and automated checks.
 | Modules | `platform`, `timeslot`, `ticketing`, `platform-exchange`, `shared-kernel` |
 | Verification | Gradle `check`, Testcontainers, ArchUnit, JaCoCo, Checkstyle, Spotless, OpenRewrite |
 
-## What the code shows
+## Start here
 
-The codebase keeps these choices visible:
+| If you want to... | Read or run |
+|---|---|
+| Run the API locally | [Quick start](#quick-start) |
+| Inspect endpoints and schemas | [API contract](#api-contract) |
+| Understand the module split | [Architecture](#architecture) |
+| Review concurrency behavior | [Correctness examples](#correctness-examples) |
+| Verify a change | [Quality gates](#quality-gates) |
+| Cut a public artifact | [Releases and packages](#releases-and-packages) |
+
+## Repository layout
+
+```text
+.
+|-- .github/
+|   |-- pull_request_template.md
+|   `-- workflows/
+|       |-- ci.yml
+|       `-- release.yml
+|-- config/
+|   `-- checkstyle/
+|-- docs/
+|   |-- adr/
+|   |-- architecture.md
+|   |-- prd.md
+|   |-- security.md
+|   |-- testing.md
+|   `-- trd.md
+|-- gradle/
+|   `-- libs.versions.toml
+|-- platform/
+|   `-- src/
+|-- platform-exchange/
+|   `-- src/
+|-- shared-kernel/
+|   `-- src/
+|-- ticketing/
+|   `-- src/
+|-- timeslot/
+|   `-- src/
+|-- AGENTS.md
+|-- LICENSE
+|-- README.md
+|-- build.gradle.kts
+|-- compose.yml
+|-- settings.gradle.kts
+`-- rewrite.yml
+```
+
+Generated Gradle outputs, local IDE state, local environment files, and local
+agent working directories are intentionally ignored.
+
+## What to inspect
+
+The codebase is organized around a few backend guarantees:
 
 - Gradle modules and package rules separate platform identity, booking,
   ticketing, exchange APIs, and shared primitives.
 - JWTs identify only the account. Business access, reservation ownership, and
   ticket activity access are resolved server-side.
-- Reservation holds use PostgreSQL advisory locks and active blocker checks.
-  Ticket purchase confirmation uses all-or-nothing selected-seat ownership and
-  idempotency replay.
+- Reservation holds use PostgreSQL advisory locks and active blocker checks
+  instead of trusting previously generated availability.
+- Ticket purchase confirmation uses all-or-nothing selected-seat ownership and
+  customer-scoped idempotency replay.
 - Generated OpenAPI is the endpoint and schema contract. The repository avoids a
   hand-written endpoint catalog.
 - Tests cover domain behavior, application use cases, persistence, API flows,
@@ -48,23 +108,8 @@ The codebase keeps these choices visible:
 Prerequisites:
 
 - JDK 25.
-- Docker, because integration tests use Testcontainers.
+- Docker for local PostgreSQL and Testcontainers-backed checks.
 - Node 24 if you want commitlint and Lefthook installed locally.
-
-Install repository tooling:
-
-```bash
-npm ci
-npm run hooks:install
-```
-
-Run the main verification path:
-
-```bash
-./gradlew spotlessApply
-./gradlew rewriteDryRun
-./gradlew check
-```
 
 Run the API locally:
 
@@ -83,6 +128,21 @@ Open the generated API and health surfaces:
 - OpenAPI YAML: <http://localhost:8080/v3/api-docs.yaml>
 - Liveness: <http://localhost:8080/actuator/health/liveness>
 - Readiness: <http://localhost:8080/actuator/health/readiness>
+
+Install repository tooling when you plan to commit:
+
+```bash
+npm ci
+npm run hooks:install
+```
+
+Run the main verification path before opening a PR:
+
+```bash
+./gradlew spotlessApply
+./gradlew rewriteDryRun
+./gradlew check
+```
 
 ## Implemented scope
 
@@ -283,6 +343,22 @@ duplicate generated OpenAPI, Flyway migrations, runtime health probes, or the
 existing design documents. Presentation and sales assets belong outside this
 repository.
 
+## Releases and packages
+
+Tagged releases use `vMAJOR.MINOR.PATCH`, for example `v0.1.0`.
+
+When a matching tag is pushed, `.github/workflows/release.yml`:
+
+1. Runs OpenRewrite dry run and `check`.
+2. Builds the platform executable jar with the tag version.
+3. Creates a GitHub Release with the jar attached.
+4. Publishes the runnable API image to GitHub Container Registry as
+   `ghcr.io/jaeyeopme/resrv-platform-api:MAJOR.MINOR.PATCH`.
+
+Manual releases can also be started from the GitHub Actions tab with the same
+version format. Java module jars are not published to Maven packages yet because
+only the `platform` API runtime is a supported public artifact.
+
 ## Architecture references
 
 Architecture detail lives in docs and ADRs:
@@ -326,6 +402,10 @@ Focused checks:
 | [docs/security.md](docs/security.md) | Authentication, authorization, public exposure, data boundaries, and deferred hardening |
 | [docs/testing.md](docs/testing.md) | Test strategy, quality gates, coverage thresholds, and focused verification commands |
 | [docs/adr/README.md](docs/adr/README.md) | Architecture decision record index |
+
+## License
+
+This project is licensed under the [MIT License](LICENSE).
 
 ## Project boundaries
 

@@ -44,6 +44,7 @@ val jacocoPackageLineCoverageMinimums =
                 "io.resrv.timeslot.adapter.out.persistence.settings" to "0.90".toBigDecimal(),
             ),
     )
+val releaseVersion = providers.gradleProperty("releaseVersion").orElse("0.0.1-SNAPSHOT")
 
 plugins {
     alias(libs.plugins.spring.boot) apply false
@@ -70,7 +71,7 @@ spotless {
 
 subprojects {
     group = "io.resrv"
-    version = "0.0.1-SNAPSHOT"
+    version = releaseVersion.get()
 
     repositories {
         mavenCentral()
